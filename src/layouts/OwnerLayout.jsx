@@ -1,63 +1,88 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useOwnerLayoutData } from '@/hooks/useOwnerLayoutData';
-import { APP_CONFIG } from '@/config/app.config';
-import { cn } from '@/lib/utils';
 import ApperIcon from '@/components/ApperIcon';
 import UserMenu from '@/components/UserMenu';
-import { ErrorBoundary } from '@/components/ui/error-boundary';
+import ThemeToggle from '@/components/ThemeToggle';
+import { cn } from '@/lib/utils';
 
-/**
- * Placeholder owner shell — a plain top bar so the app is navigable before it is designed.
- * Overwrite it with the app's own shell (Platform Contract §12). Whatever the shape, keep
- * the parts: nav from useOwnerLayoutData(), UserMenu once, the page through <Outlet /> in
- * <main>. This is a layout route: it receives no `children` prop.
- */
 export default function OwnerLayout() {
-  const { user, logout, homeRoute, navItems, navGroups, initials, displayName, counts } = useOwnerLayoutData();
-  const grouped = navGroups.length ? navGroups : [{ label: null, items: navItems }];
-  const [navOpen, setNavOpen] = useState(false);
+  const { navItems = [], navGroups = [], displayName = 'Student', initials = 'ST' } = useOwnerLayoutData();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  const nav = grouped.map((g, i) => (
-    <div key={g.label ?? `g-${i}`} className="flex flex-wrap items-center gap-1">
-      {g.label && <span className="px-2 text-xs uppercase tracking-wide text-muted-foreground">{g.label}</span>}
-      {g.items.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.to === '/'}
-          onClick={() => setNavOpen(false)}
-          className={({ isActive }) => cn(
-            'flex items-center gap-2 rounded-md px-3 py-2 text-sm',
-            isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground',
-          )}
-        >
-          <ApperIcon name={item.icon ?? 'Circle'} size={18} />
-          <span>{item.label}</span>
-          {counts[item.to] != null && <span className="text-xs text-muted-foreground">{counts[item.to]}</span>}
-        </NavLink>
-      ))}
-    </div>
-  ));
+  const items = useMemo(() => {
+    if (Array.isArray(navItems) && navItems.length) return navItems;
+    if (Array.isArray(navGroups)) return navGroups.flatMap((group) => group.items || []);
+    return [];
+  }, [navItems, navGroups]);
 
   return (
-    <div className="min-h-svh bg-background text-foreground">
-      <header className="flex h-(--spacing-header) items-center gap-4 border-b border-border px-4">
-        <Link to={homeRoute} className="flex items-center gap-2 font-heading text-lg">
-          <ApperIcon name={APP_CONFIG.icon} size={20} /> {APP_CONFIG.name}
-        </Link>
-        <nav className="hidden items-center gap-1 md:flex">{nav}</nav>
-        <button type="button" className="md:hidden" aria-label="Toggle navigation" onClick={() => setNavOpen((o) => !o)}>
-          <ApperIcon name="Menu" size={22} />
-        </button>
-        <div className="ml-auto">
-          <UserMenu user={user} initials={initials} displayName={displayName} logout={logout} />
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border bg-accent/70">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <Link to="/" className="flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <ApperIcon name="GraduationCap" size={22} />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate font-mono text-sm font-bold tracking-tight">NORTHSTAR</span>
+              <span className="block truncate text-[11px] text-muted-foreground">JEE + NEET preparation</span>
+            </span>
+          </Link>
+
+          <div className="flex items-center gap-2">
+            <span className="hidden text-sm text-muted-foreground md:inline">Workspace · {displayName}</span>
+            <ThemeToggle />
+            <UserMenu />
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-card md:hidden"
+              aria-label={mobileNavOpen ? 'Close navigation' : 'Open navigation'}
+              aria-expanded={mobileNavOpen}
+              onClick={() => setMobileNavOpen((value) => !value)}
+            >
+              <ApperIcon name={mobileNavOpen ? 'X' : 'Menu'} size={18} />
+            </button>
+          </div>
         </div>
+
+        <nav className={cn('mx-auto max-w-[1600px] px-4 pb-3 sm:px-6 lg:px-8', !mobileNavOpen && 'hidden md:block')}>
+          <div className="flex gap-1 overflow-x-auto pb-1">
+            {items.map((item, index) => {
+              const href = item.path || item.to || item.href;
+              const label = item.label || item.name;
+              if (!href || !label) return null;
+              return (
+                <NavLink
+                  key={item.path || item.to || label || index}
+                  to={href}
+                  end={href === '/'}
+                  onClick={() => setMobileNavOpen(false)}
+                  className={({ isActive }) => cn(
+                    'inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-background hover:text-foreground'
+                  )}
+                >
+                  {item.icon ? <ApperIcon name={item.icon} size={15} /> : null}
+                  {label}
+                </NavLink>
+              );
+            })}
+          </div>
+        </nav>
       </header>
-      {navOpen && <nav className="flex flex-col gap-1 border-b border-border p-2 md:hidden">{nav}</nav>}
-      <main className="p-4 md:p-6">
-        <ErrorBoundary><Outlet /></ErrorBoundary>
+
+      <main className="mx-auto min-h-[calc(100vh-116px)] max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <Outlet />
       </main>
+
+      <footer className="border-t border-border bg-card/70">
+        <div className="mx-auto flex max-w-[1600px] flex-col gap-2 px-4 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+          <span>Northstar · Evidence-led exam preparation</span>
+          <span>Academic content is subject to source verification and expert review.</span>
+        </div>
+      </footer>
     </div>
   );
 }
