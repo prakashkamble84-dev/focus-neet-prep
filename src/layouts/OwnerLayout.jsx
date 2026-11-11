@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useOwnerLayoutData } from '@/hooks/useOwnerLayoutData';
 import ApperIcon from '@/components/ApperIcon';
 import UserMenu from '@/components/UserMenu';
-import ThemeToggle from '@/components/ThemeToggle';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { cn } from '@/lib/utils';
 
 export default function OwnerLayout() {
@@ -32,7 +32,6 @@ export default function OwnerLayout() {
 
           <div className="flex items-center gap-2">
             <span className="hidden text-sm text-muted-foreground md:inline">Workspace · {displayName}</span>
-            <ThemeToggle />
             <UserMenu />
             <button
               type="button"
@@ -74,7 +73,9 @@ export default function OwnerLayout() {
       </header>
 
       <main className="mx-auto min-h-[calc(100vh-116px)] max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </main>
 
       <footer className="border-t border-border bg-card/70">
