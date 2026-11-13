@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useFetch } from '@/hooks/useFetch';
 import { useProfile } from '@/hooks/useProfile';
+import { useAuth } from '@/layouts/RootLayout';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import KnowledgeGraphHeader from '@/components/knowledge-graph/KnowledgeGraphHeader';
@@ -33,6 +34,8 @@ function isStudentVisible(node) {
 
 export default function KnowledgeGraph() {
   const { profile } = useProfile();
+  const { user } = useAuth();
+  const reviewerId = user?.Id || user?.userId;
   const canEdit = STAFF_PROFILES.includes(profile);
   const isStudent = STUDENT_PROFILES.includes(profile);
   const { data, loading, error, run } = useFetch(
@@ -107,6 +110,27 @@ export default function KnowledgeGraph() {
     await run();
   }
 
+  async function recordGraphReview(recordType, recordId, recordName, decision, notes) {
+    if (!reviewerId) return false;
+    try {
+      const result = await sdk.table('content_approvals_c').create({
+        Name: recordType + ' · ' + recordName + ' · ' + decision,
+        content_type_c: 'Graph',
+        record_identifier_c: recordType + ':' + String(recordId),
+        content_version_c: String(recordId),
+        review_status_c: decision === 'Rejected' ? 'Rejected' : 'Approved',
+        reviewer_user_c: reviewerId,
+        submitted_by_c: reviewerId,
+        decision_notes_c: notes || 'Graph review decision recorded.',
+        submitted_at_c: new Date().toISOString(),
+        resolved_at_c: new Date().toISOString()
+      });
+      return Boolean(result.data?.length);
+    } catch (error) {
+      return false;
+    }
+  }
+
   async function reviewRelationship(edge, status) {
     if (!edge?.Id) return;
     const existingNotes = String(edge.review_notes_c || '').trim();
@@ -122,7 +146,15 @@ export default function KnowledgeGraph() {
       toast.error(result.messages?.join('; ') || result.message || 'Relationship review was not saved');
       return;
     }
-    toast.success(status === 'Verified' ? 'Relationship verified' : 'Relationship rejected');
+    const logged = await recordGraphReview(
+      'relationship',
+      edge.Id,
+      edge.Name || edge.Id,
+      status === 'Verified' ? 'Approved' : 'Rejected',
+      notes
+    );
+    if (!logged) toast.warning('Relationship updated, but its approval history could not be recorded');
+    else toast.success(status === 'Verified' ? 'Relationship verified and logged' : 'Relationship rejected and logged');
     await refresh();
   }
 
@@ -158,15 +190,29 @@ export default function KnowledgeGraph() {
       toast.error(result.messages?.join('; ') || result.message || 'Concept verification was not saved');
       return;
     }
-    toast.success('Concept evidence verified. Publication is still a separate action.');
+    const logged = await recordGraphReview(
+      'node',
+      node.Id,
+      node.Name,
+      'Approved',
+      'Source evidence verified. Node remains in Review until publication approval.'
+    );
+    if (!logged) toast.warning('Node verified, but its approval history could not be recorded');
+    else toast.success('Node evidence verified and logged. Publication remains a separate action.');
     await refresh();
   }
 
   async function publishNode(node) {
     if (!node?.Id) return;
-    if (!node.verified_c || !hasVerifiedEvidence(node) || node.syllabusStatus !== 'Published') {
-      toast.error('Concept publication is blocked', {
-        description: 'Required: expert-verified concept, published syllabus version, verified source and rights, plus page-level evidence.'
+    const parentReady = node.node_type_c === 'Subject' || (
+      node.parentNode &&
+      node.parentNode.status_c === 'Published' &&
+      node.parentNode.verified_c === true
+    );
+    const syllabusReady = !node.hasSyllabusVersion || node.syllabusStatus === 'Published';
+    if (!node.verified_c || !hasVerifiedEvidence(node) || !syllabusReady || !parentReady) {
+      toast.error('Node publication is blocked', {
+        description: 'Required: expert-verified node, verified source rights and page evidence, published syllabus (when linked), and a published verified parent path.'
       });
       return;
     }
@@ -179,7 +225,15 @@ export default function KnowledgeGraph() {
       toast.error(result.messages?.join('; ') || result.message || 'Concept was not published');
       return;
     }
-    toast.success('Concept published to the student knowledge graph');
+    const logged = await recordGraphReview(
+      'node',
+      node.Id,
+      node.Name,
+      'Approved',
+      'Node published to the student knowledge graph after source and parent-path checks.'
+    );
+    if (!logged) toast.warning('Node published, but its publication history could not be recorded');
+    else toast.success('Node published and approval history recorded');
     await refresh();
   }
 

@@ -217,16 +217,16 @@ export function KnowledgeGraphNodeDetails({
         </div>
       )}
 
-      {canEdit && node.node_type_c === 'Concept' && node.status_c !== 'Published' && (
+      {canEdit && node.status_c !== 'Published' && (
         <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
-          <p className="mr-auto text-xs text-muted-foreground">Concepts require a verified source version, reviewed rights, page-level evidence and a published syllabus before student publication.</p>
+          <p className="mr-auto text-xs text-muted-foreground">Every hierarchy level needs verified source rights, page evidence and a published parent path before students can see it.</p>
           {!node.verified_c && (
             <Button size="sm" variant="outline" onClick={() => onVerify(node)}>
               <ApperIcon name="ClipboardCheck" size={14} /> Verify evidence
             </Button>
           )}
-          <Button size="sm" onClick={() => onPublish(node)} disabled={!node.sourceVersion || !node.source_page_start_c || !node.source_page_end_c || !node.source_excerpt_c || !node.verified_c || node.syllabusStatus !== 'Published'}>
-            <ApperIcon name="ShieldCheck" size={14} /> Publish concept
+          <Button size="sm" onClick={() => onPublish(node)} disabled={!node.sourceVersion || !node.source_page_start_c || !node.source_page_end_c || !node.source_excerpt_c || !node.verified_c || (node.hasSyllabusVersion && node.syllabusStatus !== 'Published') || (node.node_type_c !== 'Subject' && (!node.parentNode || node.parentNode.status_c !== 'Published' || node.parentNode.verified_c !== true))}>
+            <ApperIcon name="ShieldCheck" size={14} /> Publish node
           </Button>
         </div>
       )}

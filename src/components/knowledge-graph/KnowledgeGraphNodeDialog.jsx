@@ -85,15 +85,17 @@ export default function KnowledgeGraphNodeDialog({
     if (!open) return;
     const firstSyllabus = syllabusVersions[0];
     const defaultSyllabusId = firstSyllabus ? String(firstSyllabus.Id) : '__knowledge_core__';
-    const existingSubjects = nodes.some((node) => (
+    const layerNodes = nodes.filter((node) => (
       String(getId(node.syllabus_version_c) || 'KNOWLEDGE_CORE') ===
         String(firstSyllabus?.Id || 'KNOWLEDGE_CORE') &&
-      node.node_type_c === 'Subject' &&
       node.status_c !== 'Retired'
     ));
+    const nextNodeType = NODE_TYPES.find((type) => (
+      !layerNodes.some((node) => node.node_type_c === type)
+    )) || 'Concept';
     setName('');
     setSyllabusId(defaultSyllabusId);
-    setNodeType(existingSubjects ? 'Chapter' : 'Subject');
+    setNodeType(nextNodeType);
     setSubject('Physics');
     setParentId('');
     setNodeCode('');
