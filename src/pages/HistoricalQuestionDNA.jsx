@@ -48,6 +48,8 @@ export default function HistoricalQuestionDNA() {
   const { user } = useAuth();
   const canEdit = ACADEMIC_PROFILES.includes(profile);
   const canReviewExtraction = EXTRACTION_PROFILES.includes(profile);
+  const canApproveAcademically = profile === 'AcademicExpert_c';
+  const canPublishQuestion = ['CEO', 'CEO_c', 'Manager', 'Manager_c'].includes(profile);
   const { data, loading, error, run } = useFetch(
     () => fetchHistoricalQuestionReviewData(id),
     [id]
@@ -466,7 +468,7 @@ export default function HistoricalQuestionDNA() {
                     <option value="Rejected">Rejected</option>
                   </select>
                 </div>
-                {canEdit && (
+                {canApproveAcademically && (
                   <div className="space-y-2">
                     <Label htmlFor="answer-key">Answer key</Label>
                     <Input id="answer-key" value={answerKey} onChange={(event) => setAnswerKey(event.target.value)} placeholder="A, B, C, D or numerical value" disabled={question.status_c === 'Verified' || question.status_c === 'Published'} />
@@ -474,7 +476,7 @@ export default function HistoricalQuestionDNA() {
                 )}
               </div>
 
-              {canEdit && (
+              {canApproveAcademically && (
                 <div className="space-y-2">
                   <Label htmlFor="answer-solution">Validated solution or rationale</Label>
                   <Textarea id="answer-solution" rows={3} value={solution} onChange={(event) => setSolution(event.target.value)} placeholder="Record the independently checked reasoning, units and assumptions." disabled={question.status_c === 'Verified' || question.status_c === 'Published'} />
@@ -497,21 +499,27 @@ export default function HistoricalQuestionDNA() {
                     <Button variant="outline" onClick={() => runReviewAction('text')} disabled={saving || !sourceMatches || !['New', 'Review'].includes(question.status_c) || !questionText.trim() || questionText.trim() === String(question.question_body_c || '').trim()}>
                       Save corrected transcription
                     </Button>
-                    <Button variant="outline" onClick={() => runReviewAction('applyExtraction', 'Approved')} disabled={saving || !sourceMatches || !latestExtraction || latestExtraction.review_status_c !== 'Approved' || question.extraction_status_c === 'Verified'}>
-                      Apply extraction approval
-                    </Button>
-                    <Button variant="outline" onClick={() => runReviewAction('answer')} disabled={saving || !sourceMatches || question.extraction_status_c !== 'Verified'}>
-                      Validate answer key
-                    </Button>
+                    {canApproveAcademically && (
+                      <>
+                        <Button variant="outline" onClick={() => runReviewAction('applyExtraction', 'Approved')} disabled={saving || !sourceMatches || !latestExtraction || latestExtraction.review_status_c !== 'Approved' || question.extraction_status_c === 'Verified'}>
+                          Apply extraction approval
+                        </Button>
+                        <Button variant="outline" onClick={() => runReviewAction('answer')} disabled={saving || !sourceMatches || question.extraction_status_c !== 'Verified'}>
+                          Validate answer key
+                        </Button>
+                        <Button variant="outline" onClick={() => runReviewAction('academic')} disabled={saving || !sourceMatches || question.extraction_status_c !== 'Verified' || question.answer_validation_status_c !== 'Verified'}>
+                          Verify question academically
+                        </Button>
+                      </>
+                    )}
                     <Button variant="outline" onClick={() => runReviewAction('copyright')} disabled={saving || !sourceMatches}>
                       Confirm question reuse rights
                     </Button>
-                    <Button variant="outline" onClick={() => runReviewAction('academic')} disabled={saving || !sourceMatches || question.extraction_status_c !== 'Verified' || question.answer_validation_status_c !== 'Verified'}>
-                      Verify question academically
-                    </Button>
-                    <Button onClick={() => runReviewAction('publish', 'Approved')} disabled={saving || question.status_c !== 'Verified' || paper?.status_c !== 'Published'}>
-                      Publish question
-                    </Button>
+                    {canPublishQuestion && (
+                      <Button onClick={() => runReviewAction('publish', 'Approved')} disabled={saving || question.status_c !== 'Verified' || paper?.status_c !== 'Published'}>
+                        Publish question
+                      </Button>
+                    )}
                   </>
                 )}
               </div>
