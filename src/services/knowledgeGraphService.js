@@ -130,16 +130,10 @@ export function buildKnowledgeGraphModel(data = {}) {
     const isHistorical = crosswalks.some((crosswalk) => {
       if (crosswalk.status_c !== 'Verified') return false;
       const sourceNodeId = getLookupId(crosswalk.source_node_c);
-      const targetNodeId = getLookupId(crosswalk.target_node_c);
       const sourceVersionId = getLookupId(crosswalk.source_version_c);
-      const targetVersionId = getLookupId(crosswalk.target_version_c);
       return (
         String(sourceNodeId || '') === String(node.Id) ||
-        String(targetNodeId || '') === String(node.Id) ||
-        Boolean(nodeVersionId && (
-          String(sourceVersionId || '') === String(nodeVersionId) ||
-          String(targetVersionId || '') === String(nodeVersionId)
-        ))
+        Boolean(nodeVersionId && String(sourceVersionId || '') === String(nodeVersionId))
       );
     });
 

@@ -4,7 +4,7 @@ import { useFetch } from '@/hooks/useFetch';
 import { useProfile } from '@/hooks/useProfile';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { KnowledgeGraphHeader } from '@/components/knowledge-graph/KnowledgeGraphHeader';
+import KnowledgeGraphHeader from '@/components/knowledge-graph/KnowledgeGraphHeader';
 import KnowledgeGraphWorkspace from '@/components/knowledge-graph/KnowledgeGraphWorkspace';
 import KnowledgeGraphNodeDialog from '@/components/knowledge-graph/KnowledgeGraphNodeDialog';
 import KnowledgeGraphRelationshipDialog from '@/components/knowledge-graph/KnowledgeGraphRelationshipDialog';
