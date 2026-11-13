@@ -1,7 +1,9 @@
 import {
   buildGraphDiagnostics,
   findPrerequisiteCycles,
-  validateProposedRelationship
+  validateProposedRelationship,
+  buildLatestVerifiedSourcePageKeys,
+  hasVerifiedSourcePageRange
 } from '@/services/knowledgeGraphRules';
 
 export function runKnowledgeGraphSelfTests() {
@@ -114,6 +116,38 @@ export function runKnowledgeGraphSelfTests() {
       status_c: 'Verified'
     }], []).errors > 0,
     'Relationship edges connect Concept nodes only; hierarchy is represented by parent links.'
+  );
+  const verifiedPage = {
+    document_version_c: 'V1',
+    page_number_c: 4,
+    quality_status_c: 'Verified',
+    CreatedOn: '2026-11-13T10:00:00.000Z',
+    ModifiedOn: '2026-11-13T10:00:00.000Z'
+  };
+  const latestRejected = {
+    ...verifiedPage,
+    Id: 'EXTRACTION-NEW',
+    quality_status_c: 'Rejected',
+    CreatedOn: '2026-11-13T11:00:00.000Z',
+    ModifiedOn: '2026-11-13T11:00:00.000Z'
+  };
+  assert(
+    'Rejects a page when its latest extraction was rejected',
+    !buildLatestVerifiedSourcePageKeys([verifiedPage, latestRejected]).has('V1|4'),
+    'An older Verified extraction cannot override a newer Rejected extraction.'
+  );
+  assert(
+    'Accepts a page when its latest extraction is verified',
+    buildLatestVerifiedSourcePageKeys([latestRejected, verifiedPage]).has('V1|4') === false &&
+      buildLatestVerifiedSourcePageKeys([
+        { ...verifiedPage, Id: 'EXTRACTION-LATEST', CreatedOn: '2026-11-13T12:00:00.000Z', ModifiedOn: '2026-11-13T12:00:00.000Z' }
+      ]).has('V1|4'),
+    'The newest independent page review determines whether the page is trusted.'
+  );
+  assert(
+    'Requires every page in a concept source range',
+    !hasVerifiedSourcePageRange('V1', 4, 6, new Set(['V1|4', 'V1|5'])),
+    'A node cannot publish when even one page in its cited range is missing or unverified.'
   );
 
   return {

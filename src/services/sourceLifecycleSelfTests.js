@@ -9,6 +9,7 @@ export function runSourceLifecycleSelfTests() {
     Id: 'VERSION-1',
     ModifiedOn: modifiedAt,
     source_document_c: 'DOCUMENT-1',
+    source_registry_c: 'AUTHORITY-1',
     document_file_c: [{ Name: 'official-syllabus.pdf' }],
     document_url_c: 'https://nta.ac.in/documents/syllabus.pdf',
     rights_status_c: 'Public',
@@ -16,6 +17,7 @@ export function runSourceLifecycleSelfTests() {
   };
   const document = {
     Id: 'DOCUMENT-1',
+    source_registry_c: 'AUTHORITY-1',
     official_url_c: 'https://nta.ac.in/documents/syllabus.pdf',
     rights_status_c: 'Public',
     verification_status_c: 'Review',
