@@ -668,7 +668,7 @@ export default function HistoricalIntelligence() {
             <StatBlock label="Papers awaiting gates" value={formatCount(model.quality.papersPending)} detail="Visible papers not yet evidence-ready" icon="FileClock" />
             <StatBlock label="Questions excluded" value={formatCount(model.quality.excludedQuestions)} detail="Linked questions that failed one or more gates" icon="ListX" />
             <StatBlock label="Questions unmapped" value={formatCount(model.quality.unmappedQuestions)} detail="Verified questions without a published concept map" icon="Network" />
-            <StatBlock label="Logic checks" value={formatCount(selfTests.passed) + ' / ' + formatCount(selfTests.total)} detail={passRate + '% deterministic self-test pass rate'} icon="TestTube2" />
+            <StatBlock label="Historical rule tests" value={formatCount(selfTests.passed) + ' / ' + formatCount(selfTests.total)} detail={passRate + '% deterministic self-test pass rate'} icon="TestTube2" />
           </div>
 
           <Card>
