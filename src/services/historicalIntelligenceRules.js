@@ -1,6 +1,7 @@
 const APPROVED_RIGHTS = new Set(['Public', 'Licensed']);
 const APPROVED_PAPER_STATUSES = new Set(['Verified', 'Published']);
 const APPROVED_QUESTION_STATUSES = new Set(['Verified', 'Published']);
+const ACCEPTED_PAPER_SOURCES = new Set(['Official', 'Archive']);
 
 export function getLookupId(value) {
   if (value && typeof value === 'object') {
@@ -30,100 +31,82 @@ function inYearRange(year, fromYear, toYear) {
 }
 
 export function evaluateHistoricalPaper(paper, sourceDocument) {
-  if (!paper) {
-    return { eligible: false, reason: 'Historical paper record is missing' };
+  if (!paper) return { eligible: false, reason: 'Historical paper record is missing' };
+  if (!getLookupId(paper.examination_c)) return { eligible: false, reason: 'Paper examination is missing' };
+  if (!getLookupId(paper.source_document_c)) return { eligible: false, reason: 'Paper source-document link is missing' };
+  if (asNumber(paper.exam_year_c) === null) return { eligible: false, reason: 'Exam year is missing' };
+  if (!APPROVED_RIGHTS.has(paper.rights_status_c)) return { eligible: false, reason: 'Paper reuse rights are not cleared' };
+  if (!APPROVED_PAPER_STATUSES.has(paper.status_c)) return { eligible: false, reason: 'Paper has not passed academic verification' };
+  if (!sourceDocument) return { eligible: false, reason: 'Linked source document is not visible or is missing' };
+  if (String(getLookupId(paper.source_document_c)) !== String(sourceDocument.Id)) {
+    return { eligible: false, reason: 'Paper and source-document references do not match' };
   }
-
-  const year = asNumber(paper.exam_year_c);
-  if (year === null) {
-    return { eligible: false, reason: 'Exam year is missing' };
+  if (sourceDocument.document_type_c !== 'Paper') {
+    return { eligible: false, reason: 'Linked source document is not classified as a question paper' };
   }
-
-  if (!APPROVED_RIGHTS.has(paper.rights_status_c)) {
-    return { eligible: false, reason: 'Paper reuse rights are not cleared' };
+  if (!ACCEPTED_PAPER_SOURCES.has(sourceDocument.source_category_c)) {
+    return { eligible: false, reason: 'Source is not an official issuer or an identified archive' };
   }
-
-  if (!APPROVED_PAPER_STATUSES.has(paper.status_c)) {
-    return { eligible: false, reason: 'Paper has not passed academic verification' };
+  if (!APPROVED_RIGHTS.has(sourceDocument.rights_status_c) || sourceDocument.rights_status_c !== paper.rights_status_c) {
+    return { eligible: false, reason: 'Paper and source-document rights are missing or inconsistent' };
   }
-
-  if (!sourceDocument) {
-    return { eligible: false, reason: 'Linked source document is not visible or is missing' };
-  }
-
-  if (!APPROVED_RIGHTS.has(sourceDocument.rights_status_c)) {
-    return { eligible: false, reason: 'Source document rights are not cleared' };
-  }
-
   if (sourceDocument.verification_status_c !== 'Verified') {
     return { eligible: false, reason: 'Source document is not verified' };
   }
-
   if (sourceDocument.ingestion_status_c !== 'Complete') {
     return { eligible: false, reason: 'Source document ingestion is incomplete' };
   }
-
-  if (sourceDocument.source_category_c === 'Secondary') {
-    return { eligible: false, reason: 'Secondary source is not eligible for exam trend evidence' };
+  const documentExamId = getLookupId(sourceDocument.examination_c);
+  const paperExamId = getLookupId(paper.examination_c);
+  if (!documentExamId || String(documentExamId) !== String(paperExamId)) {
+    return { eligible: false, reason: 'Paper and source document examinations do not match' };
   }
-
   return { eligible: true, reason: 'Evidence-ready' };
 }
 
 export function evaluateHistoricalQuestion(question, paper, sourceDocument) {
-  if (!question) {
-    return { eligible: false, reason: 'Question record is missing' };
-  }
+  if (!question) return { eligible: false, reason: 'Question record is missing' };
+  if (question.source_type_c !== 'Historical') return { eligible: false, reason: 'Question is not classified as historical' };
 
-  if (question.source_type_c !== 'Historical') {
-    return { eligible: false, reason: 'Question is not classified as historical' };
-  }
-
-  if (!getLookupId(question.historical_paper_c)) {
-    return { eligible: false, reason: 'Question is not linked to a historical paper' };
+  const questionPaperId = getLookupId(question.historical_paper_c);
+  if (!questionPaperId) return { eligible: false, reason: 'Question is not linked to a historical paper' };
+  if (!paper || String(questionPaperId) !== String(paper.Id)) {
+    return { eligible: false, reason: 'Question and historical paper references do not match' };
   }
 
   const paperDecision = evaluateHistoricalPaper(paper, sourceDocument);
-  if (!paperDecision.eligible) {
-    return { eligible: false, reason: paperDecision.reason };
+  if (!paperDecision.eligible) return { eligible: false, reason: paperDecision.reason };
+  if (!APPROVED_RIGHTS.has(question.rights_status_c) || question.rights_status_c !== paper.rights_status_c) {
+    return { eligible: false, reason: 'Question and paper rights are missing or inconsistent' };
   }
-
-  if (!APPROVED_RIGHTS.has(question.rights_status_c)) {
-    return { eligible: false, reason: 'Question reuse rights are not cleared' };
-  }
-
   if (!APPROVED_QUESTION_STATUSES.has(question.status_c)) {
     return { eligible: false, reason: 'Question is not academically verified' };
   }
-
   if (question.extraction_status_c !== 'Verified') {
     return { eligible: false, reason: 'Question extraction is not verified' };
   }
-
   if (question.answer_validation_status_c !== 'Verified') {
     return { eligible: false, reason: 'Answer key is not validated' };
   }
 
   const questionYear = asNumber(question.historical_year_c);
   const paperYear = asNumber(paper.exam_year_c);
-  if (questionYear !== null && questionYear !== paperYear) {
-    return { eligible: false, reason: 'Question year does not match its paper' };
+  if (questionYear === null || questionYear !== paperYear) {
+    return { eligible: false, reason: 'Question year is missing or does not match its paper' };
   }
 
   const questionExamId = getLookupId(question.examination_c);
   const paperExamId = getLookupId(paper.examination_c);
-  if (questionExamId && paperExamId && String(questionExamId) !== String(paperExamId)) {
-    return { eligible: false, reason: 'Question examination does not match its paper' };
+  if (!questionExamId || !paperExamId || String(questionExamId) !== String(paperExamId)) {
+    return { eligible: false, reason: 'Question examination is missing or does not match its paper' };
   }
 
   const questionSourceId = getLookupId(question.source_document_c);
   const paperSourceId = getLookupId(paper.source_document_c);
-  if (questionSourceId && paperSourceId && String(questionSourceId) !== String(paperSourceId)) {
-    return { eligible: false, reason: 'Question source document does not match its paper' };
-  }
-
-  if (!sourceDocument || (questionSourceId && String(getLookupId(sourceDocument)) !== String(questionSourceId))) {
-    return { eligible: false, reason: 'Question source evidence is unavailable' };
+  if (!questionSourceId || !paperSourceId ||
+    String(questionSourceId) !== String(paperSourceId) ||
+    String(getLookupId(sourceDocument)) !== String(questionSourceId)) {
+    return { eligible: false, reason: 'Question source document link is missing or inconsistent' };
   }
 
   return { eligible: true, reason: 'Evidence-ready' };
@@ -134,9 +117,7 @@ function groupCounts(items, getKey, getLabel = (key) => key) {
   for (const item of items) {
     const key = String(getKey(item) ?? '').trim();
     if (!key) continue;
-    if (!counts.has(key)) {
-      counts.set(key, { key, label: getLabel(key, item), count: 0 });
-    }
+    if (!counts.has(key)) counts.set(key, { key, label: getLabel(key, item), count: 0 });
     counts.get(key).count += 1;
   }
   return [...counts.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
@@ -176,13 +157,11 @@ export function buildHistoricalIntelligence(data = {}, filters = {}) {
     .filter((paper) => {
       const year = asNumber(paper.exam_year_c);
       if (!inYearRange(year, fromYear, toYear)) return false;
-      const examId = getLookupId(paper.examination_c);
-      const examName = examById.get(String(examId))?.Name || getLookupName(paper.examination_c);
+      const examName = examById.get(String(getLookupId(paper.examination_c)))?.Name || getLookupName(paper.examination_c);
       return examFilter === 'all' || examName === examFilter;
     })
     .map((paper) => {
-      const sourceId = getLookupId(paper.source_document_c);
-      const sourceDocument = sourceById.get(String(sourceId));
+      const sourceDocument = sourceById.get(String(getLookupId(paper.source_document_c)));
       const decision = evaluateHistoricalPaper(paper, sourceDocument);
       return {
         ...paper,
@@ -194,23 +173,37 @@ export function buildHistoricalIntelligence(data = {}, filters = {}) {
     })
     .sort((a, b) => Number(b.exam_year_c || 0) - Number(a.exam_year_c || 0));
 
+  const visiblePaperById = new Map(visiblePapers.map((paper) => [String(paper.Id), paper]));
   const eligiblePapers = visiblePapers.filter((paper) => paper.trendEligible);
   const eligiblePaperIds = new Set(eligiblePapers.map((paper) => String(paper.Id)));
   const eligibleQuestions = [];
   const excludedQuestions = [];
 
   for (const question of questions) {
-    const paperId = getLookupId(question.historical_paper_c);
-    if (!paperId || !eligiblePaperIds.has(String(paperId))) {
-      continue;
-    }
+    if (question.source_type_c !== 'Historical') continue;
 
-    const paper = paperById.get(String(paperId));
-    const sourceDocument = paper?.sourceDocument || sourceById.get(String(getLookupId(paper?.source_document_c)));
+    const paperId = getLookupId(question.historical_paper_c);
+    const paper = visiblePaperById.get(String(paperId || ''));
+    const questionYear = asNumber(question.historical_year_c);
+    const yearToCheck = questionYear ?? asNumber(paper?.exam_year_c);
+    if (!inYearRange(yearToCheck, fromYear, toYear)) continue;
+
+    const questionExamName = examById.get(String(getLookupId(question.examination_c)))?.Name || getLookupName(question.examination_c);
+    const paperExamName = examById.get(String(getLookupId(paper?.examination_c)))?.Name || getLookupName(paper?.examination_c);
+    const examToCheck = questionExamName || paperExamName;
+    if (examFilter !== 'all' && examToCheck && examToCheck !== examFilter) continue;
+
+    const sourceDocument = paper?.sourceDocument ||
+      sourceById.get(String(getLookupId(question.source_document_c))) ||
+      sourceById.get(String(getLookupId(paper?.source_document_c)));
     const decision = evaluateHistoricalQuestion(question, paper, sourceDocument);
 
     if (!decision.eligible) {
       excludedQuestions.push({ ...question, exclusionReason: decision.reason, paper });
+      continue;
+    }
+    if (!eligiblePaperIds.has(String(paper.Id))) {
+      excludedQuestions.push({ ...question, exclusionReason: 'Linked paper is not eligible for trends', paper });
       continue;
     }
 
@@ -237,15 +230,14 @@ export function buildHistoricalIntelligence(data = {}, filters = {}) {
     const node = nodeById.get(String(getLookupId(mapping.curriculum_node_c)));
     if (!node || node.node_type_c !== 'Concept') continue;
 
-    if (!subjectsByQuestion.has(questionId)) {
-      subjectsByQuestion.set(questionId, new Set());
-    }
-    if (hasValue(node.subject_c)) {
-      subjectsByQuestion.get(questionId).add(node.subject_c);
-    }
-
+    if (!subjectsByQuestion.has(questionId)) subjectsByQuestion.set(questionId, new Set());
+    if (hasValue(node.subject_c)) subjectsByQuestion.get(questionId).add(node.subject_c);
     if (!conceptsById.has(String(node.Id))) {
-      conceptsById.set(String(node.Id), { label: node.Name || node.node_path_c || 'Unnamed concept', count: 0, subject: node.subject_c || 'Unclassified' });
+      conceptsById.set(String(node.Id), {
+        label: node.Name || node.node_path_c || 'Unnamed concept',
+        count: 0,
+        subject: node.subject_c || 'Unclassified'
+      });
     }
     conceptsById.get(String(node.Id)).count += 1;
   }
@@ -275,8 +267,7 @@ export function buildHistoricalIntelligence(data = {}, filters = {}) {
 
   const questionFamilies = groupCounts(
     eligibleQuestions,
-    (question) => question.question_family_code_c || question.recurring_pattern_group_c,
-    (key) => key
+    (question) => question.question_family_code_c || question.recurring_pattern_group_c
   ).slice(0, 12);
 
   const recurringPatterns = groupCounts(
@@ -299,7 +290,7 @@ export function buildHistoricalIntelligence(data = {}, filters = {}) {
   const declaredQuestions = eligiblePapers.reduce((sum, paper) => sum + (asNumber(paper.question_count_c) || 0), 0);
   const observedQuestions = eligibleQuestions.length;
   const paperQuestionCoverage = declaredQuestions > 0
-    ? Math.min(100, Math.round((observedQuestions / declaredQuestions) * 100))
+    ? Math.round((observedQuestions / declaredQuestions) * 100)
     : 0;
 
   const qualityReasons = new Map();
@@ -309,6 +300,17 @@ export function buildHistoricalIntelligence(data = {}, filters = {}) {
   for (const question of excludedQuestions) {
     qualityReasons.set(question.exclusionReason, (qualityReasons.get(question.exclusionReason) || 0) + 1);
   }
+
+  const unlinkedQuestions = questions.filter((question) => {
+    const year = asNumber(question.historical_year_c);
+    return question.source_type_c === 'Historical' &&
+      !getLookupId(question.historical_paper_c) &&
+      inYearRange(year, fromYear, toYear);
+  }).filter((question) => {
+    if (examFilter === 'all') return true;
+    const examName = examById.get(String(getLookupId(question.examination_c)))?.Name || getLookupName(question.examination_c);
+    return !examName || examName === examFilter;
+  });
 
   return {
     filters: { fromYear, toYear, examFilter },
@@ -338,8 +340,11 @@ export function buildHistoricalIntelligence(data = {}, filters = {}) {
     },
     quality: {
       papersPending: visiblePapers.length - eligiblePapers.length,
-      excludedQuestions: excludedQuestions.length,
-      reasons: [...qualityReasons.entries()].map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count),
+      excludedQuestions: excludedQuestions.length + unlinkedQuestions.length,
+      reasons: [
+        ...[...qualityReasons.entries()].map(([reason, count]) => ({ reason, count })),
+        ...(unlinkedQuestions.length ? [{ reason: 'Historical questions are missing a paper link', count: unlinkedQuestions.length }] : [])
+      ].sort((a, b) => b.count - a.count),
       unmappedQuestions: eligibleQuestions.length - mappedQuestionCount,
       truncated: Boolean(data.meta?.truncated)
     }
