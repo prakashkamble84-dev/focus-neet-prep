@@ -16,7 +16,8 @@ export function splitQuestionsFromPage(text, pageNumber = 1) {
       pageNumber,
       questionNumber: number,
       body,
-      questionType: hasOptions ? 'MCQ' : 'Other'
+      options,
+      questionType: inferQuestionType(body, options)
     };
   }).filter((candidate) => candidate.body.length >= 20);
 }
