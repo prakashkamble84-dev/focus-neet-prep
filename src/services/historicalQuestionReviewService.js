@@ -169,6 +169,7 @@ export async function recordHistoricalQuestionReview({
   decision = 'Approved',
   answerKey,
   solution,
+  questionBody,
   notes
 }) {
   const academicProfiles = ['CEO', 'CEO_c', 'Manager', 'Manager_c', 'AcademicExpert_c'];
@@ -229,6 +230,7 @@ export async function recordHistoricalQuestionReview({
 
   const previous = {
     status_c: question.status_c,
+    question_body_c: question.question_body_c,
     extraction_status_c: question.extraction_status_c,
     answer_validation_status_c: question.answer_validation_status_c,
     answer_key_c: question.answer_key_c,
@@ -241,7 +243,21 @@ export async function recordHistoricalQuestionReview({
   let reviewType = 'Academic';
   let auditAction = action;
 
-  if (action === 'applyExtraction') {
+  if (action === 'text') {
+    if (!String(questionBody || '').trim()) {
+      return { success: false, message: 'The corrected question text cannot be empty.' };
+    }
+    update = {
+      Id: question.Id,
+      question_body_c: String(questionBody).trim(),
+      extraction_status_c: 'Review',
+      answer_validation_status_c: 'Pending',
+      answer_key_c: null,
+      solution_c: null,
+      status_c: 'Review'
+    };
+    auditAction = 'text correction';
+  } else if (action === 'applyExtraction') {
     const extractionReview = latestAction(reviews, 'extraction');
     if (!extractionReview || extractionReview.review_status_c !== 'Approved' ||
       String(getId(extractionReview.reviewer_user_c) || '') === String(reviewerId)) {
@@ -369,6 +385,24 @@ export async function recordHistoricalQuestionReview({
 
   const changedOptions = [];
   try {
+    if (action === 'text' && ['MCQ', 'Multi'].includes(question.question_type_c)) {
+      for (const option of options.filter((row) => row.status_c !== 'Retired')) {
+        changedOptions.push({
+          Id: option.Id,
+          is_correct_c: option.is_correct_c ?? false,
+          status_c: option.status_c
+        });
+        const optionUpdate = await sdk.table('question_options_c').update({
+          Id: option.Id,
+          is_correct_c: false,
+          status_c: 'Draft'
+        });
+        if (!optionUpdate.data?.length) {
+          throw new Error(optionUpdate.messages?.join('; ') || optionUpdate.message || 'A prior answer option could not be reset after text correction.');
+        }
+      }
+    }
+
     if (action === 'answer' && ['MCQ', 'Multi'].includes(question.question_type_c)) {
       const selectedKeys = decision === 'Approved'
         ? new Set(String(answerKey || '').toUpperCase().split(/[,;+ ]+/).map((key) => key.trim()).filter(Boolean))
@@ -418,7 +452,7 @@ export async function recordHistoricalQuestionReview({
   }
 
   try {
-    const reviewStatus = action === 'applyExtraction' ? 'Approved' : decision;
+    const reviewStatus = action === 'applyExtraction' ? 'Approved' : action === 'text' ? 'Changes' : decision;
     await writeReview(question, reviewerId, reviewType, reviewStatus, auditAction, notes);
   } catch (error) {
     for (const snapshot of changedOptions.reverse()) {
