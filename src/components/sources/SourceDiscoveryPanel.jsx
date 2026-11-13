@@ -73,8 +73,29 @@ export default function SourceDiscoveryPanel({ onAdded }) {
       if (!result.data?.length) {
         throw new Error(result.messages?.join('; ') || result.message || 'Source candidate was not saved');
       }
+
+      const sourceDocumentId = result.data[0].Id;
+      const versionResult = await sdk.table('source_document_versions_c').create({
+        Name: candidate.title.slice(0, 250),
+        source_document_c: sourceDocumentId,
+        version_label_c: 'Discovered candidate',
+        official_title_c: candidate.title.slice(0, 250),
+        document_url_c: candidate.url,
+        rights_status_c: 'Unknown',
+        rights_notes_c: 'Candidate source. Usage rights and source authority have not been independently verified.',
+        ingestion_status_c: 'Discovered',
+        version_status_c: 'Current',
+        change_summary_c: candidate.snippet || 'Discovered online. Publication date, academic year and syllabus relevance need review.'
+      });
+
       setSavedUrls((current) => [...current, candidate.url]);
-      toast.success('Source candidate saved for academic review');
+      if (!versionResult.data?.length) {
+        toast.warning('Source record saved, but its version card could not be created', {
+          description: versionResult.messages?.join('; ') || versionResult.message || 'Review the source document record.'
+        });
+      } else {
+        toast.success('Source and candidate version saved for academic review');
+      }
       onAdded?.();
     } catch (error) {
       toast.error('Could not save this source candidate', { description: error.message });
