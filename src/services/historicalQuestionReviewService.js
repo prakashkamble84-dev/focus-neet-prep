@@ -264,7 +264,7 @@ export async function recordHistoricalQuestionReview({
       }
       const selectedKeys = String(answerKey || '')
         .toUpperCase()
-        .split(/[,;+\\s]+/)
+        .split(/[,;+ ]+/)
         .map((key) => key.trim())
         .filter(Boolean);
       const availableKeys = new Set(availableOptions.map((option) => String(option.option_key_c || '').toUpperCase()));
@@ -371,7 +371,7 @@ export async function recordHistoricalQuestionReview({
   try {
     if (action === 'answer' && ['MCQ', 'Multi'].includes(question.question_type_c)) {
       const selectedKeys = decision === 'Approved'
-        ? new Set(String(answerKey || '').toUpperCase().split(/[,;+\\s]+/).map((key) => key.trim()).filter(Boolean))
+        ? new Set(String(answerKey || '').toUpperCase().split(/[,;+ ]+/).map((key) => key.trim()).filter(Boolean))
         : new Set();
       for (const option of options.filter((row) => row.status_c !== 'Retired')) {
         const optionUpdate = await sdk.table('question_options_c').update({
