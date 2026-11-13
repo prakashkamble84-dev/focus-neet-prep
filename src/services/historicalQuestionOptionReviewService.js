@@ -4,13 +4,13 @@ const VALID_OPTION_KEYS = new Set(['A', 'B', 'C', 'D']);
 
 async function writeReview(question, reviewerId, notes) {
   const result = await sdk.table('question_reviews_c').create({
-    Name: 'Historical question option correction · ' + question.Name,
+    Name: 'Historical question answer-options correction · ' + question.Name,
     question_c: question.Id,
-    review_type_c: 'Academic',
+    review_type_c: 'Answer',
     review_status_c: 'Changes',
     reviewer_user_c: reviewerId,
     reviewed_at_c: new Date().toISOString(),
-    review_notes_c: 'Action: options correction verification | ' + String(notes || '').trim()
+    review_notes_c: 'Action: answer verification | Option choices were corrected, so previous answer validation is invalidated. ' + String(notes || '').trim()
   });
   if (!result.data?.length) {
     throw new Error(result.messages?.join('; ') || result.message || 'The option correction audit could not be saved.');

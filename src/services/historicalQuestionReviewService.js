@@ -452,8 +452,13 @@ export async function recordHistoricalQuestionReview({
   }
 
   try {
-    const reviewStatus = action === 'applyExtraction' ? 'Approved' : action === 'text' ? 'Changes' : decision;
-    await writeReview(question, reviewerId, reviewType, reviewStatus, auditAction, notes);
+    if (action === 'text') {
+      await writeReview(question, reviewerId, 'Academic', 'Changes', 'extraction', notes + ' The transcription changed, so the previous extraction approval is invalidated.');
+      await writeReview(question, reviewerId, 'Answer', 'Changes', 'answer', notes + ' The answer validation is invalidated because the question text changed.');
+    } else {
+      const reviewStatus = action === 'applyExtraction' ? 'Approved' : decision;
+      await writeReview(question, reviewerId, reviewType, reviewStatus, auditAction, notes);
+    }
   } catch (error) {
     for (const snapshot of changedOptions.reverse()) {
       await sdk.table('question_options_c').update(snapshot);
