@@ -24,6 +24,7 @@ async function fetchRows(request, label) {
 async function fetchAllRows(tableName, fields, filter, label) {
   const rows = [];
   let offset = 0;
+
   while (true) {
     const result = await sdk.table(tableName)
       .select(fields)
@@ -39,13 +40,17 @@ async function fetchAllRows(tableName, fields, filter, label) {
     rows.push(...page);
 
     if (result.hasMore === false || page.length < 1000 || !page.length) break;
-    if (Number.isFinite(Number(result.total)) && rows.length >= Number(result.total)) break;
+    if (result.total !== null && result.total !== undefined &&
+      Number.isFinite(Number(result.total)) && rows.length >= Number(result.total)) {
+      break;
+    }
 
     offset += page.length;
     if (rows.length >= 50000) {
       throw new Error('More than 50,000 ' + label + ' rows. Verification stopped safely.');
     }
   }
+
   return rows;
 }
 
@@ -70,7 +75,9 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
   }
 
   const documentId = getId(paper.source_document_c);
-  if (!documentId) return { success: false, message: 'The paper is not linked to a source document.' };
+  if (!documentId) {
+    return { success: false, message: 'The paper is not linked to a source document.' };
+  }
 
   const documents = await fetchRows(
     sdk.table('source_documents_c')
@@ -97,14 +104,21 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
   );
 
   const document = documents[0];
-  if (!document) return { success: false, message: 'The linked source document is unavailable.' };
+  if (!document) {
+    return { success: false, message: 'The linked source document is unavailable.' };
+  }
 
+  const paperExamId = getId(paper.examination_c);
+  const documentExamId = getId(document.examination_c);
   if (
     String(getId(paper.source_document_c) || '') !== String(document.Id) ||
     document.document_type_c !== 'Paper' ||
     !['Official', 'Archive'].includes(document.source_category_c) ||
     !/^https:\/\//i.test(String(document.official_url_c || '')) ||
-    String(getId(paper.examination_c) || '') !== String(getId(document.examination_c) || '') ||
+    !paperExamId ||
+    !documentExamId ||
+    String(paperExamId) !== String(documentExamId) ||
+    !Number.isFinite(Number(paper.exam_year_c)) ||
     Number(paper.exam_year_c) !== Number(document.academic_year_c)
   ) {
     return {
@@ -124,9 +138,18 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
         'issuing authority'
       )
     : [];
+
   const authority = authorities[0];
-  if (!authority || authority.active_c !== true || authority.is_authoritative_c !== true || !authority.official_domain_c) {
-    return { success: false, message: 'The linked issuing authority must still be active, authoritative and have an official domain.' };
+  if (
+    !authority ||
+    authority.active_c !== true ||
+    authority.is_authoritative_c !== true ||
+    !authority.official_domain_c
+  ) {
+    return {
+      success: false,
+      message: 'The linked issuing authority must still be active, authoritative and have an official domain.'
+    };
   }
 
   if (!['Public', 'Licensed'].includes(document.rights_status_c)) {
@@ -160,7 +183,7 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
   const version = versions.find((item) => (
     item.version_status_c === 'Current' &&
     String(getId(item.source_document_c) || '') === String(document.Id) &&
-    String(getId(item.source_registry_c) || '') === String(getId(document.source_registry_c) || '') &&
+    String(getId(item.source_registry_c) || '') === String(authority.Id) &&
     ['Public', 'Licensed'].includes(item.rights_status_c) &&
     item.rights_status_c === document.rights_status_c &&
     item.ingestion_status_c === 'Verified' &&
@@ -171,28 +194,26 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
   if (!version) {
     return {
       success: false,
-      message: 'No current source version has a stored PDF, matching rights decision and Verified ingestion status.'
+      message: 'No current source version has a stored PDF, matching rights and authority decisions, and Verified ingestion status.'
     };
   }
 
-  const verifications = await fetchRows(
-    sdk.table('source_verification_records_c')
-      fetchAllRows(
-        'source_verification_records_c',
-        [
-          'Id',
-          'Name',
-          'document_version_c',
-          'verification_type_c',
-          'decision_c',
-          'reviewer_user_c',
-          'verified_at_c',
-          'independent_check_c',
-          'verification_notes_c'
-        ],
-        window.ApperSDK.CoreSDK.eq('document_version_c', version.Id),
-        'source verification records'
-      );
+  const verifications = await fetchAllRows(
+    'source_verification_records_c',
+    [
+      'Id',
+      'Name',
+      'document_version_c',
+      'verification_type_c',
+      'decision_c',
+      'reviewer_user_c',
+      'verified_at_c',
+      'independent_check_c',
+      'verification_notes_c'
+    ],
+    window.ApperSDK.CoreSDK.eq('document_version_c', version.Id),
+    'source verification records'
+  );
 
   if (nextStatus === 'Verified') {
     const primaryReviewerIds = new Set();
@@ -208,8 +229,12 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
         row.independent_check_c === true
       )));
 
-      if (!primary || primary.decision_c !== 'Verified' ||
-        !independent || independent.decision_c !== 'Verified') {
+      if (
+        !primary ||
+        primary.decision_c !== 'Verified' ||
+        !independent ||
+        independent.decision_c !== 'Verified'
+      ) {
         return {
           success: false,
           message: 'Source ' + type.toLowerCase() + ' verification must pass in both first-pass and independent review.'
