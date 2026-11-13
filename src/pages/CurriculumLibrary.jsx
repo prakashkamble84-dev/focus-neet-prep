@@ -24,8 +24,8 @@ export default function CurriculumLibrary() {
   const { data, loading, error, run } = useFetch(fetchCurriculumLibrary, []);
 
   const rows = useMemo(() => buildCurriculumRows(data), [data]);
-  const exams = useMemo(() => ['All exams', ...new Set(rows.map((row) => row.exam).filter(Boolean))], [rows]);
-  const years = useMemo(() => ['All years', ...new Set(rows.map((row) => String(row.year)).filter(Boolean))], [rows]);
+  const exams = useMemo(() => ['All exams', ...new Set(['JEE Main', 'JEE Advanced', 'NEET UG', ...rows.map((row) => row.exam).filter(Boolean)])], [rows]);
+  const years = useMemo(() => ['All years', ...new Set(['2027', '2026', ...rows.map((row) => String(row.year)).filter(Boolean)])], [rows]);
   const subjects = useMemo(() => ['All subjects', ...new Set(rows.map((row) => row.subject).filter(Boolean))], [rows]);
   const levels = ['All levels', 'Subject', 'Unit', 'Chapter', 'Topic', 'Subtopic', 'Concept'];
 
