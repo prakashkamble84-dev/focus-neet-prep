@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import ApperIcon from '@/components/ApperIcon';
 import { saveHistoricalQuestionDNA } from '@/services/historicalQuestionDNAService';
+import { saveHistoricalQuestionOptions } from '@/services/historicalQuestionOptionReviewService';
 import {
   fetchHistoricalQuestionReviewData,
   recordHistoricalQuestionReview
@@ -56,6 +57,7 @@ export default function HistoricalQuestionDNA() {
   const [form, setForm] = useState({});
   const [answerKey, setAnswerKey] = useState('');
   const [solution, setSolution] = useState('');
+  const [optionsForm, setOptionsForm] = useState([]);
   const [reviewNotes, setReviewNotes] = useState('');
   const [decision, setDecision] = useState('Approved');
   const [saving, setSaving] = useState(false);
@@ -74,7 +76,15 @@ export default function HistoricalQuestionDNA() {
     });
     setAnswerKey(question.answer_key_c || '');
     setSolution(question.solution_c || '');
-  }, [question]);
+    setOptionsForm((data?.options || [])
+      .filter((option) => option.status_c !== 'Retired')
+      .sort((a, b) => Number(a.sequence_c || 0) - Number(b.sequence_c || 0))
+      .map((option) => ({
+        Id: option.Id,
+        key: option.option_key_c || '',
+        text: option.option_text_c || ''
+      })));
+  }, [question, data?.options]);
 
   function updateField(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -94,6 +104,55 @@ export default function HistoricalQuestionDNA() {
       await run();
     } catch (saveError) {
       toast.error('Question DNA update failed', { description: saveError.message });
+    } finally {
+      setSaving(false);
+      setActiveAction('');
+    }
+  }
+
+  function updateOption(index, field, value) {
+    setOptionsForm((current) => current.map((option, optionIndex) => (
+      optionIndex === index ? { ...option, [field]: value } : option
+    )));
+  }
+
+  function addOption() {
+    const used = new Set(optionsForm.map((option) => String(option.key || '').toUpperCase()));
+    const nextKey = ['A', 'B', 'C', 'D'].find((key) => !used.has(key));
+    if (!nextKey) {
+      toast.error('A question can have at most four labelled options A–D.');
+      return;
+    }
+    setOptionsForm((current) => [...current, { Id: null, key: nextKey, text: '' }]);
+  }
+
+  async function saveOptions() {
+    if (!reviewNotes.trim()) {
+      toast.error('Add notes describing the option corrections.');
+      return;
+    }
+    setSaving(true);
+    setActiveAction('options');
+    try {
+      const result = await saveHistoricalQuestionOptions({
+        question,
+        existingOptions: data.options || [],
+        draftOptions: optionsForm,
+        reviewerId: user?.userId,
+        reviewerProfile: profile,
+        notes: reviewNotes
+      });
+      if (!result.success) {
+        toast.error('Option corrections were not saved', { description: result.message });
+        return;
+      }
+      toast.success(result.message);
+      setReviewNotes('');
+      setAnswerKey('');
+      setSolution('');
+      await run();
+    } catch (optionError) {
+      toast.error('Option correction failed', { description: optionError.message });
     } finally {
       setSaving(false);
       setActiveAction('');
@@ -142,6 +201,7 @@ export default function HistoricalQuestionDNA() {
   }
 
   const locked = !canEdit || !question || ['Verified', 'Published'].includes(question.status_c);
+  const canEditOptions = canEdit && question && ['New', 'Review'].includes(question.status_c) && ['MCQ', 'Multi'].includes(question.question_type_c);
   const paper = data?.paper;
   const source = data?.sourceDocument;
   const sourceMatches = data?.sourceMatches === true;
@@ -200,7 +260,7 @@ export default function HistoricalQuestionDNA() {
               <div className="whitespace-pre-wrap rounded-md border border-border bg-muted/20 p-4 text-sm leading-6">
                 {question.question_body_c || 'No extracted question text is available.'}
               </div>
-              {data.options?.length > 0 && (
+              {data.options?.length > 0 && !canEditOptions && (
                 <div className="space-y-2 rounded-md border border-border p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Extracted answer choices</p>
@@ -221,6 +281,40 @@ export default function HistoricalQuestionDNA() {
                       ))}
                   </div>
                   <p className="text-[11px] text-muted-foreground">Extracted options remain Draft until the answer key is independently validated and the question is published.</p>
+                </div>
+              )}
+              {canEditOptions && (
+                <div className="space-y-3 rounded-md border border-border p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold">Correct extracted answer choices</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Edit OCR mistakes, add missing choices or retire incorrect rows. Any option correction clears the previous answer validation.</p>
+                    </div>
+                    <Badge variant="outline">{optionsForm.length} option(s)</Badge>
+                  </div>
+                  {optionsForm.map((option, index) => (
+                    <div key={option.Id || 'new-' + index} className="grid gap-2 rounded-md bg-muted/20 p-3 sm:grid-cols-[5rem_1fr_auto] sm:items-end">
+                      <div className="space-y-1">
+                        <Label htmlFor={'option-key-' + index}>Label</Label>
+                        <Input id={'option-key-' + index} value={option.key} maxLength={1} onChange={(event) => updateOption(index, 'key', event.target.value.toUpperCase())} placeholder="A" disabled={saving} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={'option-text-' + index}>Answer choice text</Label>
+                        <Textarea id={'option-text-' + index} rows={2} value={option.text} onChange={(event) => updateOption(index, 'text', event.target.value)} placeholder="Transcribe this choice accurately, including signs and units." disabled={saving} />
+                      </div>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setOptionsForm((current) => current.filter((_, optionIndex) => optionIndex !== index))} disabled={saving}>
+                        <ApperIcon name="Trash2" size={14} className="mr-1" /> Remove
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={addOption} disabled={saving || optionsForm.length >= 4}>
+                      <ApperIcon name="Plus" size={14} className="mr-1" /> Add option
+                    </Button>
+                    <Button type="button" size="sm" onClick={saveOptions} disabled={saving || optionsForm.length < 2 || optionsForm.some((option) => !option.text.trim())}>
+                      {saving && activeAction === 'options' ? 'Saving…' : 'Save corrected options'}
+                    </Button>
+                  </div>
                 </div>
               )}
               <div className="flex flex-wrap gap-2 text-xs">
