@@ -151,6 +151,14 @@ export default function HistoricalIntelligence() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {canRegisterPaper && (
+            <Button variant="outline" asChild>
+              <Link to="/historical-intelligence/papers/new">
+                <ApperIcon name="FileUp" size={15} className="mr-2" />
+                Ingest paper PDF
+              </Link>
+            </Button>
+          )}
           <Button variant="outline" onClick={refresh} disabled={loading}>
             <ApperIcon name="RefreshCw" size={15} className={loading ? 'mr-2 animate-spin' : 'mr-2'} />
             Refresh data

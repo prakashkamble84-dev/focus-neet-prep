@@ -41,6 +41,7 @@ export async function fetchHistoricalIntelligenceData({ includeReviews = false }
       'Id',
       'Name',
       'examination_c',
+      'question_body_c',
       'source_type_c',
       'status_c',
       'question_type_c',
