@@ -4,6 +4,7 @@ import { sdk } from '@/services/sdk';
 import { useFetch } from '@/hooks/useFetch';
 import { useProfile } from '@/hooks/useProfile';
 import { CURRICULA, importCurriculumOutline } from '@/services/curriculumImportService';
+import CurriculumImportBatches from '@/components/curriculum/CurriculumImportBatches';
 import ApperIcon from '@/components/ApperIcon';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -246,27 +247,7 @@ export default function Curriculum() {
         </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="font-mono text-base font-semibold">Import batches</h2>
-        {batchesLoading && !batchesData ? (
-          <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">Loading import batches…</div>
-        ) : batches.length === 0 ? (
-          <p className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">No curriculum import batches have been created.</p>
-        ) : (
-          <div className="grid gap-2 md:grid-cols-2">
-            {batches.map((batch) => (
-              <div key={batch.Id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{batch.Name}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{batch.nodes_created_c || 0} nodes created · {batch.nodes_updated_c || 0} updated</p>
-                  {batch.import_notes_c && <p className="mt-1 text-xs leading-5 text-muted-foreground">{batch.import_notes_c}</p>}
-                </div>
-                <Status value={batch.status_c} />
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      <CurriculumImportBatches batches={batches} loading={batchesLoading} loaded={Boolean(batchesData)} />
 
       <div className="rounded-lg border border-warning/40 bg-warning/10 p-4">
         <p className="font-semibold">No automated OCR or diagram extraction yet</p>
