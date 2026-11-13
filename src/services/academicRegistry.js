@@ -86,6 +86,32 @@ export const OFFICIAL_DOCUMENTS = [
     change_summary_c: 'Official NTA Paper 1 syllabus PDF. Binary upload, rights review and academic approval remain pending.'
   },
   {
+    key: 'JEE_MAIN_2027_SYLLABUS',
+    Name: 'JEE Main Paper 1 Syllabus · 2027',
+    examCode: 'JEE_MAIN',
+    sourceCode: 'NTA-JEE',
+    document_type_c: 'Syllabus',
+    document_url_c: 'https://jeemain.nta.nic.in/document/syllabus-2027/',
+    version_label_c: '2027 · Paper 1',
+    official_title_c: 'JEE Main 2027 Syllabus · official NTA document page',
+    academic_year_c: 2027,
+    ingestion_status_c: 'Discovered',
+    change_summary_c: 'The current NTA Documents index lists Syllabus 2027. The linked PDF binary has not yet been retrieved into Northstar; do not import topics until the PDF is uploaded and reviewed.'
+  },
+  {
+    key: 'JEE_MAIN_2027_BULLETIN',
+    Name: 'JEE Main Information Bulletin · 2027',
+    examCode: 'JEE_MAIN',
+    sourceCode: 'NTA-JEE',
+    document_type_c: 'Bulletin',
+    document_url_c: 'https://jeemain.nta.nic.in/documents/',
+    version_label_c: '2027',
+    official_title_c: 'JEE Main 2027 Information Bulletin · official NTA Documents index listing',
+    academic_year_c: 2027,
+    ingestion_status_c: 'Discovered',
+    change_summary_c: 'The current NTA Documents index lists Information Bulletin 2027. The direct PDF binary and detailed examination rules have not yet been retrieved.'
+  },
+  {
     key: 'JEE_MAIN_2026_BULLETIN',
     Name: 'JEE Main Information Bulletin · 2026',
     examCode: 'JEE_MAIN',
@@ -243,7 +269,7 @@ async function ensureSyllabusVersion(spec, exam, doc, version) {
     examination_c: exam.Id,
     source_document_c: doc.Id,
     source_document_version_c: version.Id,
-    academic_year_c: 2026,
+    academic_year_c: spec.academicYear,
     version_label_c: spec.label,
     status_c: 'Review',
     change_summary_c: spec.note
@@ -262,7 +288,7 @@ async function ensureExamVersion(spec, exam, version) {
   const saved = await sdk.table('examination_versions_c').create({
     Name: spec.label,
     examination_c: exam.Id,
-    academic_year_c: 2026,
+    academic_year_c: spec.academicYear,
     version_code_c: spec.versionCode,
     version_label_c: spec.label,
     status_c: 'Review',
@@ -323,9 +349,10 @@ export async function registerOfficialBaseline() {
   }
 
   const syllabusSpecs = [
-    { key: 'JEE_MAIN_2026_SYLLABUS', examCode: 'JEE_MAIN', label: 'JEE Main Paper 1 · 2026', versionCode: 'JEE_MAIN_2026_P1', note: 'Paper 1 syllabus record. Subject and unit outline import is available for academic review.' },
-    { key: 'JEE_ADV_2026_SYLLABUS', examCode: 'JEE_ADV', label: 'JEE Advanced · 2026', versionCode: 'JEE_ADV_2026', note: 'Official syllabus PDF records that the 2026 syllabus remains unchanged from 2025. Detailed extraction is pending.' },
-    { key: 'NEET_2026_SYLLABUS', examCode: 'NEET_UG', label: 'NEET UG · 2026', versionCode: 'NEET_UG_2026', note: 'NMC UGMEB finalised the syllabus on 22 December 2025 for academic session 2026–27. Outline import is available for academic review.' }
+    { key: 'JEE_MAIN_2026_SYLLABUS', examCode: 'JEE_MAIN', academicYear: 2026, label: 'JEE Main Paper 1 · 2026', versionCode: 'JEE_MAIN_2026_P1', note: 'Paper 1 syllabus record. Subject and unit outline import is available for academic review.' },
+    { key: 'JEE_MAIN_2027_SYLLABUS', examCode: 'JEE_MAIN', academicYear: 2027, label: 'JEE Main Paper 1 · 2027', versionCode: 'JEE_MAIN_2027_P1', note: 'NTA Documents index lists the official 2027 syllabus. Source PDF retrieval and topic extraction are pending; no curriculum nodes may be imported yet.' },
+    { key: 'JEE_ADV_2026_SYLLABUS', examCode: 'JEE_ADV', academicYear: 2026, label: 'JEE Advanced · 2026', versionCode: 'JEE_ADV_2026', note: 'Official syllabus PDF records that the 2026 syllabus remains unchanged from 2025. Detailed extraction is pending.' },
+    { key: 'NEET_2026_SYLLABUS', examCode: 'NEET_UG', academicYear: 2026, label: 'NEET UG · 2026', versionCode: 'NEET_UG_2026', note: 'NMC UGMEB finalised the syllabus on 22 December 2025 for academic session 2026–27. Outline import is available for academic review.' }
   ];
 
   for (const spec of syllabusSpecs) {
