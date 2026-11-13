@@ -154,19 +154,47 @@ export function buildGraphDiagnostics(nodes = [], relationships = [], mappings =
     if (code) byVersionAndCode.set(versionId + '|' + code, node);
   }
 
+  const allowedParentTypes = {
+    Unit: ['Subject'],
+    Chapter: ['Unit'],
+    Topic: ['Chapter', 'Unit'],
+    Subtopic: ['Topic'],
+    Concept: ['Topic', 'Subtopic', 'Concept']
+  };
+
   for (const node of nodes) {
     const parentCode = String(node.parent_node_code_c || '').trim();
-    if (!parentCode) continue;
+    const requiredParent = node.node_type_c !== 'Subject';
+    if (!parentCode) {
+      if (requiredParent) {
+        issues.push({
+          code: 'MISSING_PARENT',
+          severity: 'error',
+          message: (node.node_type_c || 'Node') + ' has no parent node: ' + (node.Name || node.node_code_c),
+          ids: [node.Id]
+        });
+      }
+      continue;
+    }
     const versionId = String(getLookupId(node.syllabus_version_c) || 'KNOWLEDGE_CORE');
-    const parentExistsInVersion = byVersionAndCode.has(versionId + '|' + parentCode);
-    const parentExistsInCore = versionId !== 'KNOWLEDGE_CORE' &&
-      byVersionAndCode.has('KNOWLEDGE_CORE|' + parentCode);
-    if (!parentExistsInVersion && !parentExistsInCore) {
+    const parent = byVersionAndCode.get(versionId + '|' + parentCode) ||
+      (versionId !== 'KNOWLEDGE_CORE' ? byVersionAndCode.get('KNOWLEDGE_CORE|' + parentCode) : null);
+    if (!parent) {
       issues.push({
         code: 'MISSING_PARENT',
         severity: 'error',
         message: 'Parent node ' + parentCode + ' is missing for ' + (node.Name || node.node_code_c),
         ids: [node.Id]
+      });
+      continue;
+    }
+    const allowed = allowedParentTypes[node.node_type_c] || [];
+    if (!allowed.includes(parent.node_type_c)) {
+      issues.push({
+        code: 'INVALID_PARENT_TYPE',
+        severity: 'error',
+        message: (node.node_type_c || 'Node') + ' cannot have a ' + parent.node_type_c + ' parent: ' + parent.Name,
+        ids: [node.Id, parent.Id]
       });
     }
   }
@@ -183,6 +211,16 @@ export function buildGraphDiagnostics(nodes = [], relationships = [], mappings =
         ids: [edge.Id]
       });
       continue;
+    }
+    const fromNode = nodes.find((node) => String(node.Id) === fromId);
+    const toNode = nodes.find((node) => String(node.Id) === toId);
+    if (fromNode?.node_type_c !== 'Concept' || toNode?.node_type_c !== 'Concept') {
+      issues.push({
+        code: 'INVALID_RELATIONSHIP_ENDPOINT',
+        severity: 'error',
+        message: 'Concept relationship edges must connect Concept nodes.',
+        ids: [edge.Id]
+      });
     }
     const symmetric = ['Related', 'Confused'].includes(edge.relationship_type_c);
     const pair = symmetric ? [fromId, toId].sort() : [fromId, toId];
@@ -316,6 +354,28 @@ export function runKnowledgeGraphSelfTests() {
       { curriculum_node_c: 'TOPIC', status_c: 'Review', verified_c: false }
     ]).info === 1,
     'Draft and Review mappings do not count as verified question evidence.'
+  );
+  assert(
+    'Detects an invalid hierarchy parent type',
+    buildGraphDiagnostics([
+      { Id: 'SUBJECT', Name: 'Physics', node_code_c: 'PHYSICS', node_type_c: 'Subject', syllabus_version_c: 'V1' },
+      { Id: 'TOPIC', Name: 'Friction', node_code_c: 'FRICTION', node_type_c: 'Topic', parent_node_code_c: 'PHYSICS', syllabus_version_c: 'V1' }
+    ], [], []).issues.some((issue) => issue.code === 'INVALID_PARENT_TYPE'),
+    'A Topic cannot be directly nested under a Subject.'
+  );
+  assert(
+    'Rejects relationships that connect non-concept hierarchy nodes',
+    buildGraphDiagnostics([
+      { Id: 'SUBJECT', Name: 'Physics', node_code_c: 'PHYSICS', node_type_c: 'Subject' },
+      { Id: 'CONCEPT', Name: 'Vectors', node_code_c: 'VECTORS', node_type_c: 'Concept', parent_node_code_c: 'PHYSICS' }
+    ], [{
+      Id: 'BAD-EDGE',
+      from_node_c: 'SUBJECT',
+      to_node_c: 'CONCEPT',
+      relationship_type_c: 'Prereq',
+      status_c: 'Verified'
+    }], []).errors > 0,
+    'Relationship edges connect Concept nodes only; hierarchy is represented by parent links.'
   );
 
   return {
