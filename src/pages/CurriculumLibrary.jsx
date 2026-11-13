@@ -64,7 +64,7 @@ export default function CurriculumLibrary() {
   }
 
   function downloadOne(row, slugify) {
-    downloadCurriculumRows([row], 'curriculum-' + slugify(row.subject) + '-' + slugify(row.title) + '.csv');
+    downloadCurriculumRows([row], 'curriculum-' + slugify(row.exam) + '-' + row.year + '-' + slugify(row.subject) + '-' + slugify(row.title) + '.csv');
   }
 
   return (
