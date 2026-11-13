@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 const TYPES = [
   { value: 'Prereq', label: 'Prerequisite' },
   { value: 'Related', label: 'Related concept' },
+  { value: 'PartOf', label: 'Part of / constituent concept' },
   { value: 'Extends', label: 'Extends / deepens' },
   { value: 'Applies', label: 'Applied in' },
   { value: 'Confused', label: 'Commonly confused with' }

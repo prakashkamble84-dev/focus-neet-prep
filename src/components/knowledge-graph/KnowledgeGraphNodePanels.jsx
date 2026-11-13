@@ -227,7 +227,7 @@ export function KnowledgeGraphNodeDetails({
               <ApperIcon name="ClipboardCheck" size={14} /> Verify evidence
             </Button>
           )}
-          <Button size="sm" onClick={() => onPublish(node)} disabled={!node.sourceVersion || !node.source_page_start_c || !node.source_page_end_c || !node.source_excerpt_c || !node.verified_c || (node.hasSyllabusVersion && node.syllabusStatus !== 'Published') || (node.node_type_c !== 'Subject' && (!node.parentNode || node.parentNode.status_c !== 'Published' || node.parentNode.verified_c !== true))}>
+          <Button size="sm" onClick={() => onPublish(node)} disabled={!node.sourceVersion || !node.sourcePageEvidenceVerified || !node.source_page_start_c || !node.source_page_end_c || !node.source_excerpt_c || !node.verified_c || (node.hasSyllabusVersion && node.syllabusStatus !== 'Published') || (node.node_type_c !== 'Subject' && (!node.parentNode || node.parentNode.status_c !== 'Published' || node.parentNode.verified_c !== true))}>
             <ApperIcon name="ShieldCheck" size={14} /> Publish node
           </Button>
         </div>
