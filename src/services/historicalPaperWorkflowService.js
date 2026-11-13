@@ -6,13 +6,19 @@ function getId(value) {
 }
 
 function timeValue(row) {
-  const value = row?.verified_at_c || row?.ModifiedOn || row?.CreatedOn;
+  const value = row?.ModifiedOn || row?.CreatedOn || row?.verified_at_c;
+  const parsed = value ? Date.parse(value) : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function auditTimeValue(row) {
+  const value = row?.CreatedOn || row?.verified_at_c || row?.ModifiedOn;
   const parsed = value ? Date.parse(value) : 0;
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function latest(rows) {
-  return [...rows].sort((a, b) => timeValue(b) - timeValue(a))[0] || null;
+  return [...rows].sort((a, b) => auditTimeValue(b) - auditTimeValue(a))[0] || null;
 }
 
 async function fetchRows(request, label) {
@@ -205,6 +211,7 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
     [
       'Id',
       'Name',
+      'CreatedOn',
       'document_version_c',
       'verification_type_c',
       'decision_c',
@@ -252,7 +259,7 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
         };
       }
       const latestSourceEdit = Math.max(timeValue(version), timeValue(document));
-      if (timeValue(primary) <= latestSourceEdit || timeValue(independent) <= latestSourceEdit) {
+      if (auditTimeValue(primary) <= latestSourceEdit || auditTimeValue(independent) <= latestSourceEdit) {
         return {
           success: false,
           message: 'Source ' + type.toLowerCase() + ' reviews must be newer than the last source version or parent-document edit.'
@@ -347,7 +354,7 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
         audit.independent_check_c === true &&
         String(getId(audit.reviewer_user_c) || '') === String(reviewerOfPage || '') &&
         String(audit.verification_notes_c || '').includes('Extraction record ' + row.Id + '.') &&
-        timeValue(audit) > timeValue(row)
+        auditTimeValue(audit) > timeValue(row)
       ));
 
       if (
