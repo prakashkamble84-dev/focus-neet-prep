@@ -6,8 +6,8 @@ export const nav = { label: 'Build roadmap', icon: 'Milestone', group: 'Governan
 
 const phases = [
   ['00', 'Product foundation', 'Application shell and module map are deployed; onboarding workflows remain to be implemented.', 'Shell deployed'],
-  ['01', 'Database and security', '28 custom tables, eight application profiles, permissions, and 124 RLS policies are provisioned; negative-access tests remain pending.', 'Schema provisioned'],
-  ['02', 'Official sources and curriculum', 'Source registry, ingestion, syllabus versions, and exam rules.', 'Not started'],
+  ['01', 'Database and security', '37 custom tables, eight application profiles, permissions, and 160 RLS policies are provisioned; negative-access tests remain pending.', 'Schema provisioned'],
+  ['02', 'Official sources and curriculum', 'Authority registry, versioned source documents, private PDF attachment and rights review, exam-year rules, syllabus change history, and controlled 2026 JEE Main/NEET unit-outline import. Baseline records require an authorised registration action; OCR remains pending.', 'Workflow built'],
   ['03', 'Knowledge graph', 'Concept identities, prerequisite edges, and mastery objectives.', 'Not started'],
   ['04', '30-year exam intelligence', 'Historical papers, OCR, DNA profiles, clustering, and crosswalks.', 'Not started'],
   ['05', 'Question bank', 'Versioned questions, answer keys, source mappings, and search.', 'Not started'],
@@ -41,7 +41,7 @@ export default function Architecture() {
           <div>
             <p className="font-semibold">Current build status</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              The backend schema is connected and provisioned with 28 custom tables, eight application profiles, and 124 row-level policies. Academic documents have not been ingested, role-negative access tests remain pending, and live AI generation is not enabled.
+              The backend has 37 custom tables, eight application profiles, and 160 row-level policies. Phase 2 source and curriculum workflows are built, but the official baseline rows still require registration from the Sources page, PDFs require upload and review, and automated OCR is not connected. Role-negative access tests and live AI are still pending.
             </p>
           </div>
         </div>
@@ -55,7 +55,7 @@ export default function Architecture() {
               <p className="font-semibold">{phase[1]}</p>
               <p className="mt-1 text-sm text-muted-foreground">{phase[2]}</p>
             </div>
-            <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${phase[3] === 'Schema provisioned' ? 'bg-success/10 text-success' : index === 0 ? 'bg-warning/15 text-warning-foreground' : 'bg-muted text-muted-foreground'}`}>
+            <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${phase[3] === 'Schema provisioned' || phase[3] === 'Workflow built' ? 'bg-success/10 text-success' : index === 0 ? 'bg-warning/15 text-warning-foreground' : 'bg-muted text-muted-foreground'}`}>
               {phase[3]}
             </span>
           </div>
