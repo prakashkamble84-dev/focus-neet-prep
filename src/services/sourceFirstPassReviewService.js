@@ -32,6 +32,18 @@ export async function saveFirstPassSourceReview({
     return { success: false, message: 'Verify the issuing authority and document metadata before approving permitted use.' };
   }
 
+  const invalidation = await invalidateSourceDependents(
+    version.Id,
+    reviewerId,
+    'First-pass source review is being reopened. ' + String(notes).trim()
+  );
+  if (!invalidation.success) {
+    return {
+      success: false,
+      message: 'Source metadata was not changed because all dependent syllabus and graph approvals could not be reset. ' + invalidation.message
+    };
+  }
+
   const versionUpdate = await sdk.table('source_document_versions_c').update({
     Id: version.Id,
     rights_status_c: rightsStatus,
@@ -51,18 +63,6 @@ export async function saveFirstPassSourceReview({
   });
   if (!parentUpdate.data?.length) {
     return { success: false, message: parentUpdate.messages?.join('; ') || parentUpdate.message || 'Parent source record could not be updated. The source version remains in Review.' };
-  }
-
-  const invalidation = await invalidateSourceDependents(
-    version.Id,
-    reviewerId,
-    'First-pass source review changed rights or source metadata. ' + String(notes).trim()
-  );
-  if (!invalidation.success) {
-    return {
-      success: false,
-      message: 'Source remains in Review, but dependent academic content could not be fully invalidated. ' + invalidation.message
-    };
   }
 
   const decisions = getFirstPassSourceDecisions(rightsStatus, authorityChecked, metadataChecked);
