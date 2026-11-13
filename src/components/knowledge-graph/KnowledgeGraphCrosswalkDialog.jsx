@@ -212,7 +212,11 @@ export default function KnowledgeGraphCrosswalkDialog({
           </div>
           <div className="space-y-2">
             <Label>Mapping type</Label>
-            <Select value={mappingType} onValueChange={setMappingType}>
+            <Select value={mappingType} onValueChange={(value) => {
+              setMappingType(value);
+              if (value === 'Added') setSourceNodeId('');
+              if (value === 'Removed') setTargetNodeId('');
+            }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {MAPPING_TYPES.map((value) => (
