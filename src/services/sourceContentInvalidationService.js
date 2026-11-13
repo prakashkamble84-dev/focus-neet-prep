@@ -1,16 +1,16 @@
 import { sdk } from '@/services/sdk';
-import { getLookupId } from '@/services/sourceVerificationService';
+function getLookupId(value) {\n  return value && typeof value === 'object' ? value.Id ?? null : value ?? null;\n}
 
-async function fetchRows(table, fields, limit = 5000) {
-  const result = await sdk.table(table).select(fields).limit(limit, 0).fetch();
-  if (!result.success) throw new Error(result.message || 'Could not inspect ' + table + ' dependencies');
+async function fetchRows(request, tableName) {
+  const result = await request;
+  if (!result.success) throw new Error(result.message || 'Could not inspect ' + tableName + ' dependencies');
   return result.data || [];
 }
 
-async function updateRow(table, values) {
-  const result = await sdk.table(table).update(values);
+async function updateRow(request, tableName, id) {
+  const result = await request;
   if (!result.data?.length) {
-    throw new Error(result.messages?.join('; ') || result.message || 'Could not invalidate ' + table + ' record ' + values.Id);
+    throw new Error(result.messages?.join('; ') || result.message || 'Could not invalidate ' + tableName + ' record ' + id);
   }
 }
 
@@ -27,11 +27,11 @@ export async function invalidateSourceDependents(versionId, reviewerId, notes) {
       questionMappings,
       crosswalks
     ] = await Promise.all([
-      fetchRows('syllabus_versions_c', ['Id', 'Name', 'source_document_version_c', 'status_c'], 1000),
-      fetchRows('curriculum_nodes_c', ['Id', 'Name', 'syllabus_version_c', 'source_document_version_c', 'status_c', 'verified_c'], 5000),
-      fetchRows('concept_relationships_c', ['Id', 'Name', 'from_node_c', 'to_node_c', 'status_c'], 5000),
-      fetchRows('question_concept_mappings_c', ['Id', 'Name', 'curriculum_node_c', 'status_c', 'verified_c'], 5000),
-      fetchRows('historical_syllabus_crosswalks_c', ['Id', 'Name', 'source_version_c', 'target_version_c', 'status_c'], 3000)
+      fetchRows(sdk.table('syllabus_versions_c').select(['Id', 'Name', 'source_document_version_c', 'status_c']).limit(1000, 0).fetch(), 'syllabus_versions_c'),
+      fetchRows(sdk.table('curriculum_nodes_c').select(['Id', 'Name', 'syllabus_version_c', 'source_document_version_c', 'status_c', 'verified_c']).limit(5000, 0).fetch(), 'curriculum_nodes_c'),
+      fetchRows(sdk.table('concept_relationships_c').select(['Id', 'Name', 'from_node_c', 'to_node_c', 'status_c']).limit(5000, 0).fetch(), 'concept_relationships_c'),
+      fetchRows(sdk.table('question_concept_mappings_c').select(['Id', 'Name', 'curriculum_node_c', 'status_c', 'verified_c']).limit(5000, 0).fetch(), 'question_concept_mappings_c'),
+      fetchRows(sdk.table('historical_syllabus_crosswalks_c').select(['Id', 'Name', 'source_version_c', 'target_version_c', 'status_c']).limit(3000, 0).fetch(), 'historical_syllabus_crosswalks_c')
     ]);
 
     const linkedSyllabi = syllabi.filter((row) => (
@@ -46,17 +46,17 @@ export async function invalidateSourceDependents(versionId, reviewerId, notes) {
 
     for (const syllabus of linkedSyllabi) {
       if (syllabus.status_c !== 'Review') {
-        await updateRow('syllabus_versions_c', { Id: syllabus.Id, status_c: 'Review' });
+        await updateRow(sdk.table('syllabus_versions_c').update({ Id: syllabus.Id, status_c: 'Review' }), 'syllabus_versions_c', syllabus.Id);
       }
     }
 
     for (const node of invalidatedNodes) {
       if (node.status_c !== 'Review' || node.verified_c === true) {
-        await updateRow('curriculum_nodes_c', {
+        await updateRow(sdk.table('curriculum_nodes_c').update({
           Id: node.Id,
           status_c: 'Review',
           verified_c: false
-        });
+        }), 'curriculum_nodes_c', node.Id);
       }
     }
 
@@ -66,7 +66,7 @@ export async function invalidateSourceDependents(versionId, reviewerId, notes) {
     ));
     for (const edge of linkedRelationships) {
       if (edge.status_c !== 'Review') {
-        await updateRow('concept_relationships_c', { Id: edge.Id, status_c: 'Review' });
+        await updateRow(sdk.table('concept_relationships_c').update({ Id: edge.Id, status_c: 'Review' }), 'concept_relationships_c', edge.Id);
       }
     }
 
@@ -75,11 +75,11 @@ export async function invalidateSourceDependents(versionId, reviewerId, notes) {
     ));
     for (const mapping of linkedMappings) {
       if (mapping.status_c !== 'Review' || mapping.verified_c === true) {
-        await updateRow('question_concept_mappings_c', {
+        await updateRow(sdk.table('question_concept_mappings_c').update({
           Id: mapping.Id,
           status_c: 'Review',
           verified_c: false
-        });
+        }), 'question_concept_mappings_c', mapping.Id);
       }
     }
 
@@ -91,7 +91,7 @@ export async function invalidateSourceDependents(versionId, reviewerId, notes) {
     ));
     for (const crosswalk of linkedCrosswalks) {
       if (crosswalk.status_c !== 'Review') {
-        await updateRow('historical_syllabus_crosswalks_c', { Id: crosswalk.Id, status_c: 'Review' });
+        await updateRow(sdk.table('historical_syllabus_crosswalks_c').update({ Id: crosswalk.Id, status_c: 'Review' }), 'historical_syllabus_crosswalks_c', crosswalk.Id);
       }
     }
 
