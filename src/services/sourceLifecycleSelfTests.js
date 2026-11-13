@@ -1,8 +1,51 @@
 import { evaluateIndependentSourceVerification } from '@/services/sourceVerificationService';
 import { getFirstPassSourceDecisions } from '@/services/sourceFirstPassReviewService';
 import { evaluateSyllabusPublication } from '@/services/syllabusPublicationService';
+import { buildSourceInvalidationPlan } from '@/services/sourceInvalidationRules';
 
 export function runSourceLifecycleSelfTests() {
+  const invalidationPlan = buildSourceInvalidationPlan({
+    versionId: 'VERSION-1',
+    syllabi: [
+      { Id: 'S-1', source_document_version_c: 'VERSION-1', status_c: 'Published' },
+      { Id: 'S-2', source_document_version_c: 'VERSION-2', status_c: 'Published' }
+    ],
+    nodes: [
+      { Id: 'N-1', syllabus_version_c: 'S-1', status_c: 'Published', verified_c: true },
+      { Id: 'N-2', source_document_version_c: 'VERSION-1', status_c: 'Published', verified_c: true },
+      { Id: 'N-3', syllabus_version_c: 'S-2', status_c: 'Published', verified_c: true }
+    ],
+    relationships: [
+      { Id: 'E-1', from_node_c: 'N-1', to_node_c: 'N-3', status_c: 'Verified' },
+      { Id: 'E-2', from_node_c: 'N-3', to_node_c: 'N-3', status_c: 'Verified' }
+    ],
+    questionMappings: [
+      { Id: 'M-1', curriculum_node_c: 'N-1', status_c: 'Verified', verified_c: true },
+      { Id: 'M-2', curriculum_node_c: 'N-2', status_c: 'Verified', verified_c: true },
+      { Id: 'M-3', curriculum_node_c: 'N-3', status_c: 'Verified', verified_c: true }
+    ],
+    crosswalks: [
+      { Id: 'W-1', source_version_c: 'VERSION-1', target_version_c: 'OTHER', status_c: 'Verified' },
+      { Id: 'W-2', source_version_c: 'S-2', target_version_c: 'S-1', status_c: 'Verified' },
+      { Id: 'W-3', source_version_c: 'S-2', target_version_c: 'S-2', status_c: 'Verified' }
+    ]
+  });
+  assert(
+    'Invalidates the linked syllabus and all dependent curriculum nodes',
+    invalidationPlan.counts.syllabi === 1 && invalidationPlan.counts.nodes === 2,
+    'Both syllabus-version nodes and nodes directly linked to the source document version are invalidated.'
+  );
+  assert(
+    'Invalidates concept relationships and question mappings touching affected nodes',
+    invalidationPlan.counts.relationships === 1 && invalidationPlan.counts.questionMappings === 2,
+    'Only graph edges and mappings that reference affected nodes are returned for Review.'
+  );
+  assert(
+    'Invalidates historical crosswalks linked to the source version or its syllabus',
+    invalidationPlan.counts.crosswalks === 2,
+    'Crosswalks linked directly to the source version or via a linked syllabus are invalidated.'
+  );
+
   const modifiedAt = '2026-11-13T09:00:00.000Z';
   const firstPassAt = '2026-11-13T10:00:00.000Z';
   const independentAt = '2026-11-13T11:00:00.000Z';
