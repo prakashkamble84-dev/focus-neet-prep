@@ -140,8 +140,7 @@ export default function Sources() {
       const versionResult = await sdk.table('source_document_versions_c').update({
         Id: selectedVersion.Id,
         rights_status_c: rightsStatus,
-        rights_notes_c: reviewNotes,
-        ingestion_status_c: 'Review'
+        rights_notes_c: reviewNotes
       });
       if (!versionResult.data?.length) {
         toast.error(versionResult.messages?.[0] || versionResult.message || 'Source version could not be updated');

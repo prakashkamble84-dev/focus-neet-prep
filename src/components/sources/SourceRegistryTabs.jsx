@@ -19,7 +19,14 @@ function EmptyState({ icon, title, description, action }) {
 }
 
 function Status({ value }) {
-  return <Badge variant="outline" className={value === 'Verified' ? 'border-success/30 bg-success/10 text-success' : 'border-border bg-muted text-muted-foreground'}>{value || 'Not set'}</Badge>;
+  const tone = ['Verified', 'Licensed', 'Public', 'Complete'].includes(value)
+    ? 'border-success/30 bg-success/10 text-success'
+    : ['Rejected', 'Restricted', 'Failed'].includes(value)
+      ? 'border-destructive/30 bg-destructive/10 text-destructive'
+      : ['Discovered', 'Retrieved', 'Queued', 'Extracted', 'Review'].includes(value)
+        ? 'border-warning/30 bg-warning/10 text-warning-foreground'
+        : 'border-border bg-muted text-muted-foreground';
+  return <Badge variant="outline" className={tone}>{value || 'Not set'}</Badge>;
 }
 
 export default function SourceRegistryTabs({
@@ -105,7 +112,7 @@ export default function SourceRegistryTabs({
                     <p className="font-semibold">{authority.organisation_name_c || authority.Name}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{authority.source_code_c} · {authority.organisation_type_c}</p>
                   </div>
-                  <Status value={authority.is_authoritative_c ? 'Verified' : 'Review'} />
+                  <Badge variant="outline" className="border-border bg-muted text-muted-foreground">Official authority</Badge>
                 </div>
                 <p className="mt-3 text-sm leading-5 text-muted-foreground">{authority.authority_scope_c}</p>
                 <a href={authority.website_url_c} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-primary hover:underline">
