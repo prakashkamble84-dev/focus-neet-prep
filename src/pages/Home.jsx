@@ -149,7 +149,7 @@ export default function Home() {
             <h2 className="font-mono text-base font-semibold">Implementation status</h2>
           </div>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            The product shell and module map are being established first. Student records, official content ingestion, AI calls, assessments, and analytics are not enabled yet.
+            The Phase 1 database foundation is provisioned: 28 custom academic and learning tables, eight application profiles, and 124 row-level policies. Official content ingestion, real student workflows, live AI, assessments, and analytics are still upcoming.
           </p>
           <Link to="/architecture" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-highlight hover:underline">Review what is and is not live <ApperIcon name="ArrowRight" size={15} /></Link>
         </div>
