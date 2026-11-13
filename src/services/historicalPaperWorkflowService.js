@@ -113,6 +113,22 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
     };
   }
 
+  const authorityId = getId(document.source_registry_c);
+  const authorities = authorityId
+    ? await fetchRows(
+        sdk.table('source_registry_c')
+          .select(['Id', 'Name', 'active_c', 'is_authoritative_c', 'official_domain_c'])
+          .where(window.ApperSDK.CoreSDK.eq('Id', authorityId))
+          .limit(1, 0)
+          .fetch(),
+        'issuing authority'
+      )
+    : [];
+  const authority = authorities[0];
+  if (!authority || authority.active_c !== true || authority.is_authoritative_c !== true || !authority.official_domain_c) {
+    return { success: false, message: 'The linked issuing authority must still be active, authoritative and have an official domain.' };
+  }
+
   if (!['Public', 'Licensed'].includes(document.rights_status_c)) {
     return { success: false, message: 'Source reuse rights are not cleared.' };
   }
@@ -161,22 +177,22 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
 
   const verifications = await fetchRows(
     sdk.table('source_verification_records_c')
-      .select([
-        'Id',
-        'Name',
-        'document_version_c',
-        'verification_type_c',
-        'decision_c',
-        'reviewer_user_c',
-        'verified_at_c',
-        'independent_check_c',
-        'verification_notes_c'
-      ])
-      .where(window.ApperSDK.CoreSDK.eq('document_version_c', version.Id))
-      .limit(1000, 0)
-      .fetch(),
-    'source verification records'
-  );
+      fetchAllRows(
+        'source_verification_records_c',
+        [
+          'Id',
+          'Name',
+          'document_version_c',
+          'verification_type_c',
+          'decision_c',
+          'reviewer_user_c',
+          'verified_at_c',
+          'independent_check_c',
+          'verification_notes_c'
+        ],
+        window.ApperSDK.CoreSDK.eq('document_version_c', version.Id),
+        'source verification records'
+      );
 
   if (nextStatus === 'Verified') {
     const primaryReviewerIds = new Set();

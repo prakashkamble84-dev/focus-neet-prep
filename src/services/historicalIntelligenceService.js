@@ -8,6 +8,7 @@ async function fetchRows(tableName, fields, limit = MAX_ROWS) {
   let offset = 0;
   let total = null;
   let hasMore = false;
+  let unknownMoreAtCeiling = false;
 
   while (rows.length < limit) {
     const pageLimit = Math.min(PAGE_SIZE, limit - rows.length);
@@ -22,10 +23,13 @@ async function fetchRows(tableName, fields, limit = MAX_ROWS) {
 
     const pageRows = result.data || [];
     rows.push(...pageRows);
-    if (Number.isFinite(Number(result.total))) total = Number(result.total);
+    if (result.total !== null && result.total !== undefined && Number.isFinite(Number(result.total))) total = Number(result.total);
 
     hasMore = result.hasMore === true ||
       (total !== null && total > rows.length);
+    if (rows.length >= limit && result.hasMore !== false && total === null && pageRows.length === pageLimit) {
+      unknownMoreAtCeiling = true;
+    }
 
     if (result.hasMore === false) {
       hasMore = false;
@@ -46,7 +50,7 @@ async function fetchRows(tableName, fields, limit = MAX_ROWS) {
   return {
     rows,
     total: total ?? rows.length,
-    truncated: hasMore || (total !== null && total > rows.length) || rows.length >= limit
+    truncated: hasMore || (total !== null && total > rows.length) || unknownMoreAtCeiling
   };
 }
 

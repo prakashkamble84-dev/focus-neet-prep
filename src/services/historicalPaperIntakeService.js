@@ -107,6 +107,7 @@ export async function registerHistoricalPaperBundle({
   session,
   paperCode,
   paperType,
+  declaredQuestionCount = null,
   sourceCategory,
   officialUrl,
   file,
@@ -128,6 +129,10 @@ export async function registerHistoricalPaperBundle({
   }
   if (!String(paperCode || '').trim()) {
     throw new Error('Paper code is required.');
+  }
+  if (declaredQuestionCount !== null && declaredQuestionCount !== undefined &&
+    (!Number.isInteger(Number(declaredQuestionCount)) || Number(declaredQuestionCount) < 1)) {
+    throw new Error('Official question count must be a positive whole number.');
   }
 
   const { eq } = window.ApperSDK.CoreSDK;

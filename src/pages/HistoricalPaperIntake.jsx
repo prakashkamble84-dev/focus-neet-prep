@@ -36,6 +36,7 @@ export default function HistoricalPaperIntake() {
   const [session, setSession] = useState('');
   const [paperCode, setPaperCode] = useState('');
   const [paperType, setPaperType] = useState('Main');
+  const [declaredQuestionCount, setDeclaredQuestionCount] = useState('');
   const [sourceCategory, setSourceCategory] = useState('Official');
   const [officialUrl, setOfficialUrl] = useState('');
   const [file, setFile] = useState(null);
@@ -123,6 +124,7 @@ export default function HistoricalPaperIntake() {
         session,
         paperCode,
         paperType,
+        declaredQuestionCount: declaredQuestionCount.trim() ? Number(declaredQuestionCount) : null,
         sourceCategory,
         officialUrl,
         file,
@@ -252,6 +254,18 @@ export default function HistoricalPaperIntake() {
                   <option value="NEET">NEET</option>
                   <option value="Legacy">Legacy</option>
                 </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="intake-declared-count">Official question count (optional)</Label>
+                <Input
+                  id="intake-declared-count"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={declaredQuestionCount}
+                  onChange={(event) => setDeclaredQuestionCount(event.target.value)}
+                  placeholder="The count printed on the official paper or bulletin"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="intake-category">Source category</Label>
