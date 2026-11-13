@@ -3,7 +3,16 @@ import { createPermissions } from '@/services/permissions';
 const academicTables = [
   'examinations_c',
   'source_documents_c',
+  'source_registry_c',
+  'source_document_versions_c',
+  'source_extractions_c',
+  'source_verification_records_c',
   'syllabus_versions_c',
+  'examination_versions_c',
+  'examination_rules_c',
+  'curriculum_import_batches_c',
+  'syllabus_change_records_c',
+  'historical_syllabus_crosswalks_c',
   'curriculum_nodes_c',
   'concept_relationships_c',
   'historical_papers_c',
@@ -77,11 +86,13 @@ const reviewerAccess = Object.fromEntries(
     {
       access: table === 'question_reviews_c' || table === 'content_approvals_c'
         ? 'Read,Create,Update'
-        : table === 'source_documents_c'
-          ? 'Read,Update'
-          : academicTables.includes(table)
+        : table === 'source_documents_c' || table === 'source_document_versions_c' || table === 'source_extractions_c' || table === 'source_verification_records_c' || table === 'syllabus_change_records_c' || table === 'historical_syllabus_crosswalks_c'
+          ? 'Read,Create,Update'
+          : table === 'curriculum_import_batches_c'
             ? 'Read'
-            : 'Inaccessible'
+            : academicTables.includes(table)
+              ? 'Read'
+              : 'Inaccessible'
     }
   ])
 );
@@ -89,6 +100,11 @@ const reviewerAccess = Object.fromEntries(
 const studentAccess = {
   examinations_c: { access: 'Read' },
   source_documents_c: { access: 'Read', inaccessibleFields: ['storage_path_c', 'extracted_text_c'] },
+  source_registry_c: { access: 'Read' },
+  examination_versions_c: { access: 'Read' },
+  examination_rules_c: { access: 'Read' },
+  syllabus_change_records_c: { access: 'Read' },
+  historical_syllabus_crosswalks_c: { access: 'Read' },
   syllabus_versions_c: { access: 'Read' },
   curriculum_nodes_c: { access: 'Read' },
   concept_relationships_c: { access: 'Read' },
