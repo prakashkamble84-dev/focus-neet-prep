@@ -160,6 +160,7 @@ export default function Sources() {
       });
       if (!result.success) {
         toast.error('Source review was not saved', { description: result.message });
+        await Promise.all([refreshDocuments(), refreshVersions()]);
         return;
       }
 
