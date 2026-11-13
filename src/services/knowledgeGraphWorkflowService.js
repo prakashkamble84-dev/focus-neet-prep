@@ -211,7 +211,7 @@ export async function verifyGraphNode(node, reviewerId) {
   if (!hasVerifiedGraphEvidence(node)) {
     return {
       success: false,
-      message: 'Attach a privately stored and independently verified source PDF, verify its parent source and permitted rights, and independently verify every page in the node's page range.'
+      message: "Attach a privately stored and independently verified source PDF, verify its parent source and permitted rights, and independently verify every page in the node's page range."
     };
   }
   const result = await sdk.table('curriculum_nodes_c').update({
