@@ -42,7 +42,7 @@ export async function saveFirstPassSourceReview({
     return { success: false, message: 'The selected parent document does not match this source version.' };
   }
   if (!reviewerId) return { success: false, message: 'The signed-in reviewer identity is unavailable.' };
-  if (!['Licensed', 'Public', 'Restricted'].includes(rightsStatus)) {
+  if (!['Unknown', 'Licensed', 'Public', 'Restricted', 'Review'].includes(rightsStatus)) {
     return { success: false, message: 'Choose Public, Licensed or Restricted as the rights decision.' };
   }
   if (!String(notes || '').trim()) return { success: false, message: 'Record evidence or a reason for the source review.' };
@@ -72,7 +72,7 @@ export async function saveFirstPassSourceReview({
   }
 
   const decisions = [
-    { type: 'Rights', decision: ['Licensed', 'Public'].includes(rightsStatus) ? 'Verified' : 'Rejected' },
+    { type: 'Rights', decision: ['Licensed', 'Public'].includes(rightsStatus) ? 'Verified' : rightsStatus === 'Restricted' ? 'Rejected' : 'NeedsFix' },
     { type: 'Authority', decision: authorityChecked ? 'Verified' : 'NeedsFix' },
     { type: 'Metadata', decision: metadataChecked ? 'Verified' : 'NeedsFix' }
   ];
