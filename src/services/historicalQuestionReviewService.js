@@ -253,6 +253,12 @@ export async function recordHistoricalQuestionReview({
   if (!canEditQuestion) {
     return { success: false, message: 'Only CEO, Manager and Academic Expert profiles can update question answer, rights and publication status.' };
   }
+  if (['applyExtraction', 'answer', 'academic'].includes(action) && reviewerProfile !== 'AcademicExpert_c') {
+    return { success: false, message: 'An Academic Expert must apply extraction approval, validate the answer and complete academic verification.' };
+  }
+  if (action === 'publish' && !['CEO', 'CEO_c', 'Manager', 'Manager_c'].includes(reviewerProfile)) {
+    return { success: false, message: 'Only a CEO or Manager can publish a question after academic verification.' };
+  }
 
   const previous = {
     status_c: question.status_c,
