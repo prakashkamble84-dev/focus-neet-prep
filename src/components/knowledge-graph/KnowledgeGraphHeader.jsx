@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import ApperIcon from '@/components/ApperIcon';
 import { Button } from '@/components/ui/button';
 
-export default function KnowledgeGraphHeader({ canEdit, loading, nodeCount, conceptCount, publishedCount, prerequisiteCount, familyCount, onAddConcept, onAddRelationship }) {
+export default function KnowledgeGraphHeader({ canEdit, canViewDrafts, loading, nodeCount, conceptCount, publishedCount, prerequisiteCount, familyCount, onAddConcept, onAddRelationship }) {
   return (
     <>
       <header className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
@@ -25,7 +25,7 @@ export default function KnowledgeGraphHeader({ canEdit, loading, nodeCount, conc
             </>
           )}
           <Button variant="outline" asChild>
-            <Link to={canEdit ? '/curriculum/manage' : '/curriculum'}><ApperIcon name="ListTree" size={15} /> {canEdit ? 'Curriculum management' : 'Curriculum library'}</Link>
+            <Link to={canViewDrafts ? '/curriculum/manage' : '/curriculum'}><ApperIcon name="ListTree" size={15} /> {canViewDrafts ? 'Curriculum management' : 'Curriculum library'}</Link>
           </Button>
         </div>
       </header>

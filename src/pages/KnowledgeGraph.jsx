@@ -84,7 +84,7 @@ export default function KnowledgeGraph() {
   const visibleFamilyModel = useMemo(() => {
     const visibleQuestionIds = new Set(
       (model.questions || [])
-        .filter((question) => canEdit || (
+        .filter((question) => canViewDrafts || (
           question.status_c === 'Published' &&
           ['Public', 'Licensed'].includes(question.rights_status_c)
         ))
@@ -105,7 +105,7 @@ export default function KnowledgeGraph() {
         conceptNodes: roleVisibleNodes.filter((node) => conceptIds.has(String(node.Id)))
       };
     }).filter((family) => family.questions.length > 0);
-  }, [model.families, model.questions, questionMappings, roleVisibleNodes, canEdit]);
+  }, [model.families, model.questions, questionMappings, roleVisibleNodes, canViewDrafts]);
 
   const diagnostics = useMemo(
     () => buildGraphDiagnostics(roleVisibleNodes, relationships, questionMappings),
@@ -193,6 +193,7 @@ export default function KnowledgeGraph() {
     <div className="space-y-7">
       <KnowledgeGraphHeader
         canEdit={canEdit}
+        canViewDrafts={canViewDrafts}
         loading={loading}
         nodeCount={nodes.length}
         conceptCount={conceptCount}
