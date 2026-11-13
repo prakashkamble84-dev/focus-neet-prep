@@ -34,7 +34,9 @@ import {
   Line
 } from 'recharts';
 import ApperIcon from '@/components/ApperIcon';
-import HistoricalPaperDialog from '@/components/historical-intelligence/HistoricalPaperDialog';
+import HistoricalPaperStatusAction from '@/components/historical-intelligence/HistoricalPaperStatusAction';
+import HistoricalQuestionQueue from '@/components/historical-intelligence/HistoricalQuestionQueue';
+import HistoricalArchiveSources from '@/components/historical-intelligence/HistoricalArchiveSources';
 import { fetchHistoricalIntelligenceData } from '@/services/historicalIntelligenceService';
 import { buildHistoricalIntelligence } from '@/services/historicalIntelligenceRules';
 import { runHistoricalIntelligenceSelfTests } from '@/services/historicalIntelligenceSelfTests';
@@ -163,13 +165,6 @@ export default function HistoricalIntelligence() {
             <ApperIcon name="RefreshCw" size={15} className={loading ? 'mr-2 animate-spin' : 'mr-2'} />
             Refresh data
           </Button>
-          {canRegisterPaper && (
-            <HistoricalPaperDialog
-              examinations={exams}
-              sourceDocuments={sourceDocuments}
-              onSaved={run}
-            />
-          )}
           <Button variant="ghost" asChild>
             <Link to="/sources">
               Source registry
@@ -275,7 +270,9 @@ export default function HistoricalIntelligence() {
         <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="papers">Paper registry</TabsTrigger>
+          <TabsTrigger value="questions">Question review</TabsTrigger>
           <TabsTrigger value="patterns">Question patterns</TabsTrigger>
+          <TabsTrigger value="archives">Official archives</TabsTrigger>
           <TabsTrigger value="quality">Evidence quality</TabsTrigger>
         </TabsList>
 
@@ -472,6 +469,7 @@ export default function HistoricalIntelligence() {
                         <TableHead>Questions</TableHead>
                         <TableHead>Record status</TableHead>
                         <TableHead>Trend eligibility</TableHead>
+                        <TableHead>Workflow</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -498,6 +496,13 @@ export default function HistoricalIntelligence() {
                                 <span className="text-xs text-muted-foreground">{paper.evidenceReason}</span>
                               )}
                             </TableCell>
+                            <TableCell>
+                              {canRegisterPaper ? (
+                                <HistoricalPaperStatusAction paper={paper} onSaved={refresh} />
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Read only</span>
+                              )}
+                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -511,7 +516,7 @@ export default function HistoricalIntelligence() {
                     description="Register paper metadata after its PDF has been added to the source registry. New records stay out of trend charts until review is complete."
                     action={canRegisterPaper ? (
                       <div className="mt-3 flex flex-wrap justify-center gap-2">
-                        <HistoricalPaperDialog examinations={exams} sourceDocuments={sourceDocuments} onSaved={run} />
+                        <Button size="sm" asChild><Link to="/historical-intelligence/papers/new">Ingest a paper PDF</Link></Button>
                         <Button variant="outline" size="sm" asChild><Link to="/sources">Manage source PDFs</Link></Button>
                       </div>
                     ) : <Button variant="outline" size="sm" asChild><Link to="/sources">Open source registry</Link></Button>}
@@ -520,6 +525,17 @@ export default function HistoricalIntelligence() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="questions" className="space-y-5">
+          <HistoricalQuestionQueue
+            questions={data?.questions || []}
+            canEdit={canReview}
+          />
+          <div className="flex flex-wrap gap-2 text-sm">
+            <Button variant="outline" asChild><Link to="/sources">Review source pages and OCR</Link></Button>
+            <Button variant="outline" asChild><Link to="/knowledge-graph">Review concept mappings</Link></Button>
+          </div>
         </TabsContent>
 
         <TabsContent value="patterns" className="space-y-5">
@@ -635,6 +651,10 @@ export default function HistoricalIntelligence() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="archives" className="space-y-5">
+          <HistoricalArchiveSources />
         </TabsContent>
 
         <TabsContent value="quality" className="space-y-5">
