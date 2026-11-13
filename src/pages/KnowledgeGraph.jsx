@@ -191,6 +191,7 @@ export default function KnowledgeGraph() {
     <div className="space-y-7">
       <KnowledgeGraphHeader
         canEdit={canEdit}
+        loading={loading}
         nodeCount={nodes.length}
         conceptCount={conceptCount}
         publishedCount={publishedCount}

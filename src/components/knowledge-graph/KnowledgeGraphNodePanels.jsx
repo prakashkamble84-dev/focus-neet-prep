@@ -43,7 +43,8 @@ export function KnowledgeGraphNodeBrowser({ nodes, selectedId, onSelect, canEdit
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold">{node.Name}</span>
                   <Badge variant="outline">{node.node_type_c}</Badge>
-                  {node.node_type_c === 'Concept' && node.parentNodeType === 'Concept' && <Badge variant="outline">Sub-concept</Badge>}
+                  {node.node_type_c === 'Concept' && node.parentNodeType === 'Concept' && <Badge variant="outline">Sub-concept</Badge>
+                  {node.syllabusCompatibility && <Badge variant="outline">{node.syllabusCompatibility}</Badge>}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {node.examName} {node.academicYear ? '· ' + node.academicYear : ''} · {node.subject_c || 'No subject'}
@@ -105,6 +106,7 @@ export function KnowledgeGraphNodeDetails({
             <h2 className="text-lg font-semibold">{node.Name}</h2>
             <Badge variant="outline">{node.node_type_c}</Badge>
             <StatusBadge value={node.status_c} />
+            {node.syllabusCompatibility && <Badge variant="outline">{node.syllabusCompatibility}</Badge>}
           </div>
           <p className="break-words text-xs text-muted-foreground">{node.node_code_c} · {node.examName} · {node.subject_c}</p>
           <p className="text-xs text-muted-foreground">{node.node_path_c}</p>
