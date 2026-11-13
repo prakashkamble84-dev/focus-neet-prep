@@ -189,7 +189,7 @@ export default function Sources() {
         const parentResult = await sdk.table('source_documents_c').update({
           Id: documentId,
           rights_status_c: rightsStatus,
-          verification_status_c: rightsStatus === 'Licensed' || rightsStatus === 'Public' ? 'Verified' : 'Review',
+          verification_status_c: 'Review',
           review_notes_c: reviewNotes
         });
         if (!parentResult.data?.length) {

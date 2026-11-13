@@ -82,7 +82,6 @@ export const OFFICIAL_DOCUMENTS = [
     version_label_c: '2026 · Paper 1',
     official_title_c: 'Syllabus for JEE Main Paper 1 (B.E./B.Tech.) · Mathematics, Physics and Chemistry',
     academic_year_c: 2026,
-    publication_date_c: '2025-10-31',
     ingestion_status_c: 'Retrieved',
     change_summary_c: 'Official NTA Paper 1 syllabus PDF. Binary upload, rights review and academic approval remain pending.'
   },
@@ -247,7 +246,6 @@ async function ensureSyllabusVersion(spec, exam, doc, version) {
     academic_year_c: 2026,
     version_label_c: spec.label,
     status_c: 'Review',
-    effective_date_c: '2026-01-01',
     change_summary_c: spec.note
   });
   if (!saved.data?.length) throw new Error(saved.messages?.join('; ') || 'Could not create syllabus version');
