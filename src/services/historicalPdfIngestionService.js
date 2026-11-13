@@ -1,3 +1,5 @@
+import { inferQuestionType, parseQuestionOptions } from '@/services/historicalQuestionOptionParser';
+
 const QUESTION_MARKER = /^\s*(?:Q(?:uestion)\s*)?(\d{1,3})[.)\]:-]\s+\S.*$/gim;
 
 export function splitQuestionsFromPage(text, pageNumber = 1) {
@@ -10,7 +12,8 @@ export function splitQuestionsFromPage(text, pageNumber = 1) {
     const end = index + 1 < matches.length ? matches[index + 1].index : source.length;
     const body = source.slice(start, end).trim();
     const number = match[1];
-    const hasOptions = /(?:^|\n)\s*(?:\([A-D]\)|[A-D][.)])\s+\S/im.test(body);
+    const options = parseQuestionOptions(body);
+
     return {
       key: String(pageNumber) + '-' + number + '-' + index,
       pageNumber,
@@ -153,13 +156,13 @@ export async function extractPdfPagesFromFile(file, language = 'eng', onProgress
             : 'Text';
 
       if (previewCanvas) {
-        previewImage = previewCanvas.toDataURL('image/jpeg', 0.68);
+        previewImage = previewCanvas.toDataURL('image/jpeg', 0.58);
         previewCanvas.width = 0;
         previewCanvas.height = 0;
         previewCanvas = null;
       } else if (imageCount > 0) {
-        previewCanvas = await renderPageToCanvas(page, 0.62);
-        previewImage = previewCanvas.toDataURL('image/jpeg', 0.68);
+        previewCanvas = await renderPageToCanvas(page, 0.48);
+        previewImage = previewCanvas.toDataURL('image/jpeg', 0.58);
         previewCanvas.width = 0;
         previewCanvas.height = 0;
         previewCanvas = null;
