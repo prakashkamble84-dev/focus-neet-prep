@@ -183,35 +183,37 @@ export function buildHistoricalIntelligence(data = {}, filters = {}) {
     if (question.source_type_c !== 'Historical') continue;
 
     const paperId = getLookupId(question.historical_paper_c);
-    const paper = visiblePaperById.get(String(paperId || ''));
+    const linkedPaper = paperById.get(String(paperId || '')) || null;
     const questionYear = asNumber(question.historical_year_c);
-    const yearToCheck = questionYear ?? asNumber(paper?.exam_year_c);
+    const paperYear = asNumber(linkedPaper?.exam_year_c);
+    const yearToCheck = paperYear ?? questionYear;
     if (!inYearRange(yearToCheck, fromYear, toYear)) continue;
 
     const questionExamName = examById.get(String(getLookupId(question.examination_c)))?.Name || getLookupName(question.examination_c);
-    const paperExamName = examById.get(String(getLookupId(paper?.examination_c)))?.Name || getLookupName(paper?.examination_c);
-    const examToCheck = questionExamName || paperExamName;
+    const linkedPaperExamName = examById.get(String(getLookupId(linkedPaper?.examination_c)))?.Name || getLookupName(linkedPaper?.examination_c);
+    const examToCheck = linkedPaperExamName || questionExamName;
     if (examFilter !== 'all' && examToCheck && examToCheck !== examFilter) continue;
 
-    const sourceDocument = paper?.sourceDocument ||
-      sourceById.get(String(getLookupId(question.source_document_c))) ||
-      sourceById.get(String(getLookupId(paper?.source_document_c)));
-    const decision = evaluateHistoricalQuestion(question, paper, sourceDocument);
+    const visiblePaper = visiblePaperById.get(String(paperId || '')) || null;
+    const questionSource = sourceById.get(String(getLookupId(question.source_document_c))) || null;
+    const paperSource = sourceById.get(String(getLookupId(linkedPaper?.source_document_c))) || null;
+    const sourceDocument = questionSource || paperSource;
+    const decision = evaluateHistoricalQuestion(question, linkedPaper, sourceDocument);
 
     if (!decision.eligible) {
-      excludedQuestions.push({ ...question, exclusionReason: decision.reason, paper });
+      excludedQuestions.push({ ...question, exclusionReason: decision.reason, paper: linkedPaper });
       continue;
     }
-    if (!eligiblePaperIds.has(String(paper.Id))) {
-      excludedQuestions.push({ ...question, exclusionReason: 'Linked paper is not eligible for trends', paper });
+    if (!visiblePaper || !eligiblePaperIds.has(String(linkedPaper.Id))) {
+      excludedQuestions.push({ ...question, exclusionReason: 'Linked paper is not eligible for trends', paper: linkedPaper });
       continue;
     }
 
     eligibleQuestions.push({
       ...question,
-      paper,
-      examName: paper.examName,
-      examYear: asNumber(paper.exam_year_c)
+      paper: visiblePaper,
+      examName: visiblePaper.examName,
+      examYear: asNumber(visiblePaper.exam_year_c)
     });
   }
 

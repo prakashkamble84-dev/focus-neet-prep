@@ -213,6 +213,14 @@ export function runHistoricalIntelligenceSelfTests() {
       model.quality.reasons.some((row) => row.reason === 'Question is not linked to a historical paper');
   });
 
+  test('Question year mismatches remain visible when the linked paper is in range', () => {
+    const model = buildHistoricalIntelligence(fixture({
+      questions: [{ ...goodQuestion, historical_year_c: 2025 }]
+    }), { currentYear: 2026, fromYear: 2026, toYear: 2026 });
+    return model.quality.excludedQuestions === 1 &&
+      model.quality.reasons.some((row) => row.reason === 'Question year is missing or does not match its paper');
+  });
+
   test('Thirty-year series includes every year, including zero-paper years', () => {
     const model = buildHistoricalIntelligence(base, { currentYear: 2026, fromYear: 1997, toYear: 2026 });
     return model.yearTrend.length === 30 &&
