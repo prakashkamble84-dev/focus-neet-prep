@@ -1,6 +1,8 @@
 import { sdk } from '@/services/sdk';
 import {
   buildGraphDiagnostics,
+  buildLatestVerifiedSourcePageKeys,
+  hasVerifiedSourcePageRange,
   getLookupId,
   getLookupName
 } from '@/services/knowledgeGraphRules';
@@ -117,20 +119,7 @@ export function buildKnowledgeGraphModel(data = {}) {
   const sourceDocumentById = new Map(sourceDocuments.map((item) => [String(item.Id), item]));
   const nodeById = new Map(nodes.map((item) => [String(item.Id), item]));
   const masteryByNodeId = new Map(studentMastery.map((item) => [String(getLookupId(item.curriculum_node_c)), item]));
-  const latestExtractionByPage = new Map();
-  for (const extraction of sourceExtractions) {
-    const key = String(getLookupId(extraction.document_version_c)) + '|' + String(Number(extraction.page_number_c));
-    const timestamp = Date.parse(extraction.ModifiedOn || extraction.CreatedOn || '') || 0;
-    const existing = latestExtractionByPage.get(key);
-    if (!existing || timestamp >= existing.timestamp) {
-      latestExtractionByPage.set(key, { timestamp, extraction });
-    }
-  }
-  const verifiedPageKeys = new Set(
-    [...latestExtractionByPage.entries()]
-      .filter(([, value]) => value.extraction.quality_status_c === 'Verified')
-      .map(([key]) => key)
-  );
+  const verifiedPageKeys = buildLatestVerifiedSourcePageKeys(sourceExtractions);
   const nodeCodeIndex = new Map();
   for (const node of nodes) {
     const code = String(node.node_code_c || '').trim();
@@ -148,14 +137,11 @@ export function buildKnowledgeGraphModel(data = {}) {
     const startPage = Number(node.source_page_start_c);
     const endPage = Number(node.source_page_end_c);
     const sourceVersionId = String(getLookupId(node.source_document_version_c) || getLookupId(syllabus?.source_document_version_c) || '');
-    const sourcePageEvidenceVerified = Boolean(
-      sourceVersionId &&
-      Number.isInteger(startPage) &&
-      Number.isInteger(endPage) &&
-      startPage > 0 &&
-      endPage >= startPage &&
-      Array.from({ length: endPage - startPage + 1 }, (_, index) => startPage + index)
-        .every((page) => verifiedPageKeys.has(sourceVersionId + '|' + String(page)))
+    const sourcePageEvidenceVerified = hasVerifiedSourcePageRange(
+      sourceVersionId,
+      startPage,
+      endPage,
+      verifiedPageKeys
     );
     const nodeVersionId = getLookupId(node.syllabus_version_c);
     const hasSyllabusVersion = Boolean(nodeVersionId);
