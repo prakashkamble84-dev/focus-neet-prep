@@ -146,8 +146,9 @@ export async function invalidateSourceDependents(versionId, reviewerId, notes, i
           '\nInvalidated ' + plan.counts.syllabi + ' syllabus versions, ' +
           plan.counts.nodes + ' curriculum nodes, ' + plan.counts.relationships +
           ' concept relationships, ' + plan.counts.questionMappings +
-          ' question mappings and ' + plan.counts.crosswalks +
-          ' historical crosswalks. All must be reviewed again before learner release.',
+          ' question mappings, ' + plan.counts.crosswalks +
+          ' historical crosswalks and ' + plan.counts.pageExtractions +
+          ' page extractions. All affected records must be reviewed again before learner release.',
         submitted_at_c: new Date().toISOString(),
         resolved_at_c: new Date().toISOString()
       });
