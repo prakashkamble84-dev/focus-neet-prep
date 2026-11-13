@@ -261,7 +261,7 @@ export default function HistoricalIntelligence() {
         <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
           <ApperIcon name="AlertTriangle" size={16} className="mt-0.5 shrink-0 text-warning" />
           <p>
-            The query hit its 5,000-record retrieval limit. Some records may be omitted from the current analysis; refine the examination filter or reduce the year range before relying on totals.
+            The query reached the 50,000-record retrieval ceiling. Some records may be omitted from the current analysis; refine the examination filter or reduce the year range before relying on totals.
           </p>
         </div>
       )}
