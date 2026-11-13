@@ -36,6 +36,7 @@ export default function SourceRegistryTabs({
   versionsLoading,
   versionsData,
   refreshVersions,
+  refreshDocuments,
   documentsError,
   canManageAuthorities,
   canReview,
@@ -94,7 +95,7 @@ export default function SourceRegistryTabs({
                 onUpload={onUpload}
                 onReview={onReview}
                 onExtract={onExtract}
-                onIndependentVerificationComplete={() => Promise.all([refreshVersions(), refreshAuthorities()])}
+                onIndependentVerificationComplete={() => Promise.all([refreshVersions(), refreshDocuments(), refreshAuthorities()])}
               />
             );
           })

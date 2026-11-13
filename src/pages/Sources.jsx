@@ -170,7 +170,7 @@ export default function Sources() {
         }
       }
 
-      const reviewerId = user?.Id || user?.userId;
+      const reviewerId = user?.userId;
       if (reviewerId) {
         const reviewTypes = [
           { type: 'Rights', decision: rightsStatus === 'Licensed' || rightsStatus === 'Public' ? 'Verified' : 'Rejected' },
@@ -280,6 +280,7 @@ export default function Sources() {
         versionsLoading={versionsLoading}
         versionsData={versionsData}
         refreshVersions={refreshVersions}
+        refreshDocuments={refreshDocuments}
         documentsError={documentsError}
         canManageAuthorities={canManageAuthorities}
         canReview={canReview}
