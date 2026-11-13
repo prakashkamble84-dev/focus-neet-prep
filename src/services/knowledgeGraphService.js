@@ -11,7 +11,7 @@ async function unwrapTableRequest(request, tableName) {
   return result.data || [];
 }
 
-export async function fetchKnowledgeGraphData(includeStudentMastery = false) {
+export async function fetchKnowledgeGraphData({ includeStudentMastery = false, includeSourceEvidence = false } = {}) {
   const requests = [
     unwrapTableRequest(
       sdk.table('examinations_c').select(['Id', 'Name', 'code_c', 'exam_type_c', 'active_c']).limit(100, 0).fetch(),
@@ -58,7 +58,9 @@ export async function fetchKnowledgeGraphData(includeStudentMastery = false) {
         .limit(3000, 0).fetch(),
       'student_concept_mastery_c'
     );
-  } else {
+  }
+
+  if (includeSourceEvidence) {
     [sourceVersions, sourceDocuments, sourceExtractions] = await Promise.all([
       unwrapTableRequest(
         sdk.table('source_document_versions_c')

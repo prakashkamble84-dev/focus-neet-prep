@@ -48,8 +48,11 @@ export default function KnowledgeGraph() {
   const canViewDrafts = canEdit || REVIEWER_PROFILES.includes(profile);
   const isStudent = STUDENT_PROFILES.includes(profile);
   const { data, loading, error, run } = useFetch(
-    () => fetchKnowledgeGraphData(isStudent),
-    [isStudent]
+    () => fetchKnowledgeGraphData({
+      includeStudentMastery: isStudent,
+      includeSourceEvidence: canViewDrafts
+    }),
+    [isStudent, canViewDrafts]
   );
 
   const model = useMemo(() => buildKnowledgeGraphModel(data), [data]);
