@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { sdk } from '@/services/sdk';
 import { useFetch } from '@/hooks/useFetch';
 import { useProfile } from '@/hooks/useProfile';
+import { useAuth } from '@/layouts/RootLayout';
+import { independentlyReviewPageExtraction } from '@/services/sourceVerificationService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import ApperIcon from '@/components/ApperIcon';
@@ -9,7 +11,7 @@ import { toast } from 'sonner';
 
 async function fetchExtractions() {
   const result = await sdk.table('source_extractions_c')
-    .select(['Id', 'Name', 'document_version_c', 'page_number_c', 'section_title_c', 'content_kind_c', 'extraction_method_c', 'extracted_text_c', 'confidence_c', 'image_count_c', 'equation_count_c', 'quality_status_c', 'reviewer_notes_c'])
+    .select(['Id', 'Name', 'CreatedBy', 'Owner', 'document_version_c', 'page_number_c', 'section_title_c', 'content_kind_c', 'extraction_method_c', 'extracted_text_c', 'confidence_c', 'image_count_c', 'equation_count_c', 'quality_status_c', 'reviewer_notes_c'])
     .limit(200, 0)
     .fetch();
   if (!result.success) throw new Error(result.message || 'Could not load page extraction records');
@@ -27,6 +29,8 @@ function QualityStatus({ value }) {
 
 export default function SourceExtractionQueue() {
   const { profile } = useProfile();
+  const { user } = useAuth();
+  const reviewerId = user?.userId;
   const canReview = ['CEO', 'Manager', 'AcademicExpert_c', 'ContentReviewer_c'].includes(profile);
   const { data, loading, error, run } = useFetch(fetchExtractions, []);
   const [savingId, setSavingId] = useState(null);
@@ -40,15 +44,12 @@ export default function SourceExtractionQueue() {
     if (!canReview) return;
     setSavingId(row.Id);
     try {
-      const result = await sdk.table('source_extractions_c').update({
-        Id: row.Id,
-        quality_status_c: decision
-      });
-      if (!result.data?.length) {
-        toast.error(result.messages?.join('; ') || result.message || 'Extraction review was not saved');
+      const result = await independentlyReviewPageExtraction(row, decision, reviewerId);
+      if (!result.success) {
+        toast.error(result.message || 'Independent extraction review was not saved');
         return;
       }
-      toast.success(`Page ${row.page_number_c}: extraction ${decision.toLowerCase()}`);
+      toast.success(`Page ${row.page_number_c}: extraction ${decision.toLowerCase()} with review history`);
       await run();
     } catch (error) {
       toast.error('Extraction review failed', { description: error.message });
