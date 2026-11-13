@@ -5,54 +5,26 @@ import { useFetch } from '@/hooks/useFetch';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/layouts/RootLayout';
 import { registerOfficialBaseline } from '@/services/academicRegistry';
-import FilePicker from '@/components/FilePicker';
+import { fetchSourceAuthorities, fetchSourceDocuments, fetchSourceVersions } from '@/services/sourceRegistryService';
+import SourceVersionCard from '@/components/sources/SourceVersionCard';
+import SourceWorkflow from '@/components/sources/SourceWorkflow';
+import { SourceRightsDialog, SourceUploadDialog } from '@/components/sources/SourceDialogs';
 import ApperIcon from '@/components/ApperIcon';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter,
-  DialogHeader, DialogTitle
-} from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 
 export const route = { path: '/sources', layout: 'owner', access: 'authenticated' };
 export const nav = { label: 'Academic sources', icon: 'FileCheck2', group: 'Research', order: 110 };
 
-const sourceFields = ['Id', 'Name', 'source_code_c', 'organisation_name_c', 'organisation_type_c', 'official_domain_c', 'website_url_c', 'jurisdiction_c', 'authority_scope_c', 'is_authoritative_c', 'active_c', 'last_verified_at_c'];
-const documentFields = ['Id', 'Name', 'examination_c', 'source_registry_c', 'source_category_c', 'document_type_c', 'official_url_c', 'published_date_c', 'effective_date_c', 'academic_year_c', 'document_version_c', 'rights_status_c', 'verification_status_c', 'ingestion_status_c', 'review_notes_c'];
-const versionFields = ['Id', 'Name', 'source_document_c', 'source_registry_c', 'version_label_c', 'official_title_c', 'document_url_c', 'document_file_c', 'publication_date_c', 'effective_date_c', 'rights_status_c', 'rights_notes_c', 'ingestion_status_c', 'version_status_c', 'academic_year_c', 'change_summary_c'];
-
-async function fetchAuthorities() {
-  const result = await sdk.table('source_registry_c').select(sourceFields).limit(100, 0).fetch();
-  if (!result.success) throw new Error(result.message || 'Could not load official authorities');
-  return result.data ?? [];
-}
-
-async function fetchDocuments() {
-  const result = await sdk.table('source_documents_c').select(documentFields).limit(200, 0).fetch();
-  if (!result.success) throw new Error(result.message || 'Could not load source documents');
-  return result.data ?? [];
-}
-
-async function fetchVersions() {
-  const result = await sdk.table('source_document_versions_c').select(versionFields).limit(200, 0).fetch();
-  if (!result.success) throw new Error(result.message || 'Could not load source document versions');
-  return result.data ?? [];
-}
-
 function Status({ value }) {
-  const tone = value === 'Verified' || value === 'Licensed' || value === 'Public' || value === 'Complete'
+  const tone = value === 'Verified'
     ? 'border-success/30 bg-success/10 text-success'
-    : value === 'Rejected' || value === 'Restricted' || value === 'Failed'
+    : value === 'Rejected' || value === 'Inactive'
       ? 'border-destructive/30 bg-destructive/10 text-destructive'
-      : value === 'Review' || value === 'Queued' || value === 'Retrieved' || value === 'Discovered'
-        ? 'border-warning/30 bg-warning/10 text-warning-foreground'
-        : 'border-border bg-muted text-muted-foreground';
+      : 'border-border bg-muted text-muted-foreground';
   return <Badge variant="outline" className={tone}>{value || 'Not set'}</Badge>;
 }
 
@@ -74,8 +46,10 @@ export default function Sources() {
   const { user } = useAuth();
   const canReview = ['CEO', 'Manager', 'AcademicExpert_c', 'ContentReviewer_c'].includes(profile);
   const canManageAuthorities = ['CEO', 'Manager', 'AcademicExpert_c'].includes(profile);
-  const [seeding, setSeeding] = useState(false);
+
   const [search, setSearch] = useState('');
+  const [seeding, setSeeding] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState(null);
@@ -84,33 +58,25 @@ export default function Sources() {
   const [authorityChecked, setAuthorityChecked] = useState(false);
   const [metadataChecked, setMetadataChecked] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
-  const [saving, setSaving] = useState(false);
 
-  const { data: authoritiesData, loading: authoritiesLoading, error: authoritiesError, run: refreshAuthorities } = useFetch(fetchAuthorities, []);
-  const { data: documentsData, loading: documentsLoading, error: documentsError, run: refreshDocuments } = useFetch(fetchDocuments, []);
-  const { data: versionsData, loading: versionsLoading, error: versionsError, run: refreshVersions } = useFetch(fetchVersions, []);
+  const { data: authoritiesData, loading: authoritiesLoading, error: authoritiesError, run: refreshAuthorities } = useFetch(fetchSourceAuthorities, []);
+  const { data: documentsData, loading: documentsLoading, error: documentsError, run: refreshDocuments } = useFetch(fetchSourceDocuments, []);
+  const { data: versionsData, loading: versionsLoading, error: versionsError, run: refreshVersions } = useFetch(fetchSourceVersions, []);
 
   const authorities = authoritiesData ?? [];
   const documents = documentsData ?? [];
   const versions = versionsData ?? [];
+  const query = search.trim().toLowerCase();
 
-  const filteredAuthorities = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return authorities;
-    return authorities.filter((item) =>
-      [item.Name, item.organisation_name_c, item.source_code_c, item.official_domain_c]
-        .some((value) => String(value ?? '').toLowerCase().includes(q))
-    );
-  }, [authorities, search]);
+  const filteredAuthorities = useMemo(() => authorities.filter((item) =>
+    !query || [item.Name, item.organisation_name_c, item.source_code_c, item.official_domain_c]
+      .some((value) => String(value ?? '').toLowerCase().includes(query))
+  ), [authorities, query]);
 
-  const filteredVersions = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return versions;
-    return versions.filter((item) =>
-      [item.Name, item.official_title_c, item.version_label_c, item.document_url_c, item.rights_status_c, item.ingestion_status_c]
-        .some((value) => String(value ?? '').toLowerCase().includes(q))
-    );
-  }, [versions, search]);
+  const filteredVersions = useMemo(() => versions.filter((item) =>
+    !query || [item.Name, item.official_title_c, item.version_label_c, item.document_url_c, item.rights_status_c, item.ingestion_status_c]
+      .some((value) => String(value ?? '').toLowerCase().includes(query))
+  ), [versions, query]);
 
   const pendingRights = versions.filter((item) => !['Licensed', 'Public'].includes(item.rights_status_c)).length;
   const pendingFiles = versions.filter((item) => !item.document_file_c?.length).length;
@@ -118,10 +84,9 @@ export default function Sources() {
   async function handleRegisterBaseline() {
     setSeeding(true);
     try {
-      const result = await registerOfficialBaseline();
-      const s = result.summary;
+      const { summary } = await registerOfficialBaseline();
       toast.success('Official source baseline registered', {
-        description: `${s.authorities} authorities · ${s.documents} documents · ${s.versions} versions · ${s.syllabusVersions} syllabus versions created`
+        description: `${summary.authorities} authorities · ${summary.documents} documents · ${summary.versions} versions · ${summary.syllabusVersions} syllabus versions created`
       });
       await Promise.all([refreshAuthorities(), refreshDocuments(), refreshVersions()]);
     } catch (error) {
@@ -183,6 +148,7 @@ export default function Sources() {
       toast.error('Verify the issuing authority and document metadata before marking this source verified');
       return;
     }
+
     setSaving(true);
     try {
       const versionResult = await sdk.table('source_document_versions_c').update({
@@ -211,7 +177,8 @@ export default function Sources() {
         }
       }
 
-      if (user?.userId) {
+      const reviewerId = user?.Id || user?.userId;
+      if (reviewerId) {
         const reviewTypes = [
           { type: 'Rights', decision: rightsStatus === 'Licensed' || rightsStatus === 'Public' ? 'Verified' : 'Rejected' },
           ...(authorityChecked ? [{ type: 'Authority', decision: 'Verified' }] : []),
@@ -223,7 +190,7 @@ export default function Sources() {
             document_version_c: selectedVersion.Id,
             verification_type_c: item.type,
             decision_c: item.decision,
-            reviewer_user_c: user.userId,
+            reviewer_user_c: reviewerId,
             verified_at_c: new Date().toISOString(),
             verification_notes_c: reviewNotes,
             independent_check_c: false
@@ -232,6 +199,8 @@ export default function Sources() {
             toast.warning(`${item.type} status updated, but its review event could not be recorded`);
           }
         }
+      } else {
+        toast.warning('Source status updated, but the reviewer identity was unavailable for the verification log');
       }
 
       toast.success('Source verification review saved', {
@@ -278,7 +247,7 @@ export default function Sources() {
           <div>
             <p className="font-semibold">Import does not equal publication</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Official URLs and source metadata can be registered now. PDFs still need to be uploaded into controlled storage, rights need review, and extracted text or diagrams need page-level verification. Nothing with unknown usage rights is released to students.
+              Official URLs and source metadata can be registered now. PDFs still need to be uploaded into controlled storage, rights need review, and extracted text or diagrams need page-level verification. Unknown usage rights are not released to students.
             </p>
           </div>
         </div>
@@ -329,46 +298,22 @@ export default function Sources() {
             <EmptyState
               icon="FileSearch"
               title="No source versions registered"
-              description="Register the verified official baseline to add the 2026 JEE Main, JEE Advanced and NEET UG source documents and their version records."
+              description="Register the official baseline to add the 2026 JEE Main, JEE Advanced and NEET UG source documents and their version records."
               action={canManageAuthorities ? <Button className="mt-4" onClick={handleRegisterBaseline} disabled={seeding}>Register official baseline</Button> : null}
             />
           ) : (
             filteredVersions.map((version) => {
               const parentId = version.source_document_c?.Id ?? version.source_document_c;
               const parent = documents.find((doc) => doc.Id === parentId);
-              const fileCount = version.document_file_c?.length ?? 0;
               return (
-                <div key={version.Id} className="rounded-lg border border-border bg-card p-4 sm:p-5">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0 space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="font-semibold">{version.official_title_c || version.Name}</h3>
-                        <Badge variant="outline">{version.academic_year_c || version.version_label_c || 'Version'}</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{parent?.Name || 'Parent document record'} · {version.version_label_c || 'Unversioned'}</p>
-                      <div className="flex flex-wrap gap-2">
-                        <Status value={version.ingestion_status_c} />
-                        <Status value={version.rights_status_c} />
-                        <Status value={version.version_status_c} />
-                        <Badge variant="outline">{fileCount ? 'PDF stored' : 'PDF not stored'}</Badge>
-                      </div>
-                      {version.change_summary_c && <p className="max-w-4xl text-sm leading-5 text-muted-foreground">{version.change_summary_c}</p>}
-                      <a href={version.document_url_c} target="_blank" rel="noreferrer" className="inline-flex max-w-full items-center gap-2 break-all text-xs font-medium text-primary hover:underline">
-                        <ApperIcon name="ExternalLink" size={13} /> Open official document
-                      </a>
-                    </div>
-                    {canReview && (
-                      <div className="flex shrink-0 flex-wrap gap-2">
-                        <Button variant="outline" size="sm" onClick={() => openUpload(version)}>
-                          <ApperIcon name="Upload" size={14} /> {fileCount ? 'Manage PDF' : 'Attach PDF'}
-                        </Button>
-                        <Button size="sm" onClick={() => openReview(version)}>
-                          <ApperIcon name="ClipboardCheck" size={14} /> Review rights
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <SourceVersionCard
+                  key={version.Id}
+                  version={version}
+                  parent={parent}
+                  canReview={canReview}
+                  onUpload={openUpload}
+                  onReview={openReview}
+                />
               );
             })
           )}
@@ -407,93 +352,37 @@ export default function Sources() {
           )}
         </TabsContent>
 
-        <TabsContent value="workflow" className="grid gap-3 md:grid-cols-2">
-          {[
-            ['01', 'Discover and register', 'Record the issuing authority, official domain, title, academic year and original document URL.'],
-            ['02', 'Retrieve and preserve', 'Upload the original PDF into private storage. Preserve the URL, file metadata, version label and checksum.'],
-            ['03', 'Extract page by page', 'Capture text, tables, equations and diagrams with page numbers and confidence values.'],
-            ['04', 'Verify source and rights', 'Review authority, document metadata, permitted use and extraction quality independently.'],
-            ['05', 'Map curriculum', 'Create versioned syllabus nodes with page-level source references and import-batch lineage.'],
-            ['06', 'Approve publication', 'Academic reviewers approve a syllabus version and its changed nodes before student-facing publication.']
-          ].map(([n, title, detail]) => (
-            <div key={n} className="flex gap-3 rounded-lg border border-border bg-card p-4">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-accent font-mono text-xs font-semibold text-primary">{n}</span>
-              <div>
-                <p className="font-semibold">{title}</p>
-                <p className="mt-1 text-sm leading-5 text-muted-foreground">{detail}</p>
-              </div>
-            </div>
-          ))}
-          <div className="rounded-lg border border-warning/40 bg-warning/10 p-4 md:col-span-2">
-            <p className="font-semibold">Automated OCR is not enabled yet</p>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              The registry supports PDF storage and page-level extraction records. An automated OCR/diagram pipeline is not connected in this build; no extraction is silently fabricated. Use the reviewer workflow until a server-side extraction provider and evaluation tests are configured.
-            </p>
-          </div>
+        <TabsContent value="workflow">
+          <SourceWorkflow />
         </TabsContent>
       </Tabs>
 
-      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
-        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Attach official PDF</DialogTitle>
-            <DialogDescription>{selectedVersion?.official_title_c || selectedVersion?.Name || 'Selected document version'}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Label>Original PDF file</Label>
-            <FilePicker
-              value={files}
-              onChange={setFiles}
-              maxFiles={1}
-              fieldConfig={{ supportedExtensions: ['pdf'], supportMultipleValues: false, minValue: 0, maxValue: 20480 }}
-            />
-            <p className="text-xs leading-5 text-muted-foreground">The PDF is stored in private platform storage. Uploading does not grant redistribution rights or publish the syllabus.</p>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setUploadOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={handleUpload} disabled={saving || !files.length}>
-              {saving ? 'Saving…' : 'Save PDF attachment'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SourceUploadDialog
+        open={uploadOpen}
+        onOpenChange={setUploadOpen}
+        version={selectedVersion}
+        files={files}
+        onFilesChange={setFiles}
+        saving={saving}
+        onSave={handleUpload}
+      />
 
-      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
-        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Review document usage rights</DialogTitle>
-            <DialogDescription>Record the reuse decision for {selectedVersion?.official_title_c || selectedVersion?.Name || 'this document'}.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Rights decision</Label>
-              <Select value={rightsStatus} onValueChange={setRightsStatus}>
-                <SelectTrigger><SelectValue placeholder="Select rights status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Unknown">Unknown · do not publish</SelectItem>
-                  <SelectItem value="Licensed">Licensed · permission recorded</SelectItem>
-                  <SelectItem value="Public">Public · permitted use basis recorded</SelectItem>
-                  <SelectItem value="Restricted">Restricted · do not redistribute</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Verification checks</Label>
-              <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={authorityChecked} onChange={(event) => setAuthorityChecked(event.target.checked)} className="mt-0.5" /> <span>Issuing authority and official domain independently matched.</span></label>
-              <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={metadataChecked} onChange={(event) => setMetadataChecked(event.target.checked)} className="mt-0.5" /> <span>Document title, version and academic-year metadata matched to the official page or PDF.</span></label>
-            </div>
-            <div className="space-y-2">
-              <Label>Evidence and reviewer notes</Label>
-              <Textarea value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} rows={4} placeholder="Record the official terms, licence, public-use basis, or reason for restriction…" />
-            </div>
-            <p className="text-xs leading-5 text-muted-foreground">Rights, authority and metadata checks are recorded separately. This does not approve syllabus topics, complete OCR, or publish a syllabus version.</p>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setReviewOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={handleReview} disabled={saving || !canReview}>{saving ? 'Saving…' : 'Save rights review'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SourceRightsDialog
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        version={selectedVersion}
+        rightsStatus={rightsStatus}
+        onRightsStatusChange={setRightsStatus}
+        authorityChecked={authorityChecked}
+        onAuthorityCheckedChange={setAuthorityChecked}
+        metadataChecked={metadataChecked}
+        onMetadataCheckedChange={setMetadataChecked}
+        reviewNotes={reviewNotes}
+        onReviewNotesChange={setReviewNotes}
+        saving={saving}
+        canReview={canReview}
+        onSave={handleReview}
+      />
     </div>
   );
 }
