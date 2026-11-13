@@ -21,7 +21,7 @@ async function fetchRows(request, label) {
   return result.data || [];
 }
 
-export async function transitionHistoricalPaper(paper, nextStatus, reviewerId) {
+export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, reviewerProfile) {
   if (!paper?.Id || !reviewerId) {
     return { success: false, message: 'A paper record and signed-in reviewer are required.' };
   }
@@ -30,6 +30,12 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId) {
   }
   if (nextStatus === 'Published' && paper.status_c !== 'Verified') {
     return { success: false, message: 'A paper must be Verified before publication.' };
+  }
+  if (nextStatus === 'Verified' && reviewerProfile !== 'AcademicExpert_c') {
+    return { success: false, message: 'Only an Academic Expert can verify a historical paper.' };
+  }
+  if (nextStatus === 'Published' && !['CEO', 'CEO_c', 'Manager', 'Manager_c'].includes(reviewerProfile)) {
+    return { success: false, message: 'Only a CEO or Manager can publish an academically verified paper.' };
   }
   if (nextStatus === 'Verified' && !['New', 'Review'].includes(paper.status_c)) {
     return { success: false, message: 'Only New or Review papers can move to Verified.' };

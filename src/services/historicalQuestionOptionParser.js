@@ -25,8 +25,8 @@ export function parseQuestionOptions(questionBody) {
 
 export function inferQuestionType(questionBody, options = []) {
   const text = String(questionBody || '').toLowerCase();
-  if (options.length >= 2) {
-    return /select all that apply|more than one correct|one or more correct|multiple correct/i.test(text)
+  if (options.length > 0) {
+    return /select all that apply|select one or more|choose all|more than one correct|more than one option|one or more correct|multiple correct|multiple answers/i.test(text)
       ? 'Multi'
       : 'MCQ';
   }
