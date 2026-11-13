@@ -6,10 +6,10 @@ function lookupId(value) {
   return value && typeof value === 'object' ? value.Id ?? null : value ?? null;
 }
 
-async function readOne(table, fields, id) {
-  const result = await sdk.table(table).select(fields).get(id);
+async function unwrapRecord(request, tableName) {
+  const result = await request;
   if (!result.success || !result.data) {
-    throw new Error(result.message || table + ' record was not found');
+    throw new Error(result.message || tableName + ' record was not found');
   }
   return result.data;
 }
@@ -123,17 +123,12 @@ export function evaluateSyllabusPublication({
 
 export async function publishSyllabusVersion(syllabusId, reviewerId) {
   try {
-    const syllabus = await readOne('syllabus_versions_c', [
-      'Id',
-      'Name',
-      'examination_c',
-      'source_document_c',
-      'source_document_version_c',
-      'academic_year_c',
-      'version_label_c',
-      'status_c',
-      'change_summary_c'
-    ], syllabusId);
+    const syllabus = await unwrapRecord(
+      sdk.table('syllabus_versions_c')
+        .select(['Id', 'Name', 'examination_c', 'source_document_c', 'source_document_version_c', 'academic_year_c', 'version_label_c', 'status_c', 'change_summary_c'])
+        .get(syllabusId),
+      'syllabus_versions_c'
+    );
 
     if (syllabus.status_c === 'Published') {
       return { success: true, alreadyPublished: true, message: 'This syllabus version is already published.' };
@@ -144,36 +139,33 @@ export async function publishSyllabusVersion(syllabusId, reviewerId) {
       return { success: false, issues: ['The syllabus has no linked source document version.'] };
     }
 
-    const sourceVersion = await readOne('source_document_versions_c', [
-      'Id',
-      'Name',
-      'source_document_c',
-      'source_registry_c',
-      'document_file_c',
-      'document_url_c',
-      'rights_status_c',
-      'ingestion_status_c',
-      'version_label_c'
-    ], sourceVersionId);
+    const sourceVersion = await unwrapRecord(
+      sdk.table('source_document_versions_c')
+        .select(['Id', 'Name', 'source_document_c', 'source_registry_c', 'document_file_c', 'document_url_c', 'rights_status_c', 'ingestion_status_c', 'version_label_c'])
+        .get(sourceVersionId),
+      'source_document_versions_c'
+    );
 
     const sourceDocumentId = lookupId(sourceVersion.source_document_c);
     if (!sourceDocumentId || sourceDocumentId !== lookupId(syllabus.source_document_c)) {
       return { success: false, issues: ['The syllabus and source version do not point to the same parent source document.'] };
     }
 
-    const sourceDocument = await readOne('source_documents_c', [
-      'Id',
-      'Name',
-      'source_registry_c',
-      'official_url_c',
-      'rights_status_c',
-      'verification_status_c',
-      'ingestion_status_c'
-    ], sourceDocumentId);
+    const sourceDocument = await unwrapRecord(
+      sdk.table('source_documents_c')
+        .select(['Id', 'Name', 'source_registry_c', 'official_url_c', 'rights_status_c', 'verification_status_c', 'ingestion_status_c'])
+        .get(sourceDocumentId),
+      'source_documents_c'
+    );
 
     const authorityId = lookupId(sourceVersion.source_registry_c) || lookupId(sourceDocument.source_registry_c);
     const authority = authorityId
-      ? await readOne('source_registry_c', ['Id', 'Name', 'official_domain_c', 'website_url_c', 'is_authoritative_c', 'active_c'], authorityId)
+      ? await unwrapRecord(
+          sdk.table('source_registry_c')
+            .select(['Id', 'Name', 'official_domain_c', 'website_url_c', 'is_authoritative_c', 'active_c'])
+            .get(authorityId),
+          'source_registry_c'
+        )
       : null;
 
     const verifications = await readVerificationRows(sourceVersion.Id);

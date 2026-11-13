@@ -41,7 +41,8 @@ export function evaluateIndependentSourceVerification({
     issues.push('The source must have a valid HTTPS official URL.');
   }
   if (!authority?.official_domain_c) issues.push('The issuing authority needs a registered official domain.');
-  if (!String(authority?.official_domain_c || '').trim()) issues.push('The issuing authority is not linked to this version.');
+  if (authority && authority.is_authoritative_c !== true) issues.push('The linked source registry entry is not marked as an authoritative issuer.');
+  if (authority && authority.active_c !== true) issues.push('The linked issuing authority is inactive.');
   if (!checks.authority || !checks.metadata || !checks.rights || !checks.pdfIntegrity) {
     issues.push('Complete all four independent verification checks.');
   }
