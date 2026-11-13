@@ -110,7 +110,7 @@ export default function SourceDiscoveryPanel({ onAdded }) {
         <div>
           <p className="font-semibold">Internet source discovery</p>
           <p className="mt-1 max-w-3xl text-sm leading-5 text-muted-foreground">
-            Search official authorities and unofficial education providers. Results are source candidates only, not approved syllabus content.
+            Search official authorities and unofficial education providers. Domain-based labels are discovery hints only: every result needs human authority, date and rights verification before use.
           </p>
         </div>
         <Badge variant="outline">Official + unofficial</Badge>
@@ -149,7 +149,7 @@ export default function SourceDiscoveryPanel({ onAdded }) {
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold">{candidate.title}</h3>
                       <Badge variant="outline" className={candidate.sourceType === 'Official' ? 'border-success/30 bg-success/10 text-success' : 'border-border bg-muted text-muted-foreground'}>
-                        {candidate.sourceType}
+                        {candidate.sourceType === 'Official' ? 'Official-domain candidate' : 'Unofficial candidate'}
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">{candidate.domain} · {candidate.exam}</p>

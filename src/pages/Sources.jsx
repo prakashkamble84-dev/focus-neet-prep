@@ -216,9 +216,9 @@ export default function Sources() {
       <div className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl space-y-3">
           <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-primary">Phase 2 · Academic provenance</p>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Official source registry</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Academic source registry</h1>
           <p className="text-sm leading-6 text-muted-foreground sm:text-base">
-            Trace each syllabus and examination document to its issuing authority, exact version, original URL, stored PDF, rights decision and page-level extraction review.
+            Discover official and independent curriculum sources, then trace each candidate to its URL, version, stored PDF, rights decision and page-level extraction review.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

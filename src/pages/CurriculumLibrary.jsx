@@ -6,6 +6,7 @@ import { fetchCurriculumLibrary, buildCurriculumRows } from '@/services/curricul
 import { downloadCurriculumRows, printCurriculumRows } from '@/services/curriculumLibraryDownloads';
 import CurriculumLibraryFilters from '@/components/curriculum/CurriculumLibraryFilters';
 import CurriculumLibraryResults from '@/components/curriculum/CurriculumLibraryResults';
+import CurriculumSourceDocuments from '@/components/curriculum/CurriculumSourceDocuments';
 import ApperIcon from '@/components/ApperIcon';
 import { Button } from '@/components/ui/button';
 
@@ -94,6 +95,8 @@ export default function CurriculumLibrary() {
           </div>
         </div>
       </section>
+
+      <CurriculumSourceDocuments />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
