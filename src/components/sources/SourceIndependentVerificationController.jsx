@@ -89,6 +89,7 @@ export default function SourceIndependentVerificationController({
         toast.error('Independent verification is blocked', {
           description: (result.issues || []).join('\n')
         });
+        await onCompleted?.();
         return;
       }
       toast.success(result.alreadyVerified
