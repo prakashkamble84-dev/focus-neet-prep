@@ -158,7 +158,10 @@ export function buildGraphDiagnostics(nodes = [], relationships = [], mappings =
     const parentCode = String(node.parent_node_code_c || '').trim();
     if (!parentCode) continue;
     const versionId = String(getLookupId(node.syllabus_version_c) || 'KNOWLEDGE_CORE');
-    if (!byVersionAndCode.has(versionId + '|' + parentCode)) {
+    const parentExistsInVersion = byVersionAndCode.has(versionId + '|' + parentCode);
+    const parentExistsInCore = versionId !== 'KNOWLEDGE_CORE' &&
+      byVersionAndCode.has('KNOWLEDGE_CORE|' + parentCode);
+    if (!parentExistsInVersion && !parentExistsInCore) {
       issues.push({
         code: 'MISSING_PARENT',
         severity: 'error',
@@ -264,6 +267,33 @@ export function runKnowledgeGraphSelfTests() {
     'Rejects a duplicate prerequisite edge',
     !validateProposedRelationship(nodes, [edge('A', 'B')], 'A', 'B', 'Prereq').valid,
     'The same directed prerequisite may not be recorded twice.'
+  );
+  assert(
+    'Rejects a reverse duplicate for symmetric relationships',
+    !validateProposedRelationship(nodes, [{
+      Id: 'B-A',
+      from_node_c: 'B',
+      to_node_c: 'A',
+      relationship_type_c: 'Related',
+      status_c: 'Verified'
+    }], 'A', 'B', 'Related').valid,
+    'A symmetric Related edge may only exist once regardless of endpoint order.'
+  );
+  assert(
+    'Allows the same parent code in separate syllabus versions',
+    buildGraphDiagnostics([
+      { Id: 'S1', Name: 'Physics', node_code_c: 'PHYSICS', node_type_c: 'Subject', syllabus_version_c: 'V1' },
+      { Id: 'S2', Name: 'Physics', node_code_c: 'PHYSICS', node_type_c: 'Subject', syllabus_version_c: 'V2' }
+    ], [], []).errors === 0,
+    'Stable curriculum codes are unique within a syllabus version, not globally.'
+  );
+  assert(
+    'Accepts a shared Knowledge Core parent',
+    buildGraphDiagnostics([
+      { Id: 'CORE', Name: 'Vectors', node_code_c: 'PHY-VECTORS', node_type_c: 'Concept' },
+      { Id: 'CURRENT', Name: 'Vector resolution', node_code_c: 'PHY-VECTOR-RESOLUTION', node_type_c: 'Concept', parent_node_code_c: 'PHY-VECTORS', syllabus_version_c: 'V1' }
+    ], [], []).errors === 0,
+    'A syllabus-linked concept may extend a source-grounded shared Knowledge Core concept.'
   );
 
   return {

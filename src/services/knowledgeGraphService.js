@@ -105,6 +105,13 @@ export function buildKnowledgeGraphModel(data = {}) {
   const sourceDocumentById = new Map(sourceDocuments.map((item) => [String(item.Id), item]));
   const nodeById = new Map(nodes.map((item) => [String(item.Id), item]));
   const masteryByNodeId = new Map(studentMastery.map((item) => [String(getLookupId(item.curriculum_node_c)), item]));
+  const nodeCodeIndex = new Map();
+  for (const node of nodes) {
+    const code = String(node.node_code_c || '').trim();
+    if (!code) continue;
+    const versionId = String(getLookupId(node.syllabus_version_c) || 'KNOWLEDGE_CORE');
+    nodeCodeIndex.set(versionId + '|' + code, node);
+  }
 
   const enrichedNodes = nodes.map((node) => {
     const syllabus = syllabusById.get(String(getLookupId(node.syllabus_version_c)));
@@ -114,6 +121,12 @@ export function buildKnowledgeGraphModel(data = {}) {
     const sourceDocument = sourceDocumentById.get(String(sourceDocumentId));
     const nodeVersionId = getLookupId(node.syllabus_version_c);
     const hasSyllabusVersion = Boolean(nodeVersionId);
+    const parentCode = String(node.parent_node_code_c || '').trim();
+    const currentVersionId = String(nodeVersionId || 'KNOWLEDGE_CORE');
+    const parentNode = parentCode
+      ? nodeCodeIndex.get(currentVersionId + '|' + parentCode) ||
+        (nodeVersionId ? nodeCodeIndex.get('KNOWLEDGE_CORE|' + parentCode) : null)
+      : null;
     const isHistorical = crosswalks.some((crosswalk) => {
       if (crosswalk.status_c !== 'Verified') return false;
       const sourceNodeId = getLookupId(crosswalk.source_node_c);
@@ -140,6 +153,8 @@ export function buildKnowledgeGraphModel(data = {}) {
       sourceVersion,
       sourceDocument,
       hasSyllabusVersion,
+      parentNode,
+      parentNodeType: parentNode?.node_type_c || '',
       isHistorical,
       layer: isHistorical ? 'Historical crosswalk' : hasSyllabusVersion ? 'Syllabus-linked' : 'Knowledge core',
       mastery: masteryByNodeId.get(String(node.Id)) || null

@@ -17,7 +17,7 @@ export default function KnowledgeGraphHeader({ canEdit, nodeCount, conceptCount,
           {canEdit && (
             <>
               <Button variant="outline" onClick={onAddConcept}>
-                <ApperIcon name="Plus" size={15} /> Add concept
+                <ApperIcon name="Plus" size={15} /> Add node
               </Button>
               <Button onClick={onAddRelationship}>
                 <ApperIcon name="GitBranch" size={15} /> Connect concepts
