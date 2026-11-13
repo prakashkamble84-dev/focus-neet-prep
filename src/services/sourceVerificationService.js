@@ -124,9 +124,13 @@ export function evaluateIndependentSourceVerification({
   const versionAuthorityId = getLookupId(version?.source_registry_c);
   const documentAuthorityId = getLookupId(document?.source_registry_c);
   const authorityId = getLookupId(authority?.Id);
+  if (!versionAuthorityId && !documentAuthorityId) {
+    issues.push('The source version or parent document must be linked to a registered issuing authority.');
+  }
   if (versionAuthorityId && documentAuthorityId && String(versionAuthorityId) !== String(documentAuthorityId)) {
     issues.push('The source version and parent document point to different issuing authorities.');
   }
+  if (!authorityId) issues.push('The issuing authority registry record could not be identified.');
   if (authorityId && versionAuthorityId && String(authorityId) !== String(versionAuthorityId)) {
     issues.push('The selected issuing authority does not match the source version registry link.');
   }

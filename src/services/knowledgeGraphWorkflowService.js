@@ -152,11 +152,21 @@ export async function reviewHistoricalCrosswalk(row, status, reviewerId) {
     }
     const sourceNodeId = getLookupId(row.source_node_c);
     const targetNodeId = getLookupId(row.target_node_c);
-    if (row.mapping_type_c === 'Added' && (!targetNodeId || sourceNodeId)) {
-      return { success: false, message: 'An Added mapping must have a target node and no source node.' };
+    if (row.mapping_type_c === 'Added') {
+      if (!targetNodeId || sourceNodeId) {
+        return { success: false, message: 'An Added mapping must have a target node and no source node.' };
+      }
+      if (String(getLookupId(row.targetNode?.syllabus_version_c)) !== String(targetVersionId)) {
+        return { success: false, message: 'The Added node must belong to the target syllabus version.' };
+      }
     }
-    if (row.mapping_type_c === 'Removed' && (!sourceNodeId || targetNodeId)) {
-      return { success: false, message: 'A Removed mapping must have a source node and no target node.' };
+    if (row.mapping_type_c === 'Removed') {
+      if (!sourceNodeId || targetNodeId) {
+        return { success: false, message: 'A Removed mapping must have a source node and no target node.' };
+      }
+      if (String(getLookupId(row.sourceNode?.syllabus_version_c)) !== String(sourceVersionId)) {
+        return { success: false, message: 'The Removed node must belong to the source syllabus version.' };
+      }
     }
     if (!['Added', 'Removed'].includes(row.mapping_type_c)) {
       if (!sourceNodeId || !targetNodeId) {
