@@ -113,8 +113,8 @@ export function evaluateSyllabusPublication({
   if (reviewerId && primaryReviewerIds.has(String(reviewerId))) {
     issues.push('The syllabus publisher cannot be the first-pass source reviewer.');
   }
-  if (independentReviewerIds.size !== 1 || !independentReviewerIds.has(String(reviewerId || ''))) {
-    issues.push('One second reviewer must complete all independent source checks, and that same person must publish the syllabus.');
+  if (independentReviewerIds.size !== 1) {
+    issues.push('Exactly one independent source reviewer must complete all Rights, Authority and Metadata checks.');
   }
   for (const id of independentReviewerIds) {
     if (primaryReviewerIds.has(id)) {
