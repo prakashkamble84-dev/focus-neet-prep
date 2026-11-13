@@ -121,6 +121,18 @@ export function evaluateIndependentSourceVerification({
   if (!String(version?.document_url_c || document?.official_url_c || '').startsWith('https://')) {
     issues.push('The source must have a valid HTTPS official URL.');
   }
+  const versionAuthorityId = getLookupId(version?.source_registry_c);
+  const documentAuthorityId = getLookupId(document?.source_registry_c);
+  const authorityId = getLookupId(authority?.Id);
+  if (versionAuthorityId && documentAuthorityId && String(versionAuthorityId) !== String(documentAuthorityId)) {
+    issues.push('The source version and parent document point to different issuing authorities.');
+  }
+  if (authorityId && versionAuthorityId && String(authorityId) !== String(versionAuthorityId)) {
+    issues.push('The selected issuing authority does not match the source version registry link.');
+  }
+  if (authorityId && documentAuthorityId && String(authorityId) !== String(documentAuthorityId)) {
+    issues.push('The selected issuing authority does not match the parent document registry link.');
+  }
   if (!authority?.official_domain_c) issues.push('The issuing authority needs a registered official domain.');
   if (authority && authority.is_authoritative_c !== true) issues.push('The linked source registry entry is not marked as an authoritative issuer.');
   if (authority && authority.active_c !== true) issues.push('The linked issuing authority is inactive.');
@@ -305,6 +317,9 @@ export async function completeIndependentSourceVerification({
 
 export async function independentlyReviewPageExtraction(row, decision, reviewerId) {
   if (!row?.Id || !reviewerId) return { success: false, message: 'A page record and signed-in reviewer are required.' };
+  if (!['Verified', 'Rejected'].includes(decision)) {
+    return { success: false, message: 'Choose Verified or Rejected as the independent page decision.' };
+  }
   const creatorId = getLookupId(row.CreatedBy) || getLookupId(row.Owner);
   if (decision === 'Verified' && (!creatorId || String(creatorId) === String(reviewerId))) {
     return { success: false, message: 'A different reviewer must verify this extraction. The person who created the transcript cannot independently approve it.' };

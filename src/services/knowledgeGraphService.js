@@ -76,7 +76,7 @@ export async function fetchKnowledgeGraphData({ includeStudentMastery = false, i
       ),
       unwrapTableRequest(
         sdk.table('source_extractions_c')
-          .select(['Id', 'Name', 'document_version_c', 'page_number_c', 'quality_status_c', 'content_kind_c', 'extraction_method_c'])
+          .select(['Id', 'Name', 'CreatedOn', 'ModifiedOn', 'document_version_c', 'page_number_c', 'quality_status_c', 'content_kind_c', 'extraction_method_c'])
           .limit(5000, 0).fetch(),
         'source_extractions_c'
       )
@@ -117,10 +117,19 @@ export function buildKnowledgeGraphModel(data = {}) {
   const sourceDocumentById = new Map(sourceDocuments.map((item) => [String(item.Id), item]));
   const nodeById = new Map(nodes.map((item) => [String(item.Id), item]));
   const masteryByNodeId = new Map(studentMastery.map((item) => [String(getLookupId(item.curriculum_node_c)), item]));
+  const latestExtractionByPage = new Map();
+  for (const extraction of sourceExtractions) {
+    const key = String(getLookupId(extraction.document_version_c)) + '|' + String(Number(extraction.page_number_c));
+    const timestamp = Date.parse(extraction.ModifiedOn || extraction.CreatedOn || '') || 0;
+    const existing = latestExtractionByPage.get(key);
+    if (!existing || timestamp >= existing.timestamp) {
+      latestExtractionByPage.set(key, { timestamp, extraction });
+    }
+  }
   const verifiedPageKeys = new Set(
-    sourceExtractions
-      .filter((item) => item.quality_status_c === 'Verified')
-      .map((item) => String(getLookupId(item.document_version_c)) + '|' + String(Number(item.page_number_c)))
+    [...latestExtractionByPage.entries()]
+      .filter(([, value]) => value.extraction.quality_status_c === 'Verified')
+      .map(([key]) => key)
   );
   const nodeCodeIndex = new Map();
   for (const node of nodes) {
