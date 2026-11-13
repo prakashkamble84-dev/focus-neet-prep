@@ -147,6 +147,7 @@ export function runSourceLifecycleSelfTests() {
   };
   const publishedSourceVersion = {
     ...version,
+    ModifiedOn: '2026-11-13T10:30:00.000Z',
     source_document_c: 'DOCUMENT-1',
     ingestion_status_c: 'Verified'
   };
@@ -195,6 +196,20 @@ export function runSourceLifecycleSelfTests() {
       syllabus: { ...syllabus, source_document_c: 'OTHER-DOCUMENT' }
     }).valid,
     'The syllabus, source version and parent document must match.'
+  );
+  assert(
+    'Blocks independent checks that predate a later source-version edit',
+    !evaluatePublication({
+      sourceVersion: { ...publishedSourceVersion, ModifiedOn: '2026-11-13T12:00:00.000Z' }
+    }).valid,
+    'The latest second-person verification must be newer than the final source-version edit.'
+  );
+  assert(
+    'Blocks a changed issuing-authority link',
+    !evaluatePublication({
+      sourceDocument: { ...publishedDocument, source_registry_c: 'OTHER-AUTHORITY' }
+    }).valid,
+    'An independent check cannot be reused after the document is relinked to a different issuing authority.'
   );
 
   return {

@@ -67,6 +67,12 @@ export function evaluateSyllabusPublication({
     issues.push('The source document and source version do not match.');
   }
   if (!authority?.official_domain_c || authority.is_authoritative_c !== true || authority.active_c !== true) issues.push('The issuing authority must be registered, marked authoritative and active.');
+  const versionAuthorityId = lookupId(sourceVersion?.source_registry_c);
+  const documentAuthorityId = lookupId(sourceDocument?.source_registry_c);
+  if (!versionAuthorityId || !documentAuthorityId || String(versionAuthorityId) !== String(documentAuthorityId) ||
+      String(lookupId(authority?.Id)) !== String(versionAuthorityId)) {
+    issues.push('The source version, parent document and authority record must all point to the same issuing authority.');
+  }
   if (!sourceVersion?.document_file_c?.length) issues.push('The original PDF must be stored privately.');
   if (!String(sourceVersion?.document_url_c || sourceDocument?.official_url_c || '').startsWith('https://')) {
     issues.push('The official source URL must use HTTPS.');
@@ -101,8 +107,10 @@ export function evaluateSyllabusPublication({
       row.independent_check_c === true
     ));
     const latestIndependent = latestRecord(independentRows);
+    const finalSourceModifiedAt = sourceVersion?.ModifiedOn ? Date.parse(sourceVersion.ModifiedOn) : 0;
     if (!latestIndependent || latestIndependent.decision_c !== 'Verified' ||
-        recordTime(latestIndependent) < recordTime(latestPrimary)) {
+        recordTime(latestIndependent) < recordTime(latestPrimary) ||
+        recordTime(latestIndependent) < finalSourceModifiedAt) {
       issues.push('A current independent ' + type.toLowerCase() + ' verification record is missing or stale.');
     }
     const independentId = lookupId(latestIndependent?.reviewer_user_c);
@@ -149,7 +157,7 @@ export async function publishSyllabusVersion(syllabusId, reviewerId) {
 
     const sourceVersion = await unwrapRecord(
       sdk.table('source_document_versions_c')
-        .select(['Id', 'Name', 'source_document_c', 'source_registry_c', 'document_file_c', 'document_url_c', 'rights_status_c', 'ingestion_status_c', 'version_label_c'])
+        .select(['Id', 'Name', 'ModifiedOn', 'source_document_c', 'source_registry_c', 'document_file_c', 'document_url_c', 'rights_status_c', 'ingestion_status_c', 'version_label_c'])
         .get(sourceVersionId),
       'source_document_versions_c'
     );
