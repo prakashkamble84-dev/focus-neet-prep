@@ -1,9 +1,9 @@
-const QUESTION_MARKER = /^\s*(?:Q(?:uestion)?\s*)?(\d{1,3})[.)\]:-]\s+\S.*$/gim;
+const QUESTION_MARKER = /^\s*(?:Q(?:uestion)\s*)?(\d{1,3})[.)\]:-]\s+\S.*$/gim;
 
 export function splitQuestionsFromPage(text, pageNumber = 1) {
   const source = String(text || '');
   const matches = [...source.matchAll(QUESTION_MARKER)];
-  if (matches.length < 2) return [];
+  if (!matches.length) return [];
 
   return matches.map((match, index) => {
     const start = match.index;
@@ -48,6 +48,19 @@ async function renderPageToCanvas(page, scale = 1.55) {
   return canvas;
 }
 
+function nativeTextFromItems(items = []) {
+  return items
+    .map((item) => {
+      if (typeof item.str !== 'string' || !item.str) return '';
+      return item.str + (item.hasEOL ? '\n' : ' ');
+    })
+    .join('')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export async function extractPdfPagesFromFile(file, language = 'eng', onProgress = () => {}) {
   if (!file || !(file instanceof File)) {
     throw new Error('Choose a local PDF file before starting extraction.');
@@ -84,16 +97,13 @@ export async function extractPdfPagesFromFile(file, language = 'eng', onProgress
 
       const page = await document.getPage(pageNumber);
       const textContent = await page.getTextContent();
-      const nativeText = textContent.items
-        .map((item) => typeof item.str === 'string' ? item.str : '')
-        .filter(Boolean)
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim();
+      const nativeText = nativeTextFromItems(textContent.items);
 
       let extractedText = nativeText;
       let extractionMethod = 'NativeText';
-      let confidence = nativeText.length ? 0.88 : 0;
+      let confidence = null;
+      let previewImage = null;
+      let previewCanvas = null;
 
       if (nativeText.length < 45) {
         if (!ocrWorker) {
@@ -122,13 +132,11 @@ export async function extractPdfPagesFromFile(file, language = 'eng', onProgress
           total: document.numPages,
           stage: 'Rendering scanned page'
         });
-        const canvas = await renderPageToCanvas(page);
-        const recognition = await ocrWorker.recognize(canvas);
+        previewCanvas = await renderPageToCanvas(page);
+        const recognition = await ocrWorker.recognize(previewCanvas);
         extractedText = String(recognition.data?.text || '').trim();
         confidence = Math.max(0, Math.min(1, Number(recognition.data?.confidence || 0) / 100));
         extractionMethod = 'OCR';
-        canvas.width = 0;
-        canvas.height = 0;
       }
 
       const operatorList = await page.getOperatorList();
@@ -143,6 +151,19 @@ export async function extractPdfPagesFromFile(file, language = 'eng', onProgress
             ? 'Table'
             : 'Text';
 
+      if (previewCanvas) {
+        previewImage = previewCanvas.toDataURL('image/jpeg', 0.68);
+        previewCanvas.width = 0;
+        previewCanvas.height = 0;
+        previewCanvas = null;
+      } else if (imageCount > 0) {
+        previewCanvas = await renderPageToCanvas(page, 0.62);
+        previewImage = previewCanvas.toDataURL('image/jpeg', 0.68);
+        previewCanvas.width = 0;
+        previewCanvas.height = 0;
+        previewCanvas = null;
+      }
+
       pages.push({
         pageNumber,
         text: extractedText,
@@ -151,12 +172,19 @@ export async function extractPdfPagesFromFile(file, language = 'eng', onProgress
         imageCount,
         equationCount,
         contentKind,
+        previewImage,
         candidates: splitQuestionsFromPage(extractedText, pageNumber),
         reviewerNotes: [
           'Automatically extracted using ' + extractionMethod + '.',
-          'Confidence is an OCR/text-extraction estimate, not an academic correctness score.',
-          equationCount ? equationCount + ' possible mathematical markers detected; manually check every formula, sign and unit.' : 'No equation markers were detected by the heuristic scan.',
-          imageCount ? imageCount + ' embedded image object(s) detected; diagram labels and relationships need manual review.' : 'No embedded raster image objects detected.'
+          extractionMethod === 'OCR'
+            ? 'OCR confidence is an extraction estimate, not an academic correctness score.'
+            : 'Native PDF text was extracted; no OCR confidence score is applicable.',
+          equationCount
+            ? equationCount + ' possible mathematical markers detected; manually check every formula, sign and unit.'
+            : 'No equation markers were detected by the heuristic scan.',
+          imageCount
+            ? imageCount + ' embedded image object(s) detected; compare the rendered page and manually verify all diagram labels and relationships.'
+            : 'No embedded raster image objects detected.'
         ].join(' ')
       });
 
