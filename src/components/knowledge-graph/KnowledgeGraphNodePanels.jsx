@@ -43,7 +43,7 @@ export function KnowledgeGraphNodeBrowser({ nodes, selectedId, onSelect, canEdit
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold">{node.Name}</span>
                   <Badge variant="outline">{node.node_type_c}</Badge>
-                  {node.node_type_c === 'Concept' && node.parentNodeType === 'Concept' && <Badge variant="outline">Sub-concept</Badge>
+                  {node.node_type_c === 'Concept' && node.parentNodeType === 'Concept' && <Badge variant="outline">Sub-concept</Badge>}
                   {node.syllabusCompatibility && <Badge variant="outline">{node.syllabusCompatibility}</Badge>}
                 </div>
                 <p className="text-xs text-muted-foreground">

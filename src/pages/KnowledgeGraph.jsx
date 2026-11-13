@@ -5,6 +5,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/layouts/RootLayout';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import KnowledgeGraphHeader from '@/components/knowledge-graph/KnowledgeGraphHeader';
 import KnowledgeGraphWorkspace from '@/components/knowledge-graph/KnowledgeGraphWorkspace';
 import KnowledgeGraphNodeDialog from '@/components/knowledge-graph/KnowledgeGraphNodeDialog';
