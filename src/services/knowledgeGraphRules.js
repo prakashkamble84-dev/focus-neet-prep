@@ -333,7 +333,11 @@ export function runKnowledgeGraphSelfTests() {
   assert(
     'Accepts a shared Knowledge Core parent',
     buildGraphDiagnostics([
-      { Id: 'CORE', Name: 'Vectors', node_code_c: 'PHY-VECTORS', node_type_c: 'Concept' },
+      { Id: 'CORE-SUBJECT', Name: 'Physics', node_code_c: 'PHYSICS', node_type_c: 'Subject' },
+      { Id: 'CORE-UNIT', Name: 'Mechanics', node_code_c: 'MECHANICS', node_type_c: 'Unit', parent_node_code_c: 'PHYSICS' },
+      { Id: 'CORE-CHAPTER', Name: 'Vectors and motion', node_code_c: 'VECTORS-MOTION', node_type_c: 'Chapter', parent_node_code_c: 'MECHANICS' },
+      { Id: 'CORE-TOPIC', Name: 'Vectors', node_code_c: 'PHY-VECTORS-TOPIC', node_type_c: 'Topic', parent_node_code_c: 'VECTORS-MOTION' },
+      { Id: 'CORE', Name: 'Vector concept', node_code_c: 'PHY-VECTORS', node_type_c: 'Concept', parent_node_code_c: 'PHY-VECTORS-TOPIC' },
       { Id: 'CURRENT', Name: 'Vector resolution', node_code_c: 'PHY-VECTOR-RESOLUTION', node_type_c: 'Concept', parent_node_code_c: 'PHY-VECTORS', syllabus_version_c: 'V1' }
     ], [], []).errors === 0,
     'A syllabus-linked concept may extend a source-grounded shared Knowledge Core concept.'
