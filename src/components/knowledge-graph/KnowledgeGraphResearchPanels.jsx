@@ -1,6 +1,16 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
+function StatusBadge({ value }) {
+  const good = ['Published', 'Verified', 'Approved'].includes(value);
+  const bad = ['Rejected', 'Retired'].includes(value);
+  return (
+    <Badge variant="outline" className={good ? 'border-success/30 bg-success/10 text-success' : bad ? 'border-destructive/30 bg-destructive/10 text-destructive' : 'border-warning/30 bg-warning/10 text-warning-foreground'}>
+      {value || 'Not set'}
+    </Badge>
+  );
+}
+
 export function KnowledgeGraphRelationshipBrowser({ relationships, canEdit, onVerify, onReject }) {
   if (!relationships.length) {
     return <div className="rounded-lg border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">No concept relationship edges have been recorded yet.</div>;
@@ -67,22 +77,62 @@ export function KnowledgeGraphFamilyBrowser({ families }) {
   );
 }
 
-export function KnowledgeGraphCrosswalkBrowser({ crosswalks }) {
+export function KnowledgeGraphMappingBrowser({ mappings, canEdit, onVerify, onReject }) {
+  if (!mappings.length) {
+    return <div className="rounded-lg border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">No question-to-concept mappings have been created yet. Add a mapping when question records and source-grounded Concept nodes are available.</div>;
+  }
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="divide-y divide-border">
+        {mappings.map((mapping) => (
+          <article key={mapping.Id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 space-y-1">
+              <p className="font-semibold">{mapping.question?.Name || 'Question ' + (mapping.question?.Id || '')} <span className="px-1 text-muted-foreground">→</span> {mapping.node?.Name || 'Missing concept'}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">{mapping.mapping_type_c}</Badge>
+                <StatusBadge value={mapping.status_c} />
+                {mapping.verified_c && <Badge variant="outline">Verified mapping</Badge>}
+                {mapping.confidence_c != null && <span className="text-xs text-muted-foreground">Confidence {Math.round(Number(mapping.confidence_c) * 100)}%</span>}
+              </div>
+            </div>
+            {canEdit && mapping.status_c !== 'Rejected' && mapping.status_c !== 'Verified' && (
+              <div className="flex shrink-0 gap-2">
+                <Button size="sm" variant="outline" onClick={() => onReject(mapping)}>Reject</Button>
+                <Button size="sm" onClick={() => onVerify(mapping)}>Verify</Button>
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function KnowledgeGraphCrosswalkBrowser({ crosswalks, canEdit, onVerify, onReject }) {
   if (!crosswalks.length) {
-    return <div className="rounded-lg border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">No historical syllabus crosswalks have been verified yet. The system keeps historical mappings separate from current-syllabus publication.</div>;
+    return <div className="rounded-lg border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">No historical syllabus crosswalks have been recorded yet. Historical mappings remain separate from current-syllabus publication.</div>;
   }
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-card">
       <div className="divide-y divide-border">
         {crosswalks.map((row) => (
-          <article key={row.Id} className="p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">{row.mapping_type_c}</Badge>
-              <StatusBadge value={row.status_c} />
-              <span className="text-xs text-muted-foreground">{row.confidence_c == null ? 'Confidence not scored' : Math.round(Number(row.confidence_c) * 100) + '%'}</span>
+          <article key={row.Id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">{row.mapping_type_c}</Badge>
+                <StatusBadge value={row.status_c} />
+                <span className="text-xs text-muted-foreground">{row.confidence_c == null ? 'Confidence not scored' : Math.round(Number(row.confidence_c) * 100) + '%'}</span>
+              </div>
+              <p className="text-sm font-semibold">{row.sourceNode?.Name || 'No source node'} <span className="px-1 text-muted-foreground">→</span> {row.targetNode?.Name || 'No target node'}</p>
+              <p className="text-xs text-muted-foreground">{row.sourceVersion?.version_label_c || 'Source version'} → {row.targetVersion?.version_label_c || 'Target version'}</p>
+              {row.mapping_notes_c && <p className="text-xs leading-5 text-muted-foreground">{row.mapping_notes_c}</p>}
             </div>
-            <p className="mt-2 text-sm font-semibold">{row.sourceNode?.Name || row.sourceVersion?.version_label_c || 'Source syllabus'} <span className="px-1 text-muted-foreground">→</span> {row.targetNode?.Name || row.targetVersion?.version_label_c || 'Target syllabus'}</p>
-            {row.mapping_notes_c && <p className="mt-1 text-xs leading-5 text-muted-foreground">{row.mapping_notes_c}</p>}
+            {canEdit && row.status_c !== 'Rejected' && row.status_c !== 'Verified' && (
+              <div className="flex shrink-0 gap-2">
+                <Button size="sm" variant="outline" onClick={() => onReject(row)}>Reject</Button>
+                <Button size="sm" onClick={() => onVerify(row)}>Verify</Button>
+              </div>
+            )}
           </article>
         ))}
       </div>
