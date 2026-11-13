@@ -18,13 +18,13 @@ export default function IndependentSourceVerificationDialog({
   onOpenChange,
   version,
   document,
-  authority,
+  authorityRecord,
   verifications,
   reviewerId,
   saving,
   onSave
 }) {
-  const [authority, setAuthority] = useState(false);
+  const [authorityChecked, setAuthorityChecked] = useState(false);
   const [metadata, setMetadata] = useState(false);
   const [rights, setRights] = useState(false);
   const [pdfIntegrity, setPdfIntegrity] = useState(false);
@@ -34,15 +34,15 @@ export default function IndependentSourceVerificationDialog({
   const evaluation = useMemo(() => evaluateIndependentSourceVerification({
     version,
     document,
-    authority,
+    authority: authorityRecord,
     verifications,
     reviewerId,
-    checks: { authority, metadata, rights, pdfIntegrity, officialOriginConfirmed, notes }
-  }), [version, document, authority, verifications, reviewerId, authority, metadata, rights, pdfIntegrity, officialOriginConfirmed, notes]);
+    checks: { authority: authorityChecked, metadata, rights, pdfIntegrity, officialOriginConfirmed, notes }
+  }), [version, document, authorityRecord, verifications, reviewerId, authorityChecked, metadata, rights, pdfIntegrity, officialOriginConfirmed, notes]);
 
   useEffect(() => {
     if (!open) return;
-    setAuthority(false);
+    setAuthorityChecked(false);
     setMetadata(false);
     setRights(false);
     setPdfIntegrity(false);
@@ -66,13 +66,13 @@ export default function IndependentSourceVerificationDialog({
             <div className="mt-2 flex flex-wrap gap-2">
               <Badge variant="outline">{version?.version_label_c || 'Version not labelled'}</Badge>
               <Badge variant="outline">{version?.rights_status_c || 'Rights unknown'}</Badge>
-              <Badge variant="outline">{authority?.official_domain_c || 'Authority domain missing'}</Badge>
+              <Badge variant="outline">{authorityRecord?.official_domain_c || 'Authority domain missing'}</Badge>
               <Badge variant="outline">{version?.document_file_c?.length ? 'PDF stored' : 'PDF not stored'}</Badge>
             </div>
           </div>
           <div className="space-y-3">
             {[
-              [authority, setAuthority, 'I independently matched the issuing authority and official domain.'],
+              [authorityChecked, setAuthorityChecked, 'I independently matched the issuing authority and official domain.'],
               [metadata, setMetadata, 'I independently matched the document title, version and academic year.'],
               [rights, setRights, 'I independently confirmed that the Public or Licensed usage basis is valid.'],
               [pdfIntegrity, setPdfIntegrity, 'I opened the stored PDF and confirmed it matches the linked official document.']
@@ -105,7 +105,7 @@ export default function IndependentSourceVerificationDialog({
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="button" onClick={() => onSave({ authority, metadata, rights, pdfIntegrity, officialOriginConfirmed, notes })} disabled={saving || !evaluation.valid}>
+          <Button type="button" onClick={() => onSave({ authority: authorityChecked, metadata, rights, pdfIntegrity, officialOriginConfirmed, notes })} disabled={saving || !evaluation.valid}>
             {saving ? 'Recording independent check…' : 'Complete independent verification'}
           </Button>
         </DialogFooter>
