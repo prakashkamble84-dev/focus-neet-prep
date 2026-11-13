@@ -63,7 +63,7 @@ export default function SourceExtractionQueue() {
         <div>
           <h2 className="font-mono text-base font-semibold">Page extraction review queue</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Independently inspect manually captured text, page numbers, equations and diagram descriptions. Approval applies only to this extraction record.
+            Review manually captured text, page numbers, equations and diagram descriptions. Approval applies only to this extraction record.
           </p>
         </div>
         <div className="flex items-center gap-2">
