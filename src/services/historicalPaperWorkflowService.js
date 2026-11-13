@@ -47,7 +47,7 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
   const [documents] = await Promise.all([
     fetchRows(
       sdk.table('source_documents_c')
-        .select(['Id', 'Name', 'CreatedBy', 'Owner', 'rights_status_c', 'verification_status_c', 'ingestion_status_c', 'extracted_page_count_c'])
+        .select(['Id', 'Name', 'CreatedBy', 'Owner', 'examination_c', 'academic_year_c', 'source_registry_c', 'official_url_c', 'document_type_c', 'source_category_c', 'rights_status_c', 'verification_status_c', 'ingestion_status_c', 'extracted_page_count_c'])
         .where(window.ApperSDK.CoreSDK.eq('Id', documentId))
         .limit(1, 0)
         .fetch(),
@@ -56,6 +56,14 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
   ]);
   const document = documents[0];
   if (!document) return { success: false, message: 'The linked source document is unavailable.' };
+  if (String(getId(paper.source_document_c) || '') !== String(document.Id) ||
+    document.document_type_c !== 'Paper' ||
+    !['Official', 'Archive'].includes(document.source_category_c) ||
+    !/^https:\/\//i.test(String(document.official_url_c || '')) ||
+    String(getId(paper.examination_c) || '') !== String(getId(document.examination_c) || '') ||
+    Number(paper.exam_year_c) !== Number(document.academic_year_c)) {
+    return { success: false, message: 'Historical paper metadata, source type, official provenance, examination and academic year must all match.' };
+  }
   if (!['Public', 'Licensed'].includes(document.rights_status_c)) {
     return { success: false, message: 'Source reuse rights are not cleared.' };
   }
@@ -65,7 +73,7 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
 
   const versions = await fetchRows(
     sdk.table('source_document_versions_c')
-      .select(['Id', 'Name', 'source_document_c', 'document_file_c', 'rights_status_c', 'ingestion_status_c', 'version_status_c'])
+      .select(['Id', 'Name', 'source_document_c', 'source_registry_c', 'document_file_c', 'rights_status_c', 'ingestion_status_c', 'version_status_c'])
       .where(window.ApperSDK.CoreSDK.eq('source_document_c', document.Id))
       .limit(20, 0)
       .fetch(),
@@ -73,6 +81,8 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
   );
   const version = versions.find((item) => (
     item.version_status_c === 'Current' &&
+    String(getId(item.source_document_c) || '') === String(document.Id) &&
+    String(getId(item.source_registry_c) || '') === String(getId(document.source_registry_c) || '') &&
     ['Public', 'Licensed'].includes(item.rights_status_c) &&
     item.rights_status_c === document.rights_status_c &&
     item.ingestion_status_c === 'Verified' &&

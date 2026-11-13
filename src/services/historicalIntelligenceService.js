@@ -35,7 +35,9 @@ export async function fetchHistoricalIntelligenceData({ includeReviews = false }
       'difficulty_summary_c',
       'review_notes_c',
       'CreatedOn',
-      'ModifiedOn'
+      'ModifiedOn',
+      'CreatedBy',
+      'Owner'
     ]),
     fetchRows('questions_c', [
       'Id',
