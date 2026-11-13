@@ -250,12 +250,12 @@ export function runHistoricalIntelligenceSelfTests() {
   });
 
   test('Multiple-choice options are extracted as structured rows', () => {
-    const options = parseQuestionOptions('1. Find the force.\\n(A) 2 N\\n(B) 4 N\\n(C) 6 N\\n(D) 8 N');
+    const options = parseQuestionOptions('1. Find the force.\n(A) 2 N\n(B) 4 N\n(C) 6 N\n(D) 8 N');
     return options.length === 4 && options[0].key === 'A' && options[3].text === '8 N';
   });
 
   test('Multi-select instruction is distinguished from single-correct MCQ', () => {
-    const body = 'Select all that apply.\\nA. One\\nB. Two\\nC. Three';
+    const body = 'Select all that apply.\nA. One\nB. Two\nC. Three';
     const options = parseQuestionOptions(body);
     return options.length === 3 && inferQuestionType(body, options) === 'Multi';
   });
