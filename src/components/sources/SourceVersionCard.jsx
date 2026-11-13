@@ -32,7 +32,7 @@ export default function SourceVersionCard({ version, parent, canReview, onUpload
           </div>
           {version.change_summary_c && <p className="max-w-4xl text-sm leading-5 text-muted-foreground">{version.change_summary_c}</p>}
           <a href={version.document_url_c} target="_blank" rel="noreferrer" className="inline-flex max-w-full items-center gap-2 break-all text-xs font-medium text-primary hover:underline">
-            <ApperIcon name="ExternalLink" size={13} /> Open official document
+            <ApperIcon name="ExternalLink" size={13} /> Open source
           </a>
         </div>
         {canReview && (

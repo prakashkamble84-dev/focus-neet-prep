@@ -12,8 +12,18 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
-export const route = { path: '/curriculum', layout: 'owner', access: 'authenticated' };
-export const nav = { label: 'Curriculum', icon: 'BookOpen', group: 'Learn', order: 10 };
+export const route = {
+  path: '/curriculum/manage',
+  layout: 'owner',
+  access: "profile === 'CEO' || profile === 'CEO_c' || profile === 'Manager' || profile === 'Manager_c' || profile === 'AcademicExpert_c' || profile === 'ContentReviewer_c'"
+};
+export const nav = {
+  label: 'Manage curriculum',
+  icon: 'ListTree',
+  section: 'Academic operations',
+  profiles: ['CEO', 'CEO_c', 'Manager', 'Manager_c', 'AcademicExpert_c', 'ContentReviewer_c'],
+  order: 90
+};
 
 async function fetchSyllabusVersions() {
   const result = await sdk.table('syllabus_versions_c')
@@ -52,7 +62,7 @@ function Status({ value }) {
 
 export default function Curriculum() {
   const { profile } = useProfile();
-  const canImport = ['CEO', 'Manager', 'AcademicExpert_c'].includes(profile);
+  const canImport = ['CEO', 'CEO_c', 'Manager', 'Manager_c', 'AcademicExpert_c'].includes(profile);
   const [search, setSearch] = useState('');
   const [importingKey, setImportingKey] = useState(null);
 
@@ -102,14 +112,19 @@ export default function Curriculum() {
       <div className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl space-y-3">
           <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-primary">Phase 2 · Versioned syllabus</p>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Curriculum ingestion</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Curriculum management</h1>
           <p className="text-sm leading-6 text-muted-foreground sm:text-base">
             Import the official subject and unit outline with a traceable document version and page reference. Every imported node remains in Review until an academic expert validates the content.
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link to="/sources"><ApperIcon name="FileCheck2" size={16} /> Open source registry</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/curriculum"><ApperIcon name="BookOpen" size={16} /> Student curriculum library</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link to="/sources"><ApperIcon name="FileCheck2" size={16} /> Academic sources</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-lg border border-warning/40 bg-warning/10 p-4">

@@ -9,6 +9,7 @@ import { fetchSourceAuthorities, fetchSourceDocuments, fetchSourceVersions } fro
 import { SourceRightsDialog, SourceUploadDialog } from '@/components/sources/SourceDialogs';
 import SourceExtractionDialog from '@/components/sources/SourceExtractionDialog';
 import SourceRegistryTabs from '@/components/sources/SourceRegistryTabs';
+import SourceDiscoveryPanel from '@/components/sources/SourceDiscoveryPanel';
 import ApperIcon from '@/components/ApperIcon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,21 +18,21 @@ import { toast } from 'sonner';
 export const route = {
   path: '/sources',
   layout: 'owner',
-  access: "profile === 'CEO' || profile === 'Manager' || profile === 'AcademicExpert_c' || profile === 'ContentReviewer_c'"
+  access: "profile === 'CEO' || profile === 'CEO_c' || profile === 'Manager' || profile === 'Manager_c' || profile === 'AcademicExpert_c' || profile === 'ContentReviewer_c'"
 };
 export const nav = {
   label: 'Academic sources',
   icon: 'FileCheck2',
-  group: 'Research',
-  profiles: ['CEO', 'Manager', 'AcademicExpert_c', 'ContentReviewer_c'],
+  section: 'Academic operations',
+  profiles: ['CEO', 'CEO_c', 'Manager', 'Manager_c', 'AcademicExpert_c', 'ContentReviewer_c'],
   order: 110
 };
 
 export default function Sources() {
   const { profile } = useProfile();
   const { user } = useAuth();
-  const canReview = ['CEO', 'Manager', 'AcademicExpert_c', 'ContentReviewer_c'].includes(profile);
-  const canManageAuthorities = ['CEO', 'Manager', 'AcademicExpert_c'].includes(profile);
+  const canReview = ['CEO', 'CEO_c', 'Manager', 'Manager_c', 'AcademicExpert_c', 'ContentReviewer_c'].includes(profile);
+  const canManageAuthorities = ['CEO', 'CEO_c', 'Manager', 'Manager_c', 'AcademicExpert_c'].includes(profile);
 
   const [search, setSearch] = useState('');
   const [seeding, setSeeding] = useState(false);
@@ -222,7 +223,7 @@ export default function Sources() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" asChild>
-            <Link to="/curriculum"><ApperIcon name="BookOpen" size={16} /> Curriculum ingestion</Link>
+            <Link to="/curriculum/manage"><ApperIcon name="ListTree" size={16} /> Manage curriculum</Link>
           </Button>
           {canManageAuthorities && (
             <Button onClick={handleRegisterBaseline} disabled={seeding}>
@@ -261,6 +262,8 @@ export default function Sources() {
           </div>
         ))}
       </div>
+
+      <SourceDiscoveryPanel onAdded={() => Promise.all([refreshDocuments(), refreshVersions()])} />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-sm">
