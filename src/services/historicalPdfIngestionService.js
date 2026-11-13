@@ -1,6 +1,6 @@
 import { inferQuestionType, parseQuestionOptions } from '@/services/historicalQuestionOptionParser';
 
-const QUESTION_MARKER = /^\s*(?:Q(?:uestion)\s*)?(\d{1,3})[.)\]:-]\s+\S.*$/gim;
+const QUESTION_MARKER = /^\s*(?:Q(?:uestion)?\s*)?(\d{1,3})[.)\]:-]\s+\S.*$/gim;
 
 export function splitQuestionsFromPage(text, pageNumber = 1) {
   const source = String(text || '');
