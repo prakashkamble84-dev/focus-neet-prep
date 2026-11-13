@@ -1,16 +1,44 @@
 import { sdk } from '@/services/sdk';
 import { buildSourceInvalidationPlan } from '@/services/sourceInvalidationRules';
 
+const PAGE_SIZE = 1000;
+const MAX_ROWS_PER_TABLE = 50000;
+
 function getLookupId(value) {
-  return value && typeof value === 'object' ? value.Id ?? value.id ?? null : value ?? null;
+  return value && typeof value === 'object'
+    ? value.Id ?? value.id ?? null
+    : value ?? null;
 }
 
-async function fetchRows(request, tableName) {
-  const result = await request;
-  if (!result.success) {
-    throw new Error(result.message || 'Could not inspect ' + tableName + ' dependencies');
+async function fetchAllRows(tableName, fields, filter = null) {
+  const allRows = [];
+  let offset = 0;
+
+  while (true) {
+    let query = sdk.table(tableName).select(fields);
+    if (filter) query = query.where(filter);
+
+    const result = await query.limit(PAGE_SIZE, offset).fetch();
+    if (!result.success) {
+      throw new Error(result.message || 'Could not inspect ' + tableName + ' dependencies');
+    }
+
+    const rows = result.data || [];
+    allRows.push(...rows);
+    if (allRows.length > MAX_ROWS_PER_TABLE) {
+      throw new Error(
+        'More than ' + MAX_ROWS_PER_TABLE + ' ' + tableName +
+        ' rows are in scope. Invalidation stopped safely rather than leaving a partial dependency set.'
+      );
+    }
+
+    if (result.hasMore === false || rows.length < PAGE_SIZE) break;
+    if (Number.isFinite(Number(result.total)) && Number(result.total) <= allRows.length) break;
+    if (!rows.length) break;
+    offset += rows.length;
   }
-  return result.data || [];
+
+  return allRows;
 }
 
 async function updateRow(request, tableName, id) {
@@ -26,13 +54,11 @@ export async function invalidateSourceDependents(versionId, reviewerId, notes, i
   }
 
   try {
-    const versions = await fetchRows(
-      sdk.table('source_document_versions_c')
-        .select(['Id', 'source_document_c'])
-        .where(window.ApperSDK.CoreSDK.eq('Id', versionId))
-        .limit(1, 0)
-        .fetch(),
-      'source_document_versions_c'
+    const { eq } = window.ApperSDK.CoreSDK;
+    const versions = await fetchAllRows(
+      'source_document_versions_c',
+      ['Id', 'source_document_c'],
+      eq('Id', versionId)
     );
     const sourceVersion = versions[0];
     if (!sourceVersion) {
@@ -41,96 +67,59 @@ export async function invalidateSourceDependents(versionId, reviewerId, notes, i
 
     const sourceDocumentId = getLookupId(sourceVersion.source_document_c);
     const documents = sourceDocumentId
-      ? await fetchRows(
-          sdk.table('source_documents_c')
-            .select(['Id', 'Name', 'document_type_c'])
-            .where(window.ApperSDK.CoreSDK.eq('Id', sourceDocumentId))
-            .limit(1, 0)
-            .fetch(),
-          'source_documents_c'
+      ? await fetchAllRows(
+          'source_documents_c',
+          ['Id', 'Name', 'document_type_c'],
+          eq('Id', sourceDocumentId)
         )
       : [];
     const sourceDocument = documents[0] || null;
 
     const [syllabi, nodes, relationships, questionMappings, crosswalks] = await Promise.all([
-      fetchRows(
-        sdk.table('syllabus_versions_c')
-          .select(['Id', 'Name', 'source_document_version_c', 'status_c'])
-          .limit(1000, 0)
-          .fetch(),
-        'syllabus_versions_c'
-      ),
-      fetchRows(
-        sdk.table('curriculum_nodes_c')
-          .select(['Id', 'Name', 'syllabus_version_c', 'source_document_version_c', 'status_c', 'verified_c'])
-          .limit(5000, 0)
-          .fetch(),
-        'curriculum_nodes_c'
-      ),
-      fetchRows(
-        sdk.table('concept_relationships_c')
-          .select(['Id', 'Name', 'from_node_c', 'to_node_c', 'status_c'])
-          .limit(5000, 0)
-          .fetch(),
-        'concept_relationships_c'
-      ),
-      fetchRows(
-        sdk.table('question_concept_mappings_c')
-          .select(['Id', 'Name', 'curriculum_node_c', 'status_c', 'verified_c'])
-          .limit(5000, 0)
-          .fetch(),
-        'question_concept_mappings_c'
-      ),
-      fetchRows(
-        sdk.table('historical_syllabus_crosswalks_c')
-          .select(['Id', 'Name', 'source_version_c', 'target_version_c', 'status_c'])
-          .limit(3000, 0)
-          .fetch(),
-        'historical_syllabus_crosswalks_c'
-      )
+      fetchAllRows('syllabus_versions_c',
+        ['Id', 'Name', 'source_document_version_c', 'status_c']),
+      fetchAllRows('curriculum_nodes_c',
+        ['Id', 'Name', 'syllabus_version_c', 'source_document_version_c', 'status_c', 'verified_c']),
+      fetchAllRows('concept_relationships_c',
+        ['Id', 'Name', 'from_node_c', 'to_node_c', 'status_c']),
+      fetchAllRows('question_concept_mappings_c',
+        ['Id', 'Name', 'curriculum_node_c', 'status_c', 'verified_c']),
+      fetchAllRows('historical_syllabus_crosswalks_c',
+        ['Id', 'Name', 'source_version_c', 'target_version_c', 'status_c'])
     ]);
 
-    const [historicalPapers, historicalQuestions, historicalQuestionMappings, historicalQuestionOptions] =
-      sourceDocument?.document_type_c === 'Paper'
-        ? await Promise.all([
-            fetchRows(
-              sdk.table('historical_papers_c')
-                .select(['Id', 'Name', 'source_document_c', 'status_c', 'rights_status_c', 'review_notes_c'])
-                .limit(5000, 0)
-                .fetch(),
-              'historical_papers_c'
-            ),
-            fetchRows(
-              sdk.table('questions_c')
-                .select(['Id', 'Name', 'source_document_c', 'historical_paper_c', 'status_c', 'extraction_status_c', 'answer_validation_status_c', 'answer_key_c', 'solution_c', 'rights_status_c', 'rights_notes_c'])
-                .limit(10000, 0)
-                .fetch(),
-              'questions_c'
-            ),
-            fetchRows(
-              sdk.table('question_concept_mappings_c')
-                .select(['Id', 'Name', 'question_c', 'curriculum_node_c', 'status_c', 'verified_c'])
-                .limit(10000, 0)
-                .fetch(),
-              'historical question concept mappings'
-            ),
-            fetchRows(
-              sdk.table('question_options_c')
-                .select(['Id', 'Name', 'question_c', 'status_c', 'is_correct_c'])
-                .limit(20000, 0)
-                .fetch(),
-              'question_options_c'
-            )
-          ])
-        : [[], [], [], []];
+    const [
+      historicalPapers,
+      historicalQuestions,
+      historicalQuestionMappings,
+      historicalQuestionOptions
+    ] = sourceDocument?.document_type_c === 'Paper'
+      ? await Promise.all([
+          fetchAllRows(
+            'historical_papers_c',
+            ['Id', 'Name', 'source_document_c', 'status_c', 'rights_status_c', 'review_notes_c'],
+            eq('source_document_c', sourceDocumentId)
+          ),
+          fetchAllRows(
+            'questions_c',
+            ['Id', 'Name', 'source_document_c', 'historical_paper_c', 'status_c', 'extraction_status_c', 'answer_validation_status_c', 'answer_key_c', 'solution_c', 'rights_status_c', 'rights_notes_c']
+          ),
+          fetchAllRows(
+            'question_concept_mappings_c',
+            ['Id', 'Name', 'question_c', 'curriculum_node_c', 'status_c', 'verified_c']
+          ),
+          fetchAllRows(
+            'question_options_c',
+            ['Id', 'Name', 'question_c', 'status_c', 'is_correct_c']
+          )
+        ])
+      : [[], [], [], []];
 
     const sourceExtractions = invalidatePages
-      ? await fetchRows(
-          sdk.table('source_extractions_c')
-            .select(['Id', 'Name', 'document_version_c', 'page_number_c', 'quality_status_c'])
-            .limit(5000, 0)
-            .fetch(),
-          'source_extractions_c'
+      ? await fetchAllRows(
+          'source_extractions_c',
+          ['Id', 'Name', 'document_version_c', 'page_number_c', 'quality_status_c'],
+          eq('document_version_c', versionId)
         )
       : [];
 
