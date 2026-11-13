@@ -55,18 +55,19 @@ export default function KnowledgeGraphNodeDialog({
   const [sourceExcerpt, setSourceExcerpt] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const isKnowledgeCore = syllabusId === '__knowledge_core__';
   const selectedSyllabus = syllabusVersions.find((item) => String(item.Id) === String(syllabusId));
   const parentOptions = useMemo(() => nodes.filter((node) => {
     const versionId = getId(node.syllabus_version_c);
-    const sameVersion = !syllabusId || !versionId || String(versionId) === String(syllabusId);
-    const canContain = ['Topic', 'Subtopic', 'Concept'].includes(node.node_type_c);
+    const sameVersion = isKnowledgeCore || !syllabusId || !versionId || String(versionId) === String(syllabusId);
+    const canContain = ['Subject', 'Unit', 'Chapter', 'Topic', 'Subtopic', 'Concept'].includes(node.node_type_c);
     return sameVersion && canContain && node.status_c !== 'Retired';
   }), [nodes, syllabusId]);
 
   useEffect(() => {
     if (!open) return;
     setName('');
-    setSyllabusId(syllabusVersions[0] ? String(syllabusVersions[0].Id) : '');
+    setSyllabusId(syllabusVersions[0] ? String(syllabusVersions[0].Id) : '__knowledge_core__');
     setSubject('Physics');
     setParentId('');
     setNodeCode('');
@@ -80,21 +81,21 @@ export default function KnowledgeGraphNodeDialog({
   }, [open, syllabusVersions]);
 
   useEffect(() => {
-    if (!name.trim() || !selectedSyllabus) {
+    if (!name.trim() || (!selectedSyllabus && !isKnowledgeCore)) {
       setNodeCode('');
       return;
     }
     const code = [
-      slug(selectedSyllabus.version_label_c || selectedSyllabus.Name).slice(0, 24),
+      slug(selectedSyllabus?.version_label_c || selectedSyllabus?.Name || 'KNOWLEDGE-CORE').slice(0, 24),
       slug(subject),
       slug(name).slice(0, 42)
     ].filter(Boolean).join('-');
     setNodeCode(code);
-  }, [name, selectedSyllabus, subject]);
+  }, [name, selectedSyllabus, subject, isKnowledgeCore]);
 
   async function save() {
-    if (!selectedSyllabus) {
-      toast.error('Register a syllabus version before adding syllabus-linked concepts');
+    if (!selectedSyllabus && !isKnowledgeCore) {
+      toast.error('Choose a syllabus version or create a cross-exam Knowledge Core concept');
       return;
     }
     if (!name.trim() || !subject || !nodeCode) {
@@ -117,7 +118,7 @@ export default function KnowledgeGraphNodeDialog({
     }
 
     const duplicate = nodes.some((node) => (
-      String(getId(node.syllabus_version_c)) === String(syllabusId) &&
+      String(getId(node.syllabus_version_c) || 'KNOWLEDGE_CORE') === String(selectedSyllabus?.Id || 'KNOWLEDGE_CORE') &&
       String(node.node_code_c || '').toLowerCase() === nodeCode.toLowerCase()
     ));
     if (duplicate) {
@@ -144,7 +145,7 @@ export default function KnowledgeGraphNodeDialog({
 
       const result = await sdk.table('curriculum_nodes_c').create({
         Name: name.trim(),
-        syllabus_version_c: selectedSyllabus.Id,
+        syllabus_version_c: selectedSyllabus?.Id,
         node_code_c: nodeCode,
         node_type_c: 'Concept',
         subject_c: subject,
@@ -183,7 +184,7 @@ export default function KnowledgeGraphNodeDialog({
         <DialogHeader>
           <DialogTitle>Add a knowledge-graph concept</DialogTitle>
           <DialogDescription>
-            New nodes are saved as Review and remain unpublished until an academic expert verifies their content and source evidence.
+            Create a syllabus-linked node or a cross-exam Knowledge Core concept. New nodes are saved in Review and remain unpublished until their content and evidence are verified.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -196,6 +197,7 @@ export default function KnowledgeGraphNodeDialog({
             <Select value={syllabusId} onValueChange={setSyllabusId}>
               <SelectTrigger><SelectValue placeholder="Select syllabus" /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="__knowledge_core__">Knowledge Core · cross-exam concept</SelectItem>
                 {syllabusVersions.map((item) => (
                   <SelectItem key={item.Id} value={String(item.Id)}>
                     {item.version_label_c || item.Name}
@@ -216,7 +218,7 @@ export default function KnowledgeGraphNodeDialog({
             </Select>
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <Label>Parent topic / subtopic / concept</Label>
+            <Label>Parent curriculum node</Label>
             <Select value={parentId} onValueChange={setParentId}>
               <SelectTrigger><SelectValue placeholder="Choose the parent node" /></SelectTrigger>
               <SelectContent>
@@ -228,7 +230,7 @@ export default function KnowledgeGraphNodeDialog({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              A child of another Concept is treated as a sub-concept in the hierarchy. The current database stores both at Concept node type.
+              Concepts can sit under Subject, Unit, Chapter, Topic or Subtopic nodes. A child of another Concept is treated as a sub-concept; the current node-type field stores both at Concept.
             </p>
           </div>
           <div className="space-y-2 sm:col-span-2">
@@ -282,7 +284,7 @@ export default function KnowledgeGraphNodeDialog({
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="button" onClick={save} disabled={saving || !syllabusVersions.length}>
+          <Button type="button" onClick={save} disabled={saving}>
             {saving ? 'Saving…' : 'Save concept in Review'}
           </Button>
         </DialogFooter>

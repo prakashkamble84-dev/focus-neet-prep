@@ -77,6 +77,7 @@ export function KnowledgeGraphNodeDetails({
   canEdit,
   onAddRelationship,
   onEditMastery,
+  onVerify,
   onPublish
 }) {
   if (!node) {
@@ -218,8 +219,13 @@ export function KnowledgeGraphNodeDetails({
 
       {canEdit && node.node_type_c === 'Concept' && node.status_c !== 'Published' && (
         <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
-          <p className="mr-auto text-xs text-muted-foreground">Concepts publish only after the syllabus, source version, page range and evidence are verified.</p>
-          <Button size="sm" onClick={() => onPublish(node)} disabled={!node.sourceVersion || !node.source_page_start_c || !node.source_page_end_c || !node.source_excerpt_c || !node.verified_c}>
+          <p className="mr-auto text-xs text-muted-foreground">Concepts require a verified source version, reviewed rights, page-level evidence and a published syllabus before student publication.</p>
+          {!node.verified_c && (
+            <Button size="sm" variant="outline" onClick={() => onVerify(node)}>
+              <ApperIcon name="ClipboardCheck" size={14} /> Verify evidence
+            </Button>
+          )}
+          <Button size="sm" onClick={() => onPublish(node)} disabled={!node.sourceVersion || !node.source_page_start_c || !node.source_page_end_c || !node.source_excerpt_c || !node.verified_c || node.syllabusStatus !== 'Published'}>
             <ApperIcon name="ShieldCheck" size={14} /> Publish concept
           </Button>
         </div>

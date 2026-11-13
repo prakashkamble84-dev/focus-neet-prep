@@ -25,7 +25,7 @@ export default function KnowledgeGraphHeader({ canEdit, nodeCount, conceptCount,
             </>
           )}
           <Button variant="outline" asChild>
-            <Link to="/curriculum/manage"><ApperIcon name="ListTree" size={15} /> Curriculum</Link>
+            <Link to={canEdit ? '/curriculum/manage' : '/curriculum'}><ApperIcon name="ListTree" size={15} /> {canEdit ? 'Curriculum management' : 'Curriculum library'}</Link>
           </Button>
         </div>
       </header>
