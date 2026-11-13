@@ -301,17 +301,6 @@ export function buildHistoricalIntelligence(data = {}, filters = {}) {
     qualityReasons.set(question.exclusionReason, (qualityReasons.get(question.exclusionReason) || 0) + 1);
   }
 
-  const unlinkedQuestions = questions.filter((question) => {
-    const year = asNumber(question.historical_year_c);
-    return question.source_type_c === 'Historical' &&
-      !getLookupId(question.historical_paper_c) &&
-      inYearRange(year, fromYear, toYear);
-  }).filter((question) => {
-    if (examFilter === 'all') return true;
-    const examName = examById.get(String(getLookupId(question.examination_c)))?.Name || getLookupName(question.examination_c);
-    return !examName || examName === examFilter;
-  });
-
   return {
     filters: { fromYear, toYear, examFilter },
     examinations,
@@ -340,11 +329,10 @@ export function buildHistoricalIntelligence(data = {}, filters = {}) {
     },
     quality: {
       papersPending: visiblePapers.length - eligiblePapers.length,
-      excludedQuestions: excludedQuestions.length + unlinkedQuestions.length,
-      reasons: [
-        ...[...qualityReasons.entries()].map(([reason, count]) => ({ reason, count })),
-        ...(unlinkedQuestions.length ? [{ reason: 'Historical questions are missing a paper link', count: unlinkedQuestions.length }] : [])
-      ].sort((a, b) => b.count - a.count),
+      excludedQuestions: excludedQuestions.length,
+      reasons: [...qualityReasons.entries()]
+        .map(([reason, count]) => ({ reason, count }))
+        .sort((a, b) => b.count - a.count),
       unmappedQuestions: eligibleQuestions.length - mappedQuestionCount,
       truncated: Boolean(data.meta?.truncated)
     }
