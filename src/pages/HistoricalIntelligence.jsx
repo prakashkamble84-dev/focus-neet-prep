@@ -112,6 +112,8 @@ export default function HistoricalIntelligence() {
     examFilter
   }), [data, fromYear, toYear, examFilter]);
 
+  const exams = data?.examinations || [];
+
   const visiblePaperRows = useMemo(() => {
     const query = paperSearch.trim().toLowerCase();
     if (!query) return model.papers;
