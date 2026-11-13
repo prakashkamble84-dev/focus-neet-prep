@@ -1,20 +1,52 @@
 import { sdk } from '@/services/sdk';
 
-async function fetchRows(tableName, fields, limit = 5000) {
-  const result = await sdk.table(tableName)
-    .select(fields)
-    .limit(limit, 0)
-    .fetch();
+const PAGE_SIZE = 1000;
+const MAX_ROWS = 50000;
 
-  if (!result.success) {
-    throw new Error(result.message || 'Could not load ' + tableName);
+async function fetchRows(tableName, fields, limit = MAX_ROWS) {
+  const rows = [];
+  let offset = 0;
+  let total = null;
+  let hasMore = false;
+
+  while (rows.length < limit) {
+    const pageLimit = Math.min(PAGE_SIZE, limit - rows.length);
+    const result = await sdk.table(tableName)
+      .select(fields)
+      .limit(pageLimit, offset)
+      .fetch();
+
+    if (!result.success) {
+      throw new Error(result.message || 'Could not load ' + tableName);
+    }
+
+    const pageRows = result.data || [];
+    rows.push(...pageRows);
+    if (Number.isFinite(Number(result.total))) total = Number(result.total);
+
+    hasMore = result.hasMore === true ||
+      (total !== null && total > rows.length);
+
+    if (result.hasMore === false) {
+      hasMore = false;
+      break;
+    }
+    if (total !== null && rows.length >= total) {
+      hasMore = false;
+      break;
+    }
+    if (!pageRows.length || pageRows.length < pageLimit) {
+      hasMore = false;
+      break;
+    }
+
+    offset += pageRows.length;
   }
 
-  const rows = result.data || [];
   return {
     rows,
-    total: Number(result.total ?? rows.length),
-    truncated: Boolean(result.hasMore) || Number(result.total ?? rows.length) > rows.length
+    total: total ?? rows.length,
+    truncated: hasMore || (total !== null && total > rows.length) || rows.length >= limit
   };
 }
 
