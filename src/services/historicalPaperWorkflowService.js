@@ -234,10 +234,10 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
     Name: 'Historical paper ' + nextStatus + ' · ' + paper.Name,
     document_version_c: version.Id,
     verification_type_c: 'Academic',
-    decision_c: nextStatus,
+    decision_c: 'Verified',
     reviewer_user_c: reviewerId,
     verified_at_c: new Date().toISOString(),
-    verification_notes_c: 'Historical paper ' + paper.Id + ' moved to ' + nextStatus + '. Source rights, first-pass and independent source checks, stored PDF, and every current page extraction were validated before the state transition.',
+    verification_notes_c: 'Historical paper ' + paper.Id + ' moved to ' + nextStatus + '. Audit decision Verified records that the source and academic evidence gate passed. Source rights, first-pass and independent source checks, stored PDF, and every current page extraction were validated before the state transition.',
     independent_check_c: false
   });
 
