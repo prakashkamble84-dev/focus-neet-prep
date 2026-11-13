@@ -46,6 +46,14 @@ export default function KnowledgeGraphCrosswalkDialog({
   const sourceNodes = useMemo(() => nodes.filter((node) => (
     String(getId(node.syllabus_version_c)) === String(sourceVersionId)
   )), [nodes, sourceVersionId]);
+  const sourceVersion = syllabusVersions.find((item) => String(item.Id) === String(sourceVersionId));
+  const targetVersionOptions = useMemo(() => syllabusVersions.filter((item) => (
+    sourceVersion &&
+    String(getId(item.examination_c)) === String(getId(sourceVersion.examination_c)) &&
+    String(item.Id) !== String(sourceVersion.Id) &&
+    Number(item.academic_year_c || 0) >= Number(sourceVersion.academic_year_c || 0)
+  )), [syllabusVersions, sourceVersion]);
+
   const targetNodes = useMemo(() => nodes.filter((node) => (
     String(getId(node.syllabus_version_c)) === String(targetVersionId)
   )), [nodes, targetVersionId]);
@@ -53,8 +61,22 @@ export default function KnowledgeGraphCrosswalkDialog({
   useEffect(() => {
     if (!open) return;
     const ordered = [...syllabusVersions].sort((a, b) => Number(a.academic_year_c || 0) - Number(b.academic_year_c || 0));
-    setSourceVersionId(ordered[0] ? String(ordered[0].Id) : '');
-    setTargetVersionId(ordered[ordered.length - 1] ? String(ordered[ordered.length - 1].Id) : '');
+    let pair = null;
+    for (const source of ordered) {
+      const target = ordered
+        .filter((item) => (
+          String(getId(item.examination_c)) === String(getId(source.examination_c)) &&
+          String(item.Id) !== String(source.Id) &&
+          Number(item.academic_year_c || 0) >= Number(source.academic_year_c || 0)
+        ))
+        .sort((a, b) => Number(b.academic_year_c || 0) - Number(a.academic_year_c || 0))[0];
+      if (target) {
+        pair = [source, target];
+        break;
+      }
+    }
+    setSourceVersionId(pair ? String(pair[0].Id) : '');
+    setTargetVersionId(pair ? String(pair[1].Id) : '');
     setSourceNodeId('');
     setTargetNodeId('');
     setMappingType('Same');
@@ -63,8 +85,18 @@ export default function KnowledgeGraphCrosswalkDialog({
   }, [open, syllabusVersions]);
 
   async function save() {
-    if (!sourceVersionId || !targetVersionId || sourceVersionId === targetVersionId) {
+    const source = syllabusVersions.find((item) => String(item.Id) === String(sourceVersionId));
+    const target = syllabusVersions.find((item) => String(item.Id) === String(targetVersionId));
+    if (!source || !target || sourceVersionId === targetVersionId) {
       toast.error('Choose two different syllabus versions');
+      return;
+    }
+    if (String(getId(source.examination_c)) !== String(getId(target.examination_c))) {
+      toast.error('Historical crosswalks compare versions of the same examination. Use concept relationships for cross-exam links.');
+      return;
+    }
+    if (Number(source.academic_year_c || 0) > Number(target.academic_year_c || 0)) {
+      toast.error('Choose an older/equal source version and a newer/equal target version');
       return;
     }
     const sourceNode = sourceNodeId
@@ -152,14 +184,14 @@ export default function KnowledgeGraphCrosswalkDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Target syllabus version</Label>
+            <Label>Target syllabus version · same examination</Label>
             <Select value={targetVersionId} onValueChange={(value) => {
               setTargetVersionId(value);
               setTargetNodeId('');
             }}>
               <SelectTrigger><SelectValue placeholder="Newer / target version" /></SelectTrigger>
               <SelectContent>
-                {syllabusVersions.map((item) => (
+                {targetVersionOptions.map((item) => (
                   <SelectItem key={item.Id} value={String(item.Id)}>
                     {item.version_label_c || item.Name}
                   </SelectItem>

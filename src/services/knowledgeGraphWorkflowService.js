@@ -115,6 +115,10 @@ export async function reviewHistoricalCrosswalk(row, status, reviewerId) {
     if (!String(row.mapping_notes_c || '').trim()) {
       return { success: false, message: 'Add the evidence behind this historical syllabus mapping before verifying it.' };
     }
+    if (String(getLookupId(row.sourceVersion?.examination_c)) !== String(getLookupId(row.targetVersion?.examination_c)) ||
+        Number(row.sourceVersion?.academic_year_c || 0) > Number(row.targetVersion?.academic_year_c || 0)) {
+      return { success: false, message: 'Historical crosswalks must compare versions of the same examination from older/equal to newer/equal.' };
+    }
     const sourceNodeId = getLookupId(row.source_node_c);
     const targetNodeId = getLookupId(row.target_node_c);
     if (row.mapping_type_c === 'Added' && (!targetNodeId || sourceNodeId)) {
