@@ -269,3 +269,37 @@ export function buildGraphDiagnostics(nodes = [], relationships = [], mappings =
     info: issues.filter((item) => item.severity === 'info').length
   };
 }
+
+export function buildLatestVerifiedSourcePageKeys(sourceExtractions = []) {
+  const latestByPage = new Map();
+  for (const extraction of sourceExtractions) {
+    const versionId = getLookupId(extraction.document_version_c);
+    const pageNumber = Number(extraction.page_number_c);
+    if (!versionId || !Number.isInteger(pageNumber) || pageNumber < 1) continue;
+    const key = String(versionId) + '|' + String(pageNumber);
+    const parsed = Date.parse(extraction.ModifiedOn || extraction.CreatedOn || '');
+    const timestamp = Number.isFinite(parsed) ? parsed : 0;
+    const previous = latestByPage.get(key);
+    if (!previous || timestamp >= previous.timestamp) {
+      latestByPage.set(key, { timestamp, status: extraction.quality_status_c });
+    }
+  }
+  return new Set(
+    [...latestByPage.entries()]
+      .filter(([, item]) => item.status === 'Verified')
+      .map(([key]) => key)
+  );
+}
+
+export function hasVerifiedSourcePageRange(versionId, startPage, endPage, verifiedPageKeys) {
+  const start = Number(startPage);
+  const end = Number(endPage);
+  if (!versionId || !Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) {
+    return false;
+  }
+  for (let page = start; page <= end; page += 1) {
+    if (!verifiedPageKeys.has(String(versionId) + '|' + String(page))) return false;
+  }
+  return true;
+}
+
