@@ -7,7 +7,7 @@ export const nav = { label: 'Build roadmap', icon: 'Milestone', group: 'Governan
 const phases = [
   ['00', 'Product foundation', 'Application shell and module map are deployed; onboarding workflows remain to be implemented.', 'Shell deployed'],
   ['01', 'Database and security', '37 custom tables, eight application profiles, permissions, and 160 RLS policies are provisioned; negative-access tests remain pending.', 'Schema provisioned'],
-  ['02', 'Official sources and curriculum', 'Authority registry, versioned source documents, private PDF attachment and rights review, exam-year rules, syllabus change history, and controlled 2026 JEE Main/NEET unit-outline import. Baseline records require an authorised registration action; OCR remains pending.', 'Workflow built'],
+  ['02', 'Official sources and curriculum', 'Authority registry, versioned source documents, private PDF upload, rights review, manual page-extraction records, exam-year rules, syllabus change history, 2026 JEE Main/NEET unit-outline import, and NTA-listed JEE Main 2027 source records. Baseline rows require an authorised registration action; automated OCR remains pending.', 'Workflow built'],
   ['03', 'Knowledge graph', 'Concept identities, prerequisite edges, and mastery objectives.', 'Not started'],
   ['04', '30-year exam intelligence', 'Historical papers, OCR, DNA profiles, clustering, and crosswalks.', 'Not started'],
   ['05', 'Question bank', 'Versioned questions, answer keys, source mappings, and search.', 'Not started'],
@@ -41,7 +41,7 @@ export default function Architecture() {
           <div>
             <p className="font-semibold">Current build status</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              The backend has 37 custom tables, eight application profiles, and 160 row-level policies. Phase 2 source and curriculum workflows are built, but the official baseline rows still require registration from the Sources page, PDFs require upload and review, and automated OCR is not connected. Role-negative access tests and live AI are still pending.
+              The backend has 37 custom tables, eight application profiles, and 160 row-level policies. Phase 2 source and curriculum workflows are built, but official baseline rows still require registration from the Sources page, PDFs require upload and review, and automated OCR is not connected. NTA's 2027 syllabus and bulletin listings are recorded as Discovered, with no 2027 topics imported. Role-negative access tests and live AI are still pending.
             </p>
           </div>
         </div>
