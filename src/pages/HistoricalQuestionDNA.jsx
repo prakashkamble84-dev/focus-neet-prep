@@ -57,6 +57,7 @@ export default function HistoricalQuestionDNA() {
   const [form, setForm] = useState({});
   const [answerKey, setAnswerKey] = useState('');
   const [solution, setSolution] = useState('');
+  const [questionText, setQuestionText] = useState('');
   const [optionsForm, setOptionsForm] = useState([]);
   const [reviewNotes, setReviewNotes] = useState('');
   const [decision, setDecision] = useState('Approved');
@@ -76,6 +77,7 @@ export default function HistoricalQuestionDNA() {
     });
     setAnswerKey(question.answer_key_c || '');
     setSolution(question.solution_c || '');
+    setQuestionText(question.question_body_c || '');
     setOptionsForm((data?.options || [])
       .filter((option) => option.status_c !== 'Retired')
       .sort((a, b) => Number(a.sequence_c || 0) - Number(b.sequence_c || 0))
@@ -181,6 +183,7 @@ export default function HistoricalQuestionDNA() {
         decision: nextDecision,
         answerKey,
         solution,
+        questionBody: questionText,
         notes: reviewNotes
       });
 
@@ -257,9 +260,24 @@ export default function HistoricalQuestionDNA() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="whitespace-pre-wrap rounded-md border border-border bg-muted/20 p-4 text-sm leading-6">
-                {question.question_body_c || 'No extracted question text is available.'}
-              </div>
+              {canEdit && ['New', 'Review'].includes(question.status_c) ? (
+                <div className="space-y-2">
+                  <Label htmlFor="historical-question-correction">Extracted question text · editable correction</Label>
+                  <Textarea
+                    id="historical-question-correction"
+                    rows={8}
+                    value={questionText}
+                    onChange={(event) => setQuestionText(event.target.value)}
+                    placeholder="Correct the transcription against the original PDF, preserving mathematical signs, exponents, units and wording."
+                    disabled={saving}
+                  />
+                  <p className="text-xs leading-5 text-muted-foreground">Saving a correction resets extraction and answer validation and clears any prior answer key. The corrected transcription must be independently reviewed again.</p>
+                </div>
+              ) : (
+                <div className="whitespace-pre-wrap rounded-md border border-border bg-muted/20 p-4 text-sm leading-6">
+                  {question.question_body_c || 'No extracted question text is available.'}
+                </div>
+              )}
               {data.options?.length > 0 && !canEditOptions && (
                 <div className="space-y-2 rounded-md border border-border p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -476,6 +494,9 @@ export default function HistoricalQuestionDNA() {
                 )}
                 {canEdit && (
                   <>
+                    <Button variant="outline" onClick={() => runReviewAction('text')} disabled={saving || !sourceMatches || !['New', 'Review'].includes(question.status_c) || !questionText.trim() || questionText.trim() === String(question.question_body_c || '').trim()}>
+                      Save corrected transcription
+                    </Button>
                     <Button variant="outline" onClick={() => runReviewAction('applyExtraction', 'Approved')} disabled={saving || !sourceMatches || !latestExtraction || latestExtraction.review_status_c !== 'Approved' || question.extraction_status_c === 'Verified'}>
                       Apply extraction approval
                     </Button>
