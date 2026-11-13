@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import ApperIcon from '@/components/ApperIcon';
 import { Button } from '@/components/ui/button';
 
-export default function KnowledgeGraphHeader({ canEdit, nodeCount, conceptCount, publishedCount, prerequisiteCount, familyCount }) {
+export default function KnowledgeGraphHeader({ canEdit, nodeCount, conceptCount, publishedCount, prerequisiteCount, familyCount, onAddConcept, onAddRelationship }) {
   return (
     <>
       <header className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
@@ -16,10 +16,10 @@ export default function KnowledgeGraphHeader({ canEdit, nodeCount, conceptCount,
         <div className="flex flex-wrap gap-2">
           {canEdit && (
             <>
-              <Button variant="outline" onClick={() => window.dispatchEvent(new CustomEvent('northstar:open-graph-node'))}>
+              <Button variant="outline" onClick={onAddConcept}>
                 <ApperIcon name="Plus" size={15} /> Add concept
               </Button>
-              <Button onClick={() => window.dispatchEvent(new CustomEvent('northstar:open-graph-edge'))}>
+              <Button onClick={onAddRelationship}>
                 <ApperIcon name="GitBranch" size={15} /> Connect concepts
               </Button>
             </>
