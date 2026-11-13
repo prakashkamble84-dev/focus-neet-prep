@@ -7,6 +7,7 @@ import { useAuth } from '@/layouts/RootLayout';
 import { registerOfficialBaseline } from '@/services/academicRegistry';
 import { fetchSourceAuthorities, fetchSourceDocuments, fetchSourceVersions } from '@/services/sourceRegistryService';
 import { SourceRightsDialog, SourceUploadDialog } from '@/components/sources/SourceDialogs';
+import SourceExtractionDialog from '@/components/sources/SourceExtractionDialog';
 import SourceRegistryTabs from '@/components/sources/SourceRegistryTabs';
 import ApperIcon from '@/components/ApperIcon';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ export default function Sources() {
   const [saving, setSaving] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [extractionOpen, setExtractionOpen] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [files, setFiles] = useState([]);
   const [rightsStatus, setRightsStatus] = useState('Unknown');
@@ -85,6 +87,11 @@ export default function Sources() {
     setSelectedVersion(version);
     setFiles(version.document_file_c ?? []);
     setUploadOpen(true);
+  }
+
+  function openExtract(version) {
+    setSelectedVersion(version);
+    setExtractionOpen(true);
   }
 
   function openReview(version) {
@@ -282,6 +289,7 @@ export default function Sources() {
         refreshAuthorities={refreshAuthorities}
         onUpload={openUpload}
         onReview={openReview}
+        onExtract={openExtract}
       />
 
       <SourceUploadDialog
@@ -292,6 +300,13 @@ export default function Sources() {
         onFilesChange={setFiles}
         saving={saving}
         onSave={handleUpload}
+      />
+
+      <SourceExtractionDialog
+        open={extractionOpen}
+        onOpenChange={setExtractionOpen}
+        version={selectedVersion}
+        onSaved={refreshVersions}
       />
 
       <SourceRightsDialog

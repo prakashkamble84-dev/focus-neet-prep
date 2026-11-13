@@ -47,7 +47,8 @@ export default function SourceRegistryTabs({
   authoritiesData,
   refreshAuthorities,
   onUpload,
-  onReview
+  onReview,
+  onExtract
 }) {
   return (
     <Tabs defaultValue="documents" className="space-y-4">
@@ -85,6 +86,7 @@ export default function SourceRegistryTabs({
                 canReview={canReview}
                 onUpload={onUpload}
                 onReview={onReview}
+                onExtract={onExtract}
               />
             );
           })
