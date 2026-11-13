@@ -174,6 +174,23 @@ export default function HistoricalPaperIntake() {
             <Button className="mt-3" variant="outline" onClick={run}>Retry</Button>
           </CardContent>
         </Card>
+      ) : (!examinations.length || !authorities.length) ? (
+        <Card>
+          <CardContent className="space-y-3 p-5">
+            <div className="flex items-start gap-3">
+              <ApperIcon name="DatabaseZap" size={20} className="mt-0.5 text-primary" />
+              <div>
+                <p className="font-semibold">Official examination and authority baseline is missing</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Register the official Northstar examination and issuing-authority records before ingesting a historical paper. No unofficial authority is accepted by this intake workflow.
+                </p>
+              </div>
+            </div>
+            <Button asChild>
+              <Link to="/sources">Open source registry and register official baseline</Link>
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <>
           <Card>

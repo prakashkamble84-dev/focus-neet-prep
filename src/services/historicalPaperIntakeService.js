@@ -220,6 +220,9 @@ export async function registerHistoricalPaperBundle({
       session_c: String(session || '').trim(),
       paper_code_c: String(paperCode).trim(),
       paper_type_c: paperType,
+      ...(declaredQuestionCount !== null && declaredQuestionCount !== undefined
+        ? { question_count_c: Number(declaredQuestionCount) }
+        : {}),
       rights_status_c: 'Unknown',
       status_c: 'New',
       review_notes_c: 'PDF stored and page extraction completed. Paper stays New until source rights, authority, metadata and every page are independently verified.'
