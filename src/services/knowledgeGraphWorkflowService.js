@@ -30,6 +30,8 @@ export function hasVerifiedGraphEvidence(node) {
     sourceVersion &&
     sourceVersion.ingestion_status_c === 'Verified' &&
     sourceDocument?.verification_status_c === 'Verified' &&
+    sourceDocument?.ingestion_status_c === 'Complete' &&
+    node.sourcePageEvidenceVerified === true &&
     ['Public', 'Licensed'].includes(rights) &&
     Number(node.source_page_start_c) > 0 &&
     Number(node.source_page_end_c) >= Number(node.source_page_start_c) &&
@@ -160,7 +162,7 @@ export async function verifyGraphNode(node, reviewerId) {
   if (!hasVerifiedGraphEvidence(node)) {
     return {
       success: false,
-      message: 'Attach a verified source version, verify the parent source record and rights, and record a page range plus source excerpt.'
+      message: 'Attach a privately stored and independently verified source PDF, verify its parent source and permitted rights, and independently verify every page in the node's page range.'
     };
   }
   const result = await sdk.table('curriculum_nodes_c').update({
