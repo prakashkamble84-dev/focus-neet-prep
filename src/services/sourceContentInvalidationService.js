@@ -16,7 +16,7 @@ async function updateRow(request, tableName, id) {
   }
 }
 
-export async function invalidateSourceDependents(versionId, reviewerId, notes) {
+export async function invalidateSourceDependents(versionId, reviewerId, notes, invalidatePages = false) {
   if (!versionId || !reviewerId) {
     return { success: false, message: 'A source version and signed-in reviewer are required to invalidate dependent academic content.' };
   }
@@ -45,13 +45,24 @@ export async function invalidateSourceDependents(versionId, reviewerId, notes) {
       )
     ]);
 
+    const sourceExtractions = invalidatePages
+      ? await fetchRows(
+          sdk.table('source_extractions_c')
+            .select(['Id', 'Name', 'document_version_c', 'page_number_c', 'quality_status_c'])
+            .limit(5000, 0).fetch(),
+          'source_extractions_c'
+        )
+      : [];
+
     const plan = buildSourceInvalidationPlan({
       versionId,
       syllabi,
       nodes,
       relationships,
       questionMappings,
-      crosswalks
+      crosswalks,
+      sourceExtractions,
+      invalidatePages
     });
 
     for (const syllabus of plan.linkedSyllabi) {
@@ -108,6 +119,16 @@ export async function invalidateSourceDependents(versionId, reviewerId, notes) {
           sdk.table('historical_syllabus_crosswalks_c').update({ Id: crosswalk.Id, status_c: 'Review' }),
           'historical_syllabus_crosswalks_c',
           crosswalk.Id
+        );
+      }
+    }
+
+    for (const extraction of plan.invalidatedPageExtractions) {
+      if (extraction.quality_status_c !== 'Review') {
+        await updateRow(
+          sdk.table('source_extractions_c').update({ Id: extraction.Id, quality_status_c: 'Review' }),
+          'source_extractions_c',
+          extraction.Id
         );
       }
     }
