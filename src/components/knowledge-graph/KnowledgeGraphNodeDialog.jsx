@@ -140,7 +140,7 @@ export default function KnowledgeGraphNodeDialog({
       const sourceVersion = sourceVersionId
         ? sourceVersions.find((item) => String(item.Id) === String(sourceVersionId))
         : null;
-      const resolvedSourceVersionId = sourceVersion?.Id || getId(selectedSyllabus.source_document_version_c) || undefined;
+      const resolvedSourceVersionId = sourceVersion?.Id || getId(selectedSyllabus?.source_document_version_c) || undefined;
       const path = [parent.node_path_c || parent.Name, name.trim()].filter(Boolean).join(' / ');
 
       const result = await sdk.table('curriculum_nodes_c').create({

@@ -97,12 +97,14 @@ export function validateProposedRelationship(nodes = [], relationships = [], fro
     return { valid: false, reason: 'Relationship edges must connect Concept nodes. Use the curriculum hierarchy for Subject, Unit, Chapter, Topic and Subtopic containment.' };
   }
 
-  const duplicate = relationships.some((edge) => (
-    edge.status_c !== 'Rejected' &&
-    edge.relationship_type_c === type &&
-    String(getLookupId(edge.from_node_c)) === left &&
-    String(getLookupId(edge.to_node_c)) === right
-  ));
+  const symmetric = ['Related', 'Confused'].includes(type);
+  const duplicate = relationships.some((edge) => {
+    if (edge.status_c === 'Rejected' || edge.relationship_type_c !== type) return false;
+    const existingFrom = String(getLookupId(edge.from_node_c) || '');
+    const existingTo = String(getLookupId(edge.to_node_c) || '');
+    return (existingFrom === left && existingTo === right) ||
+      (symmetric && existingFrom === right && existingTo === left);
+  });
   if (duplicate) return { valid: false, reason: 'This relationship already exists.' };
 
   if (type === 'Prereq') {

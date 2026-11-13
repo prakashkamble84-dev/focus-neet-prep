@@ -112,12 +112,23 @@ export function buildKnowledgeGraphModel(data = {}) {
     const sourceVersion = sourceVersionById.get(String(getLookupId(node.source_document_version_c) || getLookupId(syllabus?.source_document_version_c)));
     const sourceDocumentId = getLookupId(sourceVersion?.source_document_c) || getLookupId(syllabus?.source_document_c);
     const sourceDocument = sourceDocumentById.get(String(sourceDocumentId));
-    const hasSyllabusVersion = Boolean(getLookupId(node.syllabus_version_c));
-    const isHistorical = crosswalks.some((crosswalk) => (
-      String(getLookupId(crosswalk.source_node_c)) === String(node.Id) ||
-      String(getLookupId(crosswalk.target_node_c)) === String(node.Id) ||
-      String(getLookupId(crosswalk.source_version_c)) === String(getLookupId(node.syllabus_version_c))
-    ));
+    const nodeVersionId = getLookupId(node.syllabus_version_c);
+    const hasSyllabusVersion = Boolean(nodeVersionId);
+    const isHistorical = crosswalks.some((crosswalk) => {
+      if (crosswalk.status_c !== 'Verified') return false;
+      const sourceNodeId = getLookupId(crosswalk.source_node_c);
+      const targetNodeId = getLookupId(crosswalk.target_node_c);
+      const sourceVersionId = getLookupId(crosswalk.source_version_c);
+      const targetVersionId = getLookupId(crosswalk.target_version_c);
+      return (
+        String(sourceNodeId || '') === String(node.Id) ||
+        String(targetNodeId || '') === String(node.Id) ||
+        Boolean(nodeVersionId && (
+          String(sourceVersionId || '') === String(nodeVersionId) ||
+          String(targetVersionId || '') === String(nodeVersionId)
+        ))
+      );
+    });
 
     return {
       ...node,
