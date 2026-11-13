@@ -124,8 +124,6 @@ export default function HistoricalIntelligence() {
     ].some((value) => String(value || '').toLowerCase().includes(query)));
   }, [model.papers, paperSearch]);
 
-  const exams = data?.examinations || [];
-  const sourceDocuments = data?.sourceDocuments || [];
   const formatCount = (value) => new Intl.NumberFormat('en-IN').format(value || 0);
   const passRate = selfTests.total ? Math.round((selfTests.passed / selfTests.total) * 100) : 0;
 

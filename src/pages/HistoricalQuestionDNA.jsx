@@ -352,7 +352,7 @@ export default function HistoricalQuestionDNA() {
 
               <div className="flex flex-wrap gap-2">
                 {canReviewExtraction && (
-                  <Button variant="outline" onClick={() => runReviewAction('extraction')} disabled={saving || !sourceMatches}>
+                  <Button variant="outline" onClick={() => runReviewAction('extraction')} disabled={saving || !sourceMatches || String(data.creatorId || '') === String(user?.userId || '') || ['Verified', 'Published', 'Rejected'].includes(question.status_c)}>
                     {saving && activeAction === 'extraction' ? 'Recording…' : 'Independently review extraction'}
                   </Button>
                 )}
