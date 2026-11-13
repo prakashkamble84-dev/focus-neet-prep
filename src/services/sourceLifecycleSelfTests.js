@@ -31,7 +31,13 @@ export function runSourceLifecycleSelfTests() {
       { Id: 'W-1', source_version_c: 'VERSION-1', target_version_c: 'OTHER', status_c: 'Verified' },
       { Id: 'W-2', source_version_c: 'S-2', target_version_c: 'S-1', status_c: 'Verified' },
       { Id: 'W-3', source_version_c: 'S-2', target_version_c: 'S-2', status_c: 'Verified' }
-    ]
+    ],
+    sourceExtractions: [
+      { Id: 'P-1', document_version_c: 'VERSION-1', page_number_c: 1, quality_status_c: 'Verified' },
+      { Id: 'P-2', document_version_c: 'VERSION-1', page_number_c: 2, quality_status_c: 'Verified' },
+      { Id: 'P-3', document_version_c: 'VERSION-2', page_number_c: 1, quality_status_c: 'Verified' }
+    ],
+    invalidatePages: true
   });
   assert(
     'Invalidates the linked syllabus and all dependent curriculum nodes',
@@ -47,6 +53,11 @@ export function runSourceLifecycleSelfTests() {
     'Invalidates historical crosswalks linked to the source version or its syllabus',
     invalidationPlan.counts.crosswalks === 2,
     'Crosswalks linked directly to the source version or via a linked syllabus are invalidated.'
+  );
+  assert(
+    'Invalidates page extractions only when the source PDF is replaced',
+    invalidationPlan.counts.pageExtractions === 2,
+    'Every extraction from the replaced PDF is reset, while extractions from other versions remain unchanged.'
   );
 
   const modifiedAt = '2026-11-13T09:00:00.000Z';
