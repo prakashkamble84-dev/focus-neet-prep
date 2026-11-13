@@ -28,7 +28,7 @@ export async function fetchHistoricalPaperIntakeLookups() {
   ]);
 
   return {
-    examinations: examinations.filter((item) => item.active_c !== false),
+    examinations: examinations.filter((item) => item.active_c === true),
     authorities: authorities.filter((item) => item.active_c === true && item.is_authoritative_c === true)
   };
 }
@@ -79,6 +79,27 @@ function makeQuestionRows(candidates, paper, document, pageConfidence) {
   }));
 }
 
+function makeOptionRows(candidates, savedQuestions) {
+  const rows = [];
+  candidates.forEach((candidate, index) => {
+    const question = savedQuestions[index];
+    if (!question?.Id) {
+      throw new Error('A question record is missing while creating its extracted answer options.');
+    }
+    (candidate.options || []).forEach((option, optionIndex) => {
+      rows.push({
+        Name: (question.Name || 'Historical question') + ' · Option ' + option.key,
+        question_c: question.Id,
+        option_key_c: option.key,
+        option_text_c: option.text,
+        sequence_c: optionIndex + 1,
+        status_c: 'Draft'
+      });
+    });
+  });
+  return rows;
+}
+
 export async function registerHistoricalPaperBundle({
   examination,
   authority,
@@ -126,6 +147,9 @@ export async function registerHistoricalPaperBundle({
   let sourceDocument;
   let sourceVersion;
   let paper;
+  let savedExtractions = [];
+  let savedQuestions = [];
+  let savedOptions = [];
 
   try {
     storedFile = await sdk.storage.upload(file);
@@ -211,7 +235,7 @@ export async function registerHistoricalPaperBundle({
       reviewer_notes_c: page.reviewerNotes + ' OCR and diagram interpretations require human review.'
     }));
 
-    const savedExtractions = await saveBatch('source_extractions_c', extractionRows, 'Page extraction records');
+    savedExtractions = await saveBatch('source_extractions_c', extractionRows, 'Page extraction records');
 
     const scoredPages = pages.filter((page) => page.confidence !== null && page.confidence !== undefined && Number.isFinite(Number(page.confidence)));
     const confidenceAverage = scoredPages.length
@@ -236,10 +260,19 @@ export async function registerHistoricalPaperBundle({
       throw new Error(versionUpdate.messages?.join('; ') || 'Page extraction was saved, but the source version could not be marked Extracted.');
     }
 
-    const confidenceByPage = new Map(pages.map((page) => [page.pageNumber, page.confidence === null || page.confidence === undefined ? null : Number(page.confidence)]));
-    const questionRows = makeQuestionRows(selectedCandidates || [], paper, sourceDocument, confidenceByPage);
-    const savedQuestions = questionRows.length
+    const confidenceByPage = new Map(pages.map((page) => [
+      page.pageNumber,
+      page.confidence === null || page.confidence === undefined ? null : Number(page.confidence)
+    ]));
+    const selected = selectedCandidates || [];
+    const questionRows = makeQuestionRows(selected, paper, sourceDocument, confidenceByPage);
+    savedQuestions = questionRows.length
       ? await saveBatch('questions_c', questionRows, 'Historical question drafts')
+      : [];
+
+    const optionRows = makeOptionRows(selected, savedQuestions);
+    savedOptions = optionRows.length
+      ? await saveBatch('question_options_c', optionRows, 'Historical question options')
       : [];
 
     return {
@@ -249,14 +282,18 @@ export async function registerHistoricalPaperBundle({
       sourceVersion,
       pageCount: savedExtractions.length,
       questionCount: savedQuestions.length,
-      note: 'Paper and question records remain in review states. Page verification, source rights approval and answer validation are still required.'
+      optionCount: savedOptions.length,
+      note: 'Paper, page extractions, question drafts and option rows remain in review/draft states. Page verification, source rights approval and answer validation are still required.'
     };
   } catch (error) {
     const completed = {
       sourceDocumentId: sourceDocument?.Id || null,
       sourceVersionId: sourceVersion?.Id || null,
       paperId: paper?.Id || null,
-      storedFileId: storedFile?.Id || null
+      storedFileId: storedFile?.Id || null,
+      pageExtractionCount: savedExtractions.length,
+      questionIds: savedQuestions.map((row) => row.Id).filter(Boolean),
+      optionCount: savedOptions.length
     };
     const wrapped = new Error(error.message + ' Partial records, if any, were retained for recovery: ' + JSON.stringify(completed));
     wrapped.partial = completed;
