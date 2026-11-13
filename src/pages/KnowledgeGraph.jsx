@@ -23,10 +23,8 @@ import {
   buildKnowledgeGraphModel,
   fetchKnowledgeGraphData
 } from '@/services/knowledgeGraphService';
-import {
-  buildGraphDiagnostics,
-  runKnowledgeGraphSelfTests
-} from '@/services/knowledgeGraphRules';
+import { buildGraphDiagnostics } from '@/services/knowledgeGraphRules';
+import { runKnowledgeGraphSelfTests } from '@/services/knowledgeGraphSelfTests';
 
 export const route = { path: '/knowledge-graph', layout: 'owner', access: 'authenticated' };
 export const nav = { label: 'Knowledge graph', icon: 'Network', section: 'Learn', order: 20 };
