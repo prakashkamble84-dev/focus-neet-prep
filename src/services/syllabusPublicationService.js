@@ -6,6 +6,16 @@ function lookupId(value) {
   return value && typeof value === 'object' ? value.Id ?? null : value ?? null;
 }
 
+function recordTime(row) {
+  const value = row?.verified_at_c || row?.CreatedOn;
+  const parsed = value ? Date.parse(value) : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function latestRecord(rows) {
+  return [...rows].sort((a, b) => recordTime(b) - recordTime(a))[0] || null;
+}
+
 async function unwrapRecord(request, tableName) {
   const result = await request;
   if (!result.success || !result.data) {
@@ -19,6 +29,7 @@ async function readVerificationRows(versionId) {
     .select([
       'Id',
       'Name',
+      'CreatedOn',
       'document_version_c',
       'verification_type_c',
       'decision_c',
@@ -72,33 +83,30 @@ export function evaluateSyllabusPublication({
   }
 
   for (const type of firstPassTypes) {
-    const rows = verifications.filter((row) => (
+    const primaryRows = verifications.filter((row) => (
       String(lookupId(row.document_version_c)) === versionId &&
       row.verification_type_c === type &&
-      row.decision_c === 'Verified' &&
       row.independent_check_c !== true
     ));
-    if (!rows.length) {
-      issues.push('A first-pass ' + type.toLowerCase() + ' verification record is missing.');
+    const latestPrimary = latestRecord(primaryRows);
+    if (!latestPrimary || latestPrimary.decision_c !== 'Verified') {
+      issues.push('The latest first-pass ' + type.toLowerCase() + ' verification is not Verified.');
     }
-    rows.forEach((row) => {
-      const id = lookupId(row.reviewer_user_c);
-      if (id) primaryReviewerIds.add(String(id));
-    });
+    const primaryId = lookupId(latestPrimary?.reviewer_user_c);
+    if (primaryId) primaryReviewerIds.add(String(primaryId));
 
     const independentRows = verifications.filter((row) => (
       String(lookupId(row.document_version_c)) === versionId &&
       row.verification_type_c === type &&
-      row.decision_c === 'Verified' &&
       row.independent_check_c === true
     ));
-    if (!independentRows.length) {
-      issues.push('An independent ' + type.toLowerCase() + ' verification record is missing.');
+    const latestIndependent = latestRecord(independentRows);
+    if (!latestIndependent || latestIndependent.decision_c !== 'Verified' ||
+        recordTime(latestIndependent) < recordTime(latestPrimary)) {
+      issues.push('A current independent ' + type.toLowerCase() + ' verification record is missing or stale.');
     }
-    independentRows.forEach((row) => {
-      const id = lookupId(row.reviewer_user_c);
-      if (id) independentReviewerIds.add(String(id));
-    });
+    const independentId = lookupId(latestIndependent?.reviewer_user_c);
+    if (independentId) independentReviewerIds.add(String(independentId));
   }
 
   if (!reviewerId) issues.push('The signed-in academic publisher identity is unavailable.');
