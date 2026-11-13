@@ -5,6 +5,7 @@ import {
 } from '@/services/historicalIntelligenceRules';
 import { splitQuestionsFromPage } from '@/services/historicalPdfIngestionService';
 import { inferQuestionType, parseQuestionOptions } from '@/services/historicalQuestionOptionParser';
+import { answerOptionsMatch } from '@/services/historicalQuestionOptionRules';
 
 function fixture(overrides = {}) {
   const sourceDocuments = [{
@@ -274,6 +275,42 @@ export function runHistoricalIntelligenceSelfTests() {
   test('Numerical response is classified when option rows are absent', () => {
     const body = 'Enter the numerical value of the acceleration in m/s squared.';
     return inferQuestionType(body, []) === 'Numeric';
+  });
+
+  test('MCQ correct option flags must exactly match the answer key', () => {
+    const options = [
+      { option_key_c: 'A', status_c: 'Draft', is_correct_c: true },
+      { option_key_c: 'B', status_c: 'Draft', is_correct_c: false },
+      { option_key_c: 'C', status_c: 'Draft', is_correct_c: false },
+      { option_key_c: 'D', status_c: 'Draft', is_correct_c: false }
+    ];
+    return answerOptionsMatch({ question_type_c: 'MCQ', answer_key_c: 'A' }, options);
+  });
+
+  test('Wrong correct-option flags block MCQ publication', () => {
+    const options = [
+      { option_key_c: 'A', status_c: 'Draft', is_correct_c: false },
+      { option_key_c: 'B', status_c: 'Draft', is_correct_c: true }
+    ];
+    return !answerOptionsMatch({ question_type_c: 'MCQ', answer_key_c: 'A' }, options);
+  });
+
+  test('Duplicate option labels block publication', () => {
+    const options = [
+      { option_key_c: 'A', status_c: 'Draft', is_correct_c: true },
+      { option_key_c: 'A', status_c: 'Draft', is_correct_c: false }
+    ];
+    return !answerOptionsMatch({ question_type_c: 'MCQ', answer_key_c: 'A' }, options);
+  });
+
+  test('Multi-select answer flags must match every answer key', () => {
+    const options = [
+      { option_key_c: 'A', status_c: 'Draft', is_correct_c: true },
+      { option_key_c: 'B', status_c: 'Draft', is_correct_c: false },
+      { option_key_c: 'C', status_c: 'Draft', is_correct_c: true },
+      { option_key_c: 'D', status_c: 'Draft', is_correct_c: false }
+    ];
+    return answerOptionsMatch({ question_type_c: 'Multi', answer_key_c: 'A, C' }, options);
   });
 
   const passed = checks.filter((item) => item.passed).length;
