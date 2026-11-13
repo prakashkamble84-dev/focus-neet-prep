@@ -83,7 +83,7 @@ export default function SourceRegistryTabs({
               version.source_registry_c ??
               parent?.source_registry_c?.Id ??
               parent?.source_registry_c;
-            const authority = (authoritiesData || []).find((item) => item.Id === authorityId);
+            const authority = (authoritiesData || []).find((item) => String(item.Id) === String(authorityId || ''));
             return (
               <SourceVersionCard
                 key={version.Id}

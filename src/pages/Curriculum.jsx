@@ -9,6 +9,7 @@ import OtherOfficialSyllabusRecords from '@/components/curriculum/OtherOfficialS
 import CurriculumSyllabusVersionRow from '@/components/curriculum/CurriculumSyllabusVersionRow';
 import ApperIcon from '@/components/ApperIcon';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
@@ -171,7 +172,7 @@ export default function Curriculum() {
                     <p className="font-semibold">{curriculum.label}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{curriculum.source}</p>
                   </div>
-                  <Status value={syllabus?.status_c || (syllabusLoading ? 'Loading' : 'Not registered')} />
+                  <Badge variant="outline">{syllabus?.status_c || (syllabusLoading ? 'Loading' : 'Not registered')}</Badge>
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   {curriculum.subjects.map((subject) => (
