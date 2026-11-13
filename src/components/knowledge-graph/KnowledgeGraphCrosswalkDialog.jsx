@@ -170,8 +170,19 @@ export default function KnowledgeGraphCrosswalkDialog({
           <div className="space-y-2">
             <Label>Source syllabus version</Label>
             <Select value={sourceVersionId} onValueChange={(value) => {
+              const nextSource = syllabusVersions.find((item) => String(item.Id) === String(value));
+              const nextTarget = syllabusVersions
+                .filter((item) => (
+                  nextSource &&
+                  String(getId(item.examination_c)) === String(getId(nextSource.examination_c)) &&
+                  String(item.Id) !== String(nextSource.Id) &&
+                  Number(item.academic_year_c || 0) >= Number(nextSource.academic_year_c || 0)
+                ))
+                .sort((a, b) => Number(b.academic_year_c || 0) - Number(a.academic_year_c || 0))[0];
               setSourceVersionId(value);
+              setTargetVersionId(nextTarget ? String(nextTarget.Id) : '');
               setSourceNodeId('');
+              setTargetNodeId('');
             }}>
               <SelectTrigger><SelectValue placeholder="Older / source version" /></SelectTrigger>
               <SelectContent>
@@ -251,7 +262,7 @@ export default function KnowledgeGraphCrosswalkDialog({
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="button" onClick={save} disabled={saving || syllabusVersions.length < 2}>
+          <Button type="button" onClick={save} disabled={saving || targetVersionOptions.length === 0}>
             {saving ? 'Saving…' : 'Save crosswalk in Review'}
           </Button>
         </DialogFooter>

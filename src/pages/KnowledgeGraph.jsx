@@ -253,7 +253,13 @@ export default function KnowledgeGraph() {
         onVerifyMapping={(mapping) => reviewMapping(mapping, 'Verified')}
         onRejectMapping={(mapping) => reviewMapping(mapping, 'Rejected')}
         onAddCrosswalk={() => setCrosswalkDialogOpen(true)}
-        canAddCrosswalk={(model.syllabusVersions || []).length > 1}
+        canAddCrosswalk={(model.syllabusVersions || []).some((source) => (
+          (model.syllabusVersions || []).some((target) => (
+            String(target.Id) !== String(source.Id) &&
+            String(target.examination_c?.Id || target.examination_c) === String(source.examination_c?.Id || source.examination_c) &&
+            Number(target.academic_year_c || 0) >= Number(source.academic_year_c || 0)
+          ))
+        ))}
         onVerifyCrosswalk={(row) => reviewCrosswalk(row, 'Verified')}
         onRejectCrosswalk={(row) => reviewCrosswalk(row, 'Rejected')}
         onEditMastery={setMasteryNode}
