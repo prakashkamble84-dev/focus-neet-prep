@@ -31,7 +31,7 @@ export default function SourceExtractionQueue() {
   const { profile } = useProfile();
   const { user } = useAuth();
   const reviewerId = user?.userId;
-  const canReview = ['CEO', 'Manager', 'AcademicExpert_c', 'ContentReviewer_c'].includes(profile);
+  const canReview = ['CEO', 'CEO_c', 'Manager', 'Manager_c', 'AcademicExpert_c', 'ContentReviewer_c'].includes(profile);
   const { data, loading, error, run } = useFetch(fetchExtractions, []);
   const [savingId, setSavingId] = useState(null);
   const [showAll, setShowAll] = useState(false);

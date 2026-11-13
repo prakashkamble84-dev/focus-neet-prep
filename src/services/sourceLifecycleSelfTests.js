@@ -168,9 +168,14 @@ export function runSourceLifecycleSelfTests() {
   });
 
   assert(
-    'Allows syllabus publication after distinct two-person verification',
-    evaluatePublication().valid,
-    'The independent reviewer is distinct from first-pass reviewers and is also the publisher.'
+    'Allows an academic publisher after independent two-person verification',
+    evaluatePublication({ reviewerId: 'REVIEWER-C' }).valid,
+    'The first-pass reviewer, independent checker and authorised publisher may be three distinct people.'
+  );
+  assert(
+    'Allows the independent reviewer to publish when authorised',
+    evaluatePublication({ reviewerId: 'REVIEWER-B' }).valid,
+    'An independent reviewer may also publish when their profile has syllabus update permission.'
   );
   assert(
     'Blocks first-pass reviewer from publishing',
