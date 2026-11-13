@@ -79,7 +79,7 @@ export default function SourceRegistryTabs({
         ) : (
           filteredVersions.map((version) => {
             const parentId = version.source_document_c?.Id ?? version.source_document_c;
-            const parent = documents.find((doc) => doc.Id === parentId);
+            const parent = documents.find((doc) => String(doc.Id) === String(parentId || ''));
             const authorityId = version.source_registry_c?.Id ??
               version.source_registry_c ??
               parent?.source_registry_c?.Id ??

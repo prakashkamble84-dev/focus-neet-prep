@@ -13,6 +13,14 @@ export async function replaceSourcePdf({ version, document, files, reviewerId })
   if (!Array.isArray(files) || files.length === 0) {
     return { success: false, message: 'Attach at least one PDF file before saving.' };
   }
+  const hasPdf = files.some((file) => {
+    const name = file?.Name || file?.name || file?.fileName || file?.FileName || '';
+    const type = file?.type || file?.mimeType || file?.mime_type || '';
+    return String(type).toLowerCase() === 'application/pdf' || /\.pdf(?:$|\?)/i.test(String(name));
+  });
+  if (!hasPdf) return { success: false, message: 'Only PDF documents can be registered as official syllabus files.' };
+  const oversized = files.find((file) => Number(file?.size || file?.Size || 0) > 20 * 1024 * 1024);
+  if (oversized) return { success: false, message: 'The PDF exceeds the 20 MB source-storage limit.' };
 
   const versionUpdate = await sdk.table('source_document_versions_c').update({
     Id: version.Id,
