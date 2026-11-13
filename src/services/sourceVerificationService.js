@@ -38,6 +38,9 @@ export async function saveFirstPassSourceReview({
   reviewerId
 }) {
   if (!version?.Id || !document?.Id) return { success: false, message: 'A source document and version are required.' };
+  if (String(getLookupId(version.source_document_c)) !== String(document.Id)) {
+    return { success: false, message: 'The selected parent document does not match this source version.' };
+  }
   if (!reviewerId) return { success: false, message: 'The signed-in reviewer identity is unavailable.' };
   if (!['Licensed', 'Public', 'Restricted'].includes(rightsStatus)) {
     return { success: false, message: 'Choose Public, Licensed or Restricted as the rights decision.' };
@@ -135,8 +138,9 @@ export function evaluateIndependentSourceVerification({
       row.independent_check_c !== true
     ));
     const latest = latestRecord(rows);
-    if (!latest || latest.decision_c !== 'Verified') {
-      issues.push('The latest first-pass ' + type.toLowerCase() + ' review must be Verified before independent verification.');
+    const versionModifiedAt = version?.ModifiedOn ? Date.parse(version.ModifiedOn) : 0;
+    if (!latest || latest.decision_c !== 'Verified' || recordTime(latest) < versionModifiedAt) {
+      issues.push('The latest first-pass ' + type.toLowerCase() + ' review must be Verified after the source version was last changed.');
       continue;
     }
     primary[type] = new Set([String(getLookupId(latest.reviewer_user_c) || '')].filter(Boolean));

@@ -13,6 +13,7 @@ const { eq } = window.ApperSDK.CoreSDK;
 const VERIFICATION_FIELDS = [
   'Id',
   'Name',
+  'CreatedOn',
   'document_version_c',
   'verification_type_c',
   'decision_c',
