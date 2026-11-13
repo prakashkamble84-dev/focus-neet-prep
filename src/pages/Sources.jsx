@@ -109,49 +109,30 @@ export default function Sources() {
 
   async function handleUpload() {
     if (!selectedVersion) return;
+    const documentId = selectedVersion.source_document_c?.Id ?? selectedVersion.source_document_c;
+    const parent = documents.find((item) => String(item.Id) === String(documentId));
+    if (!parent) {
+      toast.error('PDF upload is blocked because the linked parent source document is missing.');
+      return;
+    }
+
     setSaving(true);
     try {
-      const result = await sdk.table('source_document_versions_c').update({
-        Id: selectedVersion.Id,
-        document_file_c: sdk.storage.toUpdateFormat(files),
-        ingestion_status_c: 'Retrieved'
+      const result = await replaceSourcePdf({
+        version: selectedVersion,
+        document: parent,
+        files,
+        reviewerId: user?.userId
       });
-      if (!result.data?.length) {
-        toast.error(result.messages?.[0] || result.message || 'PDF attachment was not saved');
-        return;
-      }
-      const invalidation = await invalidateSourceDependents(
-        selectedVersion.Id,
-        user?.userId,
-        'The stored PDF was added or replaced. All source-linked syllabus, graph, relationship, question-mapping and historical-crosswalk approvals must be reviewed again.'
-      );
-      if (!invalidation.success) {
-        toast.error('PDF was saved, but dependent academic content could not be fully invalidated', {
-          description: invalidation.message + ' The source version remains Retrieved and must not be independently verified until this is resolved.'
+      if (!result.success) {
+        toast.error(result.saved ? 'PDF saved but source release remains blocked' : 'PDF attachment failed', {
+          description: result.message
         });
         await Promise.all([refreshDocuments(), refreshVersions()]);
         return;
       }
 
-      const documentId = selectedVersion.source_document_c?.Id ?? selectedVersion.source_document_c;
-      const parent = documents.find((item) => String(item.Id) === String(documentId));
-      if (parent) {
-        const parentUpdate = await sdk.table('source_documents_c').update({
-          Id: parent.Id,
-          verification_status_c: 'Review',
-          ingestion_status_c: 'Extracted',
-          review_notes_c: String(parent.review_notes_c || '') + '\nPDF attachment changed. Repeat first-pass rights, authority and metadata review.'
-        });
-        if (!parentUpdate.data?.length) {
-          toast.error('PDF saved and dependent content invalidated, but the parent source could not be marked Review', {
-            description: parentUpdate.messages?.join('; ') || parentUpdate.message
-          });
-          await Promise.all([refreshDocuments(), refreshVersions()]);
-          return;
-        }
-      }
-
-      toast.success('PDF attached; all dependent syllabus and graph approvals were reset');
+      toast.success('PDF attached; rights, page extractions and all dependent syllabus/graph approvals were reset');
       setUploadOpen(false);
       setSelectedVersion(null);
       await Promise.all([refreshDocuments(), refreshVersions()]);
