@@ -200,10 +200,46 @@ export function buildKnowledgeGraphModel(data = {}) {
     targetVersion: syllabusById.get(String(getLookupId(crosswalk.target_version_c)))
   }));
 
+  const latestPublishedVersionByExam = new Map();
+  for (const version of syllabusVersions) {
+    if (version.status_c !== 'Published') continue;
+    const examId = String(getLookupId(version.examination_c) || '');
+    if (!examId) continue;
+    const current = latestPublishedVersionByExam.get(examId);
+    if (!current || Number(version.academic_year_c || 0) > Number(current.academic_year_c || 0)) {
+      latestPublishedVersionByExam.set(examId, version);
+    }
+  }
+
+  const nodesWithCompatibility = enrichedNodes.map((node) => {
+    if (!node.hasSyllabusVersion) {
+      return { ...node, syllabusCompatibility: 'SHARED KNOWLEDGE' };
+    }
+    const examId = String(getLookupId(node.syllabus?.examination_c) || '');
+    const currentVersion = latestPublishedVersionByExam.get(examId);
+    if (!currentVersion) return { ...node, syllabusCompatibility: 'UNCERTAIN' };
+    if (String(currentVersion.Id) === String(getLookupId(node.syllabus_version_c))) {
+      return { ...node, syllabusCompatibility: 'CURRENT' };
+    }
+    const crosswalk = crosswalkRows.find((row) => (
+      row.status_c === 'Verified' &&
+      String(getLookupId(row.source_version_c)) === String(getLookupId(node.syllabus_version_c)) &&
+      String(getLookupId(row.target_version_c)) === String(currentVersion.Id) &&
+      (!row.sourceNode || String(row.sourceNode.Id) === String(node.Id))
+    ));
+    if (!crosswalk) return { ...node, syllabusCompatibility: 'UNCERTAIN' };
+    const compatibility = crosswalk.mapping_type_c === 'Removed'
+      ? 'OUT OF CURRENT SYLLABUS'
+      : crosswalk.mapping_type_c === 'Same'
+        ? 'CURRENT'
+        : 'PARTIALLY CURRENT';
+    return { ...node, syllabusCompatibility: compatibility };
+  });
+
   return {
     examinations,
     syllabusVersions,
-    nodes: enrichedNodes,
+    nodes: nodesWithCompatibility,
     relationships: enrichedRelationships,
     questions,
     questionMappings: enrichedMappings,
