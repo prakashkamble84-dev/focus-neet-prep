@@ -35,7 +35,7 @@ export default function Sources() {
   const [reviewNotes, setReviewNotes] = useState('');
 
   const { data: authoritiesData, loading: authoritiesLoading, error: authoritiesError, run: refreshAuthorities } = useFetch(fetchSourceAuthorities, []);
-  const { data: documentsData, loading: documentsLoading, error: documentsError, run: refreshDocuments } = useFetch(fetchSourceDocuments, []);
+  const { data: documentsData, error: documentsError, run: refreshDocuments } = useFetch(fetchSourceDocuments, []);
   const { data: versionsData, loading: versionsLoading, error: versionsError, run: refreshVersions } = useFetch(fetchSourceVersions, []);
 
   const authorities = authoritiesData ?? [];
@@ -92,7 +92,8 @@ export default function Sources() {
     try {
       const result = await sdk.table('source_document_versions_c').update({
         Id: selectedVersion.Id,
-        document_file_c: sdk.storage.toUpdateFormat(files)
+        document_file_c: sdk.storage.toUpdateFormat(files),
+        ingestion_status_c: 'Retrieved'
       });
       if (!result.data?.length) {
         toast.error(result.messages?.[0] || result.message || 'PDF attachment was not saved');
