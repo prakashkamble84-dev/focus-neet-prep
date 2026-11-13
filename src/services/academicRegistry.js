@@ -82,7 +82,7 @@ export const OFFICIAL_DOCUMENTS = [
     version_label_c: '2026 · Paper 1',
     official_title_c: 'Syllabus for JEE Main Paper 1 (B.E./B.Tech.) · Mathematics, Physics and Chemistry',
     academic_year_c: 2026,
-    ingestion_status_c: 'Retrieved',
+    ingestion_status_c: 'Discovered',
     change_summary_c: 'Official NTA Paper 1 syllabus PDF. Binary upload, rights review and academic approval remain pending.'
   },
   {
@@ -95,7 +95,7 @@ export const OFFICIAL_DOCUMENTS = [
     version_label_c: '2026',
     official_title_c: 'Information Bulletin for JEE Main 2026',
     academic_year_c: 2026,
-    ingestion_status_c: 'Retrieved',
+    ingestion_status_c: 'Discovered',
     change_summary_c: 'Official NTA information bulletin. Rule extraction and page-level verification remain pending.'
   },
   {
@@ -108,7 +108,7 @@ export const OFFICIAL_DOCUMENTS = [
     version_label_c: '2026',
     official_title_c: 'JEE (Advanced) 2026 Syllabus',
     academic_year_c: 2026,
-    ingestion_status_c: 'Retrieved',
+    ingestion_status_c: 'Discovered',
     change_summary_c: 'The official PDF states that the 2026 syllabus remains the same as JEE Advanced 2025. Detailed topic extraction and review remain pending.'
   },
   {
@@ -135,7 +135,7 @@ export const OFFICIAL_DOCUMENTS = [
     official_title_c: 'Syllabus for NEET (UG) · 2026',
     academic_year_c: 2026,
     publication_date_c: '2025-12-22',
-    ingestion_status_c: 'Retrieved',
+    ingestion_status_c: 'Discovered',
     change_summary_c: 'NMC UGMEB public notice dated 22 December 2025 states that the NEET UG 2026 syllabus was finalised for academic session 2026–27. Binary upload and academic approval remain pending.'
   },
   {

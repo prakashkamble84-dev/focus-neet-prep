@@ -13,8 +13,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
-export const route = { path: '/sources', layout: 'owner', access: 'authenticated' };
-export const nav = { label: 'Academic sources', icon: 'FileCheck2', group: 'Research', order: 110 };
+export const route = {
+  path: '/sources',
+  layout: 'owner',
+  access: "profile === 'CEO' || profile === 'Manager' || profile === 'AcademicExpert_c' || profile === 'ContentReviewer_c'"
+};
+export const nav = {
+  label: 'Academic sources',
+  icon: 'FileCheck2',
+  group: 'Research',
+  profiles: ['CEO', 'Manager', 'AcademicExpert_c', 'ContentReviewer_c'],
+  order: 110
+};
 
 export default function Sources() {
   const { profile } = useProfile();
