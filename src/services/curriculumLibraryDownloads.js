@@ -15,8 +15,8 @@ export function downloadCurriculumRows(rows, fileName = 'northstar-curriculum.cs
     row.path, row.sourceTitle, row.sourceType, row.sourceUrl,
     row.pageStart, row.pageEnd, row.state, row.verified ? 'Yes' : 'No'
   ]);
-  const csv = [headings, ...values].map((line) => line.map(csvCell).join(',')).join('\\r\\n');
-  const blob = new Blob(['\\uFEFF', csv], { type: 'text/csv;charset=utf-8' });
+  const csv = [headings, ...values].map((line) => line.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = window.URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
