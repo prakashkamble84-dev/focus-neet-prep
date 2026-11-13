@@ -57,6 +57,12 @@ export async function saveHistoricalQuestionOptions({
     return { success: false, message: 'Every option needs non-empty answer text.' };
   }
 
+  const previousQuestion = {
+    answer_key_c: question.answer_key_c ?? null,
+    solution_c: question.solution_c ?? null,
+    answer_validation_status_c: question.answer_validation_status_c ?? 'Pending',
+    status_c: question.status_c
+  };
   const existingById = new Map(existingOptions.map((option) => [String(option.Id), option]));
   const submittedIds = new Set(normalized.map((option) => option.Id).filter(Boolean).map(String));
   const snapshots = [];
@@ -153,7 +159,9 @@ export async function saveHistoricalQuestionOptions({
       });
       if (!rollback.data?.length) rollbackMessages.push('Could not retire newly created option ' + createdId);
     }
-    const detail = rollbackMessages.length ? ' Rollback warnings: ' + rollbackMessages.join('; ') : ' Option changes were rolled back where possible.';
+    const questionRollback = await sdk.table('questions_c').update({ Id: question.Id, ...previousQuestion });
+    if (!questionRollback.data?.length) rollbackMessages.push('Could not restore the question answer-validation state');
+    const detail = rollbackMessages.length ? ' Rollback warnings: ' + rollbackMessages.join('; ') : ' Question and option changes were rolled back.';
     return { success: false, message: error.message + detail };
   }
 }
