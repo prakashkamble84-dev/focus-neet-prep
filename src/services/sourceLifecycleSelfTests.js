@@ -37,6 +37,25 @@ export function runSourceLifecycleSelfTests() {
       { Id: 'P-2', document_version_c: 'VERSION-1', page_number_c: 2, quality_status_c: 'Verified' },
       { Id: 'P-3', document_version_c: 'VERSION-2', page_number_c: 1, quality_status_c: 'Verified' }
     ],
+    historicalPapers: [
+      { Id: 'HP-1', source_document_c: 'DOCUMENT-1', status_c: 'Published' },
+      { Id: 'HP-2', source_document_c: 'DOCUMENT-2', status_c: 'Published' }
+    ],
+    historicalQuestions: [
+      { Id: 'HQ-1', historical_paper_c: 'HP-1', source_document_c: 'DOCUMENT-1' },
+      { Id: 'HQ-2', historical_paper_c: 'HP-1', source_document_c: 'DOCUMENT-1' },
+      { Id: 'HQ-3', historical_paper_c: 'HP-2', source_document_c: 'DOCUMENT-2' }
+    ],
+    historicalQuestionMappings: [
+      { Id: 'HQM-1', question_c: 'HQ-1' },
+      { Id: 'HQM-2', question_c: 'HQ-3' }
+    ],
+    historicalQuestionOptions: [
+      { Id: 'HQO-1', question_c: 'HQ-1' },
+      { Id: 'HQO-2', question_c: 'HQ-2' },
+      { Id: 'HQO-3', question_c: 'HQ-3' }
+    ],
+    sourceDocumentId: 'DOCUMENT-1',
     invalidatePages: true
   });
   assert(
@@ -58,6 +77,21 @@ export function runSourceLifecycleSelfTests() {
     'Invalidates page extractions only when the source PDF is replaced',
     invalidationPlan.counts.pageExtractions === 2,
     'Every extraction from the replaced PDF is reset, while extractions from other versions remain unchanged.'
+  );
+  assert(
+    'Invalidates only historical papers linked to the changed parent source',
+    invalidationPlan.counts.historicalPapers === 1,
+    'A replaced question-paper PDF resets its own historical paper but leaves other source documents untouched.'
+  );
+  assert(
+    'Invalidates every historical question linked to the replaced paper',
+    invalidationPlan.counts.historicalQuestions === 2,
+    'Questions linked by historical paper or source document are returned for answer/extraction reset.'
+  );
+  assert(
+    'Invalidates question-concept mappings and structured answer options',
+    invalidationPlan.counts.historicalQuestionMappings === 1 && invalidationPlan.counts.historicalQuestionOptions === 2,
+    'Mappings and option rows for affected questions are returned; unrelated historical question rows are not included.'
   );
 
   const modifiedAt = '2026-11-13T09:00:00.000Z';
