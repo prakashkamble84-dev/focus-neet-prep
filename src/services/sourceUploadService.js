@@ -16,7 +16,7 @@ export async function replaceSourcePdf({ version, document, files, reviewerId })
   const hasPdf = files.some((file) => {
     const name = file?.Name || file?.name || file?.fileName || file?.FileName || '';
     const type = file?.type || file?.mimeType || file?.mime_type || '';
-    return String(type).toLowerCase() === 'application/pdf' || /\.pdf(?:$|\?)/i.test(String(name));
+    return String(type).toLowerCase() === 'application/pdf' || String(name).toLowerCase().endsWith('.pdf');
   });
   if (!hasPdf) return { success: false, message: 'Only PDF documents can be registered as official syllabus files.' };
   const oversized = files.find((file) => Number(file?.size || file?.Size || 0) > 20 * 1024 * 1024);
