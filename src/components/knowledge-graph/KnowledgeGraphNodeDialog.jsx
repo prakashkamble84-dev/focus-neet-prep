@@ -106,7 +106,7 @@ export default function KnowledgeGraphNodeDialog({
     setPageStart('');
     setPageEnd('');
     setSourceExcerpt('');
-  }, [open, syllabusVersions, nodes]);
+  }, [open]);
 
   useEffect(() => {
     if (!name.trim() || (!selectedSyllabus && !isKnowledgeCore)) {

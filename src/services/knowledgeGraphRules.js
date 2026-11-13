@@ -184,7 +184,9 @@ export function buildGraphDiagnostics(nodes = [], relationships = [], mappings =
       });
       continue;
     }
-    const key = [fromId, toId, edge.relationship_type_c].join('|');
+    const symmetric = ['Related', 'Confused'].includes(edge.relationship_type_c);
+    const pair = symmetric ? [fromId, toId].sort() : [fromId, toId];
+    const key = [...pair, edge.relationship_type_c].join('|');
     if (seenEdges.has(key) && edge.status_c !== 'Rejected') {
       issues.push({
         code: 'DUPLICATE_RELATIONSHIP',
@@ -206,7 +208,10 @@ export function buildGraphDiagnostics(nodes = [], relationships = [], mappings =
   }
 
   const nodeIdsWithMappings = new Set(
-    mappings.map((item) => String(getLookupId(item.curriculum_node_c) || '')).filter(Boolean)
+    mappings
+      .filter((item) => item.status_c === 'Verified' && item.verified_c === true)
+      .map((item) => String(getLookupId(item.curriculum_node_c) || ''))
+      .filter(Boolean)
   );
   for (const node of nodes) {
     if (node.node_type_c === 'Concept' && node.status_c === 'Published' && !nodeIdsWithMappings.has(String(node.Id))) {
@@ -294,6 +299,23 @@ export function runKnowledgeGraphSelfTests() {
       { Id: 'CURRENT', Name: 'Vector resolution', node_code_c: 'PHY-VECTOR-RESOLUTION', node_type_c: 'Concept', parent_node_code_c: 'PHY-VECTORS', syllabus_version_c: 'V1' }
     ], [], []).errors === 0,
     'A syllabus-linked concept may extend a source-grounded shared Knowledge Core concept.'
+  );
+  assert(
+    'Flags reverse-direction symmetric duplicate relationships',
+    buildGraphDiagnostics(nodes, [
+      { Id: 'RELATED-1', from_node_c: 'A', to_node_c: 'B', relationship_type_c: 'Related', status_c: 'Verified' },
+      { Id: 'RELATED-2', from_node_c: 'B', to_node_c: 'A', relationship_type_c: 'Related', status_c: 'Verified' }
+    ], []).warnings === 1,
+    'Related and Confused edges are symmetric and should only exist once per unordered pair.'
+  );
+  assert(
+    'Requires verified mappings before a concept is considered question-covered',
+    buildGraphDiagnostics([
+      { Id: 'TOPIC', Name: 'A concept', node_code_c: 'TOPIC', node_type_c: 'Concept', status_c: 'Published' }
+    ], [], [
+      { curriculum_node_c: 'TOPIC', status_c: 'Review', verified_c: false }
+    ]).info === 1,
+    'Draft and Review mappings do not count as verified question evidence.'
   );
 
   return {
