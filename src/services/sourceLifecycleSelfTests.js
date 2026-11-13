@@ -4,6 +4,9 @@ import { evaluateSyllabusPublication } from '@/services/syllabusPublicationServi
 import { buildSourceInvalidationPlan } from '@/services/sourceInvalidationRules';
 
 export function runSourceLifecycleSelfTests() {
+  const tests = [];
+  const assert = (name, condition, detail) => tests.push({ name, passed: Boolean(condition), detail });
+
   const invalidationPlan = buildSourceInvalidationPlan({
     versionId: 'VERSION-1',
     syllabi: [
@@ -99,9 +102,6 @@ export function runSourceLifecycleSelfTests() {
     officialOriginConfirmed: false,
     notes: 'Verified against the official NTA document listing and PDF.'
   };
-  const tests = [];
-  const assert = (name, condition, detail) => tests.push({ name, passed: Boolean(condition), detail });
-
   const unknownDecisions = getFirstPassSourceDecisions('Unknown', false, false);
   assert(
     'Unknown rights are recorded as NeedsFix rather than approved',
