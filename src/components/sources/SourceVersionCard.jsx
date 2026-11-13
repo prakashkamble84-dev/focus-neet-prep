@@ -41,9 +41,6 @@ export default function SourceVersionCard({ version, parent, authority, authorit
             <Button variant="outline" size="sm" onClick={() => onUpload(version)}>
               <ApperIcon name="Upload" size={14} /> {fileCount ? 'Manage PDF' : 'Attach PDF'}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => onExtract(version)}>
-              <ApperIcon name="FileText" size={14} /> Add page record
-            </Button>
             <Button size="sm" onClick={() => onReview(version)}>
               <ApperIcon name="ClipboardCheck" size={14} /> Review rights
             </Button>
@@ -51,6 +48,9 @@ export default function SourceVersionCard({ version, parent, authority, authorit
         )}
         {canIndependentlyVerify && (
           <div className="flex shrink-0 flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => onExtract(version)}>
+              <ApperIcon name="FileText" size={14} /> Add page record
+            </Button>
             <SourceIndependentVerificationController
               version={version}
               document={parent}
