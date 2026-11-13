@@ -39,6 +39,7 @@ export default function KnowledgeGraphWorkspace({
   diagnostics,
   selfTests,
   canEdit,
+  canViewDrafts,
   isStudent,
   loading,
   onAddRelationship,
@@ -65,7 +66,7 @@ export default function KnowledgeGraphWorkspace({
   const [selectedId, setSelectedId] = useState('');
 
   const visibleNodes = useMemo(() => {
-    const allowed = canEdit ? nodes : nodes.filter(reviewVisibleNode);
+    const allowed = canViewDrafts ? nodes : nodes.filter(reviewVisibleNode);
     const term = search.trim().toLowerCase();
     return allowed.filter((node) => (
       (examFilter === 'All examinations' || node.examName === examFilter) &&
@@ -80,7 +81,7 @@ export default function KnowledgeGraphWorkspace({
       Number(a.sort_order_c || 0) - Number(b.sort_order_c || 0) ||
       String(a.node_path_c || a.Name).localeCompare(String(b.node_path_c || b.Name))
     ));
-  }, [nodes, canEdit, examFilter, subjectFilter, typeFilter, layerFilter, search]);
+  }, [nodes, canViewDrafts, examFilter, subjectFilter, typeFilter, layerFilter, search]);
 
   const selectedNode = visibleNodes.find((node) => String(node.Id) === String(selectedId)) ||
     visibleNodes.find((node) => node.node_type_c === 'Concept') ||
@@ -96,14 +97,14 @@ export default function KnowledgeGraphWorkspace({
   ], [nodes]);
 
   const visibleRelationships = useMemo(() => (
-    relationships.filter((edge) => canEdit || edge.status_c === 'Verified')
-  ), [relationships, canEdit]);
+    relationships.filter((edge) => canViewDrafts || edge.status_c === 'Verified')
+  ), [relationships, canViewDrafts]);
   const visibleMappings = useMemo(() => (
-    questionMappings.filter((mapping) => canEdit || (mapping.verified_c === true && mapping.status_c === 'Verified'))
-  ), [questionMappings, canEdit]);
+    questionMappings.filter((mapping) => canViewDrafts || (mapping.verified_c === true && mapping.status_c === 'Verified'))
+  ), [questionMappings, canViewDrafts]);
 
   const visibleFamilies = useMemo(() => {
-    if (canEdit) return families;
+    if (canViewDrafts) return families;
     const publishedQuestions = new Set(
       families.flatMap((family) => family.questions)
         .filter((question) => question.status_c === 'Published' && ['Public', 'Licensed'].includes(question.rights_status_c))
@@ -113,11 +114,11 @@ export default function KnowledgeGraphWorkspace({
       ...family,
       questions: family.questions.filter((question) => publishedQuestions.has(String(question.Id)))
     })).filter((family) => family.questions.length > 0);
-  }, [families, canEdit]);
+  }, [families, canViewDrafts]);
 
   const visibleCrosswalks = useMemo(() => (
-    crosswalks.filter((row) => canEdit || row.status_c === 'Verified')
-  ), [crosswalks, canEdit]);
+    crosswalks.filter((row) => canViewDrafts || row.status_c === 'Verified')
+  ), [crosswalks, canViewDrafts]);
 
   return (
     <div className="space-y-4">

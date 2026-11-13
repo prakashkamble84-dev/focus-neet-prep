@@ -33,6 +33,7 @@ export const nav = { label: 'Knowledge graph', icon: 'Network', section: 'Learn'
 
 const STAFF_PROFILES = ['CEO', 'CEO_c', 'Manager', 'Manager_c', 'AcademicExpert_c'];
 const STUDENT_PROFILES = ['User', 'User_c'];
+const REVIEWER_PROFILES = ['ContentReviewer_c'];
 
 function isStudentVisible(node) {
   return node.status_c === 'Published' &&
@@ -45,6 +46,7 @@ export default function KnowledgeGraph() {
   const { user } = useAuth();
   const reviewerId = user?.Id || user?.userId;
   const canEdit = STAFF_PROFILES.includes(profile);
+  const canViewDrafts = canEdit || REVIEWER_PROFILES.includes(profile);
   const isStudent = STUDENT_PROFILES.includes(profile);
   const { data, loading, error, run } = useFetch(
     () => fetchKnowledgeGraphData(isStudent),
@@ -61,22 +63,22 @@ export default function KnowledgeGraph() {
 
   const nodes = model.nodes || [];
   const roleVisibleNodes = useMemo(
-    () => canEdit ? nodes : nodes.filter(isStudentVisible),
-    [nodes, canEdit]
+    () => canViewDrafts ? nodes : nodes.filter(isStudentVisible),
+    [nodes, canViewDrafts]
   );
   const relationships = useMemo(
-    () => (model.relationships || []).filter((edge) => canEdit || edge.status_c === 'Verified'),
-    [model.relationships, canEdit]
+    () => (model.relationships || []).filter((edge) => canViewDrafts || edge.status_c === 'Verified'),
+    [model.relationships, canViewDrafts]
   );
   const questionMappings = useMemo(
     () => (model.questionMappings || []).filter((mapping) => (
-      canEdit || (mapping.verified_c === true && mapping.status_c === 'Verified')
+      canViewDrafts || (mapping.verified_c === true && mapping.status_c === 'Verified')
     )),
-    [model.questionMappings, canEdit]
+    [model.questionMappings, canViewDrafts]
   );
   const crosswalks = useMemo(
-    () => (model.crosswalks || []).filter((row) => canEdit || row.status_c === 'Verified'),
-    [model.crosswalks, canEdit]
+    () => (model.crosswalks || []).filter((row) => canViewDrafts || row.status_c === 'Verified'),
+    [model.crosswalks, canViewDrafts]
   );
 
   const visibleFamilyModel = useMemo(() => {
@@ -246,6 +248,7 @@ export default function KnowledgeGraph() {
         diagnostics={diagnostics}
         selfTests={selfTests}
         canEdit={canEdit}
+        canViewDrafts={canViewDrafts}
         isStudent={isStudent}
         loading={loading && !data}
         onAddRelationship={() => setRelationshipDialogOpen(true)}
@@ -277,7 +280,7 @@ export default function KnowledgeGraph() {
 
       {!canEdit && (
         <p className="text-xs text-muted-foreground">
-          Student, parent, teacher and mentor views are read-only. Draft concepts and unverified edges remain hidden from learner accounts.
+          Student, parent, teacher and mentor views are read-only. Content reviewers can inspect draft graph records without editing them; learner accounts see only verified and published content.
         </p>
       )}
 
