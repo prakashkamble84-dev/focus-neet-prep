@@ -96,7 +96,7 @@ export async function fetchHistoricalQuestionReviewData(questionId) {
 
   const paperId = getId(question.historical_paper_c);
   const documentId = getId(question.source_document_c);
-  const [paper, sourceDocument, reviews] = await Promise.all([
+  const [paper, sourceDocument, reviews, options] = await Promise.all([
     readOne('historical_papers_c', paperId, [
       'Id',
       'Name',
@@ -127,6 +127,14 @@ export async function fetchHistoricalQuestionReviewData(questionId) {
         .limit(200, 0)
         .fetch(),
       'Question reviews'
+    ),
+    readRows(
+      sdk.table('question_options_c')
+        .select(['Id', 'Name', 'question_c', 'option_key_c', 'option_text_c', 'sequence_c', 'is_correct_c', 'status_c'])
+        .where(window.ApperSDK.CoreSDK.eq('question_c', question.Id))
+        .limit(30, 0)
+        .fetch(),
+      'Question options'
     )
   ]);
 
@@ -137,6 +145,7 @@ export async function fetchHistoricalQuestionReviewData(questionId) {
     paper,
     sourceDocument,
     reviews,
+    options,
     creatorId: getId(question.CreatedBy) || getId(question.Owner),
     sourceMatches: Boolean(paperSourceId && questionSourceId && String(paperSourceId) === String(questionSourceId)),
     latestExtractionReview: latestAction(reviews, 'extraction'),
@@ -151,6 +160,7 @@ export async function recordHistoricalQuestionReview({
   paper,
   sourceDocument,
   reviews = [],
+  options = [],
   creatorId,
   reviewerId,
   reviewerProfile,
@@ -240,6 +250,27 @@ export async function recordHistoricalQuestionReview({
     if (decision === 'Approved' && !String(answerKey || '').trim()) {
       return { success: false, message: 'Enter the answer key before approving answer validation.' };
     }
+    if (decision === 'Approved' && ['MCQ', 'Multi'].includes(question.question_type_c)) {
+      const availableOptions = options.filter((option) => option.status_c !== 'Retired');
+      if (availableOptions.length < 2) {
+        return { success: false, message: 'This multiple-choice question has fewer than two extracted options. Correct the option extraction before answer validation.' };
+      }
+      const selectedKeys = String(answerKey || '')
+        .toUpperCase()
+        .split(/[,;+\\s]+/)
+        .map((key) => key.trim())
+        .filter(Boolean);
+      const availableKeys = new Set(availableOptions.map((option) => String(option.option_key_c || '').toUpperCase()));
+      if (!selectedKeys.length || selectedKeys.some((key) => !availableKeys.has(key))) {
+        return { success: false, message: 'The answer key must refer only to extracted option labels.' };
+      }
+      if (question.question_type_c === 'MCQ' && selectedKeys.length !== 1) {
+        return { success: false, message: 'A single-correct MCQ must have exactly one answer option.' };
+      }
+      if (new Set(selectedKeys).size !== selectedKeys.length) {
+        return { success: false, message: 'The answer key contains duplicate option labels.' };
+      }
+    }
     update = {
       Id: question.Id,
       answer_key_c: String(answerKey || '').trim(),
@@ -325,14 +356,67 @@ export async function recordHistoricalQuestionReview({
     };
   }
 
+  const changedOptions = [];
+  try {
+    if (action === 'answer' && ['MCQ', 'Multi'].includes(question.question_type_c)) {
+      const selectedKeys = decision === 'Approved'
+        ? new Set(String(answerKey || '').toUpperCase().split(/[,;+\\s]+/).map((key) => key.trim()).filter(Boolean))
+        : new Set();
+      for (const option of options.filter((row) => row.status_c !== 'Retired')) {
+        const optionUpdate = await sdk.table('question_options_c').update({
+          Id: option.Id,
+          is_correct_c: selectedKeys.has(String(option.option_key_c || '').toUpperCase())
+        });
+        if (!optionUpdate.data?.length) {
+          throw new Error(optionUpdate.messages?.join('; ') || optionUpdate.message || 'An answer option could not be updated.');
+        }
+        changedOptions.push({
+          Id: option.Id,
+          is_correct_c: option.is_correct_c ?? false,
+          status_c: option.status_c
+        });
+      }
+    }
+
+    if (action === 'publish') {
+      for (const option of options.filter((row) => row.status_c !== 'Retired')) {
+        const optionUpdate = await sdk.table('question_options_c').update({
+          Id: option.Id,
+          status_c: 'Published'
+        });
+        if (!optionUpdate.data?.length) {
+          throw new Error(optionUpdate.messages?.join('; ') || optionUpdate.message || 'A question option could not be published.');
+        }
+        changedOptions.push({
+          Id: option.Id,
+          is_correct_c: option.is_correct_c ?? false,
+          status_c: option.status_c
+        });
+      }
+    }
+
+  } catch (optionError) {
+    for (const snapshot of changedOptions.reverse()) {
+      await sdk.table('question_options_c').update(snapshot);
+    }
+    await sdk.table('questions_c').update({ Id: question.Id, ...previous });
+    return {
+      success: false,
+      message: optionError.message + ' The question and any changed options were rolled back where possible.'
+    };
+  }
+
   try {
     const reviewStatus = action === 'applyExtraction' ? 'Approved' : decision;
     await writeReview(question, reviewerId, reviewType, reviewStatus, auditAction, notes);
   } catch (error) {
+    for (const snapshot of changedOptions.reverse()) {
+      await sdk.table('question_options_c').update(snapshot);
+    }
     const rollback = await sdk.table('questions_c').update({ Id: question.Id, ...previous });
     return {
       success: false,
-      message: error.message + (rollback.data?.length ? ' The question update was rolled back.' : ' WARNING: rollback failed; check the question record immediately.')
+      message: error.message + (rollback.data?.length ? ' The question and option updates were rolled back where possible.' : ' WARNING: rollback failed; check the question record immediately.')
     };
   }
 
