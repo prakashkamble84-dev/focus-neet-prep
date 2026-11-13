@@ -71,7 +71,7 @@ export default function SourceRegistryTabs({
           <EmptyState
             icon="FileSearch"
             title="No source versions registered"
-            description="Register the official baseline to add the 2026 JEE Main, JEE Advanced and NEET UG source documents and their version records."
+            description="Register the official baseline to add the 2026 JEE Main, JEE Advanced and NEET UG documents, plus the currently listed JEE Main 2027 syllabus and bulletin records."
             action={canManageAuthorities ? <Button className="mt-4" onClick={onRegisterBaseline} disabled={seeding}>Register official baseline</Button> : null}
           />
         ) : (
