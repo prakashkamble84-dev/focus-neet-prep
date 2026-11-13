@@ -261,9 +261,13 @@ export async function completeIndependentSourceVerification({
     review_notes_c: String(document.review_notes_c || '').trim() + '\nIndependent source verification completed: ' + String(checks.notes).trim()
   });
   if (!documentResult.data?.length) {
+    await sdk.table('source_document_versions_c').update({
+      Id: version.Id,
+      ingestion_status_c: 'Review'
+    });
     return {
       success: false,
-      issues: [documentResult.messages?.join('; ') || documentResult.message || 'The source version is Verified, but the parent document could not be finalised. Retry verification to complete it.']
+      issues: [documentResult.messages?.join('; ') || documentResult.message || 'The parent document could not be finalised. The source version was rolled back to Review.']
     };
   }
 
@@ -274,7 +278,25 @@ export async function completeIndependentSourceVerification({
     auditLogged = false;
   }
 
-  return { success: true, alreadyVerified: false, auditLogged, issues: [] };
+  if (!auditLogged) {
+    await Promise.all([
+      sdk.table('source_document_versions_c').update({
+        Id: version.Id,
+        ingestion_status_c: 'Review'
+      }),
+      sdk.table('source_documents_c').update({
+        Id: document.Id,
+        verification_status_c: 'Review',
+        ingestion_status_c: 'Extracted'
+      })
+    ]);
+    return {
+      success: false,
+      issues: ['The approval audit could not be recorded. Both source records were rolled back to Review.']
+    };
+  }
+
+  return { success: true, alreadyVerified: false, auditLogged: true, issues: [] };
 }
 
 export async function independentlyReviewPageExtraction(row, decision, reviewerId) {

@@ -36,7 +36,8 @@ export default function SourceIndependentVerificationController({
   const [verifications, setVerifications] = useState([]);
 
   const independentlyVerified = version?.ingestion_status_c === 'Verified' &&
-    document?.verification_status_c === 'Verified';
+    document?.verification_status_c === 'Verified' &&
+    document?.ingestion_status_c === 'Complete';
 
   const primaryReviewerIds = useMemo(() => (
     [...new Set(verifications

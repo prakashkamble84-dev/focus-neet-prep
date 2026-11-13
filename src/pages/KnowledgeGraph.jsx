@@ -43,7 +43,7 @@ function isStudentVisible(node) {
 export default function KnowledgeGraph() {
   const { profile } = useProfile();
   const { user } = useAuth();
-  const reviewerId = user?.Id || user?.userId;
+  const reviewerId = user?.userId;
   const canEdit = STAFF_PROFILES.includes(profile);
   const canViewDrafts = canEdit || REVIEWER_PROFILES.includes(profile);
   const isStudent = STUDENT_PROFILES.includes(profile);
