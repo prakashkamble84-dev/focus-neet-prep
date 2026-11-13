@@ -9,6 +9,7 @@ import {
 import {
   KnowledgeGraphRelationshipBrowser,
   KnowledgeGraphFamilyBrowser,
+  KnowledgeGraphMappingBrowser,
   KnowledgeGraphCrosswalkBrowser
 } from '@/components/knowledge-graph/KnowledgeGraphResearchPanels';
 import KnowledgeGraphDiagnostics from '@/components/knowledge-graph/KnowledgeGraphDiagnostics';
@@ -17,6 +18,7 @@ const TABS = [
   { id: 'nodes', label: 'Knowledge hierarchy' },
   { id: 'relationships', label: 'Prerequisites and edges' },
   { id: 'families', label: 'Question families' },
+  { id: 'mappings', label: 'Question mappings' },
   { id: 'crosswalks', label: 'Historical mapping' },
   { id: 'quality', label: 'Graph integrity' }
 ];
@@ -39,6 +41,13 @@ export default function KnowledgeGraphWorkspace({
   isStudent,
   loading,
   onAddRelationship,
+  onAddMapping,
+  onVerifyMapping,
+  onRejectMapping,
+  onAddCrosswalk,
+  canAddCrosswalk,
+  onVerifyCrosswalk,
+  onRejectCrosswalk,
   onEditMastery,
   onVerifyNode,
   onPublishNode,
@@ -239,19 +248,62 @@ export default function KnowledgeGraphWorkspace({
               Questions sharing a family code are grouped to represent a common problem structure. The graph links family records to concepts through question-to-concept mappings. Family codes are research groupings, not predictions.
             </p>
           </div>
+          <div className="flex justify-end">
+            {canEdit && (
+              <Button size="sm" onClick={onAddMapping}>
+                <ApperIcon name="Link2" size={14} /> Map question to concept
+              </Button>
+            )}
+          </div>
           <KnowledgeGraphFamilyBrowser families={visibleFamilies} />
+        </section>
+      )}
+
+      {tab === 'mappings' && (
+        <section className="space-y-3">
+          <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="font-semibold">Question-to-concept evidence</h2>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Map a question's primary, secondary, prerequisite or skill concepts. New mappings remain in Review until an academic expert verifies them.
+              </p>
+            </div>
+            {canEdit && (
+              <Button size="sm" onClick={onAddMapping}>
+                <ApperIcon name="Link2" size={14} /> Add mapping
+              </Button>
+            )}
+          </div>
+          <KnowledgeGraphMappingBrowser
+            mappings={visibleMappings}
+            canEdit={canEdit}
+            onVerify={onVerifyMapping}
+            onReject={onRejectMapping}
+          />
         </section>
       )}
 
       {tab === 'crosswalks' && (
         <section className="space-y-3">
-          <div className="rounded-lg border border-border bg-card p-4">
-            <h2 className="font-semibold">Historical syllabus crosswalk</h2>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Historical nodes can map to current syllabus nodes as Same, Modified, Split, Merge, Removed, Added or Related. These mappings do not make historical content part of a student's current syllabus.
-            </p>
+          <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="font-semibold">Historical syllabus crosswalk</h2>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Historical nodes can map to current syllabus nodes as Same, Modified, Split, Merge, Removed, Added or Related. These mappings do not make historical content part of a student's current syllabus.
+              </p>
+            </div>
+            {canEdit && (
+              <Button size="sm" onClick={onAddCrosswalk} disabled={!canAddCrosswalk}>
+                <ApperIcon name="GitCompareArrows" size={14} /> Add historical mapping
+              </Button>
+            )}
           </div>
-          <KnowledgeGraphCrosswalkBrowser crosswalks={visibleCrosswalks} />
+          <KnowledgeGraphCrosswalkBrowser
+            crosswalks={visibleCrosswalks}
+            canEdit={canEdit}
+            onVerify={onVerifyCrosswalk}
+            onReject={onRejectCrosswalk}
+          />
         </section>
       )}
 
