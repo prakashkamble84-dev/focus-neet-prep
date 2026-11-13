@@ -8,7 +8,9 @@ export function buildSourceInvalidationPlan({
   nodes = [],
   relationships = [],
   questionMappings = [],
-  crosswalks = []
+  crosswalks = [],
+  sourceExtractions = [],
+  invalidatePages = false
 }) {
   const linkedSyllabi = syllabi.filter((row) =>
     String(getLookupId(row.source_document_version_c) || '') === String(versionId)
@@ -32,6 +34,11 @@ export function buildSourceInvalidationPlan({
     syllabusIds.has(String(getLookupId(row.source_version_c) || '')) ||
     syllabusIds.has(String(getLookupId(row.target_version_c) || ''))
   );
+  const invalidatedPageExtractions = invalidatePages
+    ? sourceExtractions.filter((row) =>
+        String(getLookupId(row.document_version_c) || '') === String(versionId)
+      )
+    : [];
 
   return {
     linkedSyllabi,
@@ -39,12 +46,14 @@ export function buildSourceInvalidationPlan({
     linkedRelationships,
     linkedMappings,
     linkedCrosswalks,
+    invalidatedPageExtractions,
     counts: {
       syllabi: linkedSyllabi.length,
       nodes: invalidatedNodes.length,
       relationships: linkedRelationships.length,
       questionMappings: linkedMappings.length,
-      crosswalks: linkedCrosswalks.length
+      crosswalks: linkedCrosswalks.length,
+      pageExtractions: invalidatedPageExtractions.length
     }
   };
 }
