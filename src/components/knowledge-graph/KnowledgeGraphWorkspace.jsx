@@ -4,12 +4,14 @@ import { Badge } from '@/components/ui/badge';
 import ApperIcon from '@/components/ApperIcon';
 import {
   KnowledgeGraphNodeBrowser,
-  KnowledgeGraphNodeDetails,
+  KnowledgeGraphNodeDetails
+} from '@/components/knowledge-graph/KnowledgeGraphNodePanels';
+import {
   KnowledgeGraphRelationshipBrowser,
   KnowledgeGraphFamilyBrowser,
-  KnowledgeGraphCrosswalkBrowser,
-  KnowledgeGraphDiagnostics
-} from '@/components/knowledge-graph/KnowledgeGraphPanels';
+  KnowledgeGraphCrosswalkBrowser
+} from '@/components/knowledge-graph/KnowledgeGraphResearchPanels';
+import KnowledgeGraphDiagnostics from '@/components/knowledge-graph/KnowledgeGraphDiagnostics';
 
 const TABS = [
   { id: 'nodes', label: 'Knowledge hierarchy' },
