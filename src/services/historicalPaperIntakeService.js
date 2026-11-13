@@ -72,7 +72,7 @@ function makeQuestionRows(candidates, paper, document, pageConfidence) {
     historical_paper_c: paper.Id,
     source_document_c: document.Id,
     rights_status_c: document.rights_status_c || 'Unknown',
-    extraction_confidence_c: pageConfidence.get(candidate.pageNumber) ?? 0,
+    extraction_confidence_c: pageConfidence.get(candidate.pageNumber) ?? null,
     extraction_status_c: 'Review',
     answer_validation_status_c: 'Pending',
     rights_notes_c: 'Imported from a user-supplied historical paper. Source reuse rights and answer key validation remain pending.'
@@ -204,7 +204,7 @@ export async function registerHistoricalPaperBundle({
       content_kind_c: page.contentKind,
       extraction_method_c: page.method,
       extracted_text_c: page.text || '[No readable text extracted from this page]',
-      confidence_c: Number(page.confidence || 0),
+      confidence_c: page.confidence === null || page.confidence === undefined ? null : Number(page.confidence),
       image_count_c: Number(page.imageCount || 0),
       equation_count_c: Number(page.equationCount || 0),
       quality_status_c: 'Review',
@@ -213,7 +213,10 @@ export async function registerHistoricalPaperBundle({
 
     const savedExtractions = await saveBatch('source_extractions_c', extractionRows, 'Page extraction records');
 
-    const confidenceAverage = pages.reduce((sum, page) => sum + Number(page.confidence || 0), 0) / pages.length;
+    const scoredPages = pages.filter((page) => page.confidence !== null && page.confidence !== undefined && Number.isFinite(Number(page.confidence)));
+    const confidenceAverage = scoredPages.length
+      ? scoredPages.reduce((sum, page) => sum + Number(page.confidence), 0) / scoredPages.length
+      : null;
     const parentUpdate = await sdk.table('source_documents_c').update({
       Id: sourceDocument.Id,
       extracted_page_count_c: pages.length,
@@ -233,7 +236,7 @@ export async function registerHistoricalPaperBundle({
       throw new Error(versionUpdate.messages?.join('; ') || 'Page extraction was saved, but the source version could not be marked Extracted.');
     }
 
-    const confidenceByPage = new Map(pages.map((page) => [page.pageNumber, Number(page.confidence || 0)]));
+    const confidenceByPage = new Map(pages.map((page) => [page.pageNumber, page.confidence === null || page.confidence === undefined ? null : Number(page.confidence)]));
     const questionRows = makeQuestionRows(selectedCandidates || [], paper, sourceDocument, confidenceByPage);
     const savedQuestions = questionRows.length
       ? await saveBatch('questions_c', questionRows, 'Historical question drafts')

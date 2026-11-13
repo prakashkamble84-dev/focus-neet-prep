@@ -86,7 +86,7 @@ export default function HistoricalPaperIntake() {
     try {
       const result = await extractPdfPagesFromFile(file, language, setProgress);
       setPages(result);
-      setSelectedCandidates(result.flatMap((page) => page.candidates || []).map((candidate) => candidate.key));
+      setSelectedCandidates([]);
       const ocrPages = result.filter((page) => page.method === 'OCR').length;
       const questionCount = result.reduce((sum, page) => sum + (page.candidates?.length || 0), 0);
       toast.success('PDF analysis complete', {
@@ -286,7 +286,7 @@ export default function HistoricalPaperIntake() {
                     setSelectedCandidates([]);
                   }}
                 />
-                <p className="text-xs text-muted-foreground">PDF only · 20 MB maximum · uploaded into private platform storage after analysis.</p>
+                <p className="text-xs text-muted-foreground">PDF only · 20 MB maximum · uploaded into private platform storage after analysis. Question candidates are deliberately unselected until you inspect them.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="intake-language">OCR language for scanned pages</Label>
@@ -347,7 +347,15 @@ export default function HistoricalPaperIntake() {
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-semibold">Page extraction preview</p>
-                    <p className="text-xs text-muted-foreground">{selectedCount} question candidate(s) selected for draft creation</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-xs text-muted-foreground">{selectedCount} question candidate(s) selected for draft creation</p>
+                      <Button type="button" size="sm" variant="outline" onClick={() => setSelectedCandidates(allCandidates.map((candidate) => candidate.key))}>
+                        Select detected questions
+                      </Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setSelectedCandidates([])}>
+                        Clear selection
+                      </Button>
+                    </div>
                   </div>
                   <div className="max-h-[34rem] space-y-3 overflow-y-auto pr-1">
                     {pages.map((page) => (
@@ -356,7 +364,7 @@ export default function HistoricalPaperIntake() {
                           <div className="flex items-center gap-2">
                             <Badge variant="outline">Page {page.pageNumber}</Badge>
                             <Badge variant={page.method === 'OCR' ? 'secondary' : 'outline'}>{page.method}</Badge>
-                            <Badge variant="outline">{Math.round(page.confidence * 100)}% estimate</Badge>
+                            <Badge variant="outline">{page.confidence === null ? 'Native text · not scored' : Math.round(page.confidence * 100) + '% OCR estimate'}</Badge>
                           </div>
                           <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
                             <span>{page.imageCount} image(s)</span>
@@ -364,6 +372,12 @@ export default function HistoricalPaperIntake() {
                             <span>{page.candidates.length} question candidate(s)</span>
                           </div>
                         </div>
+                        {page.previewImage && (
+                          <a href={page.previewImage} target="_blank" rel="noopener noreferrer" className="mt-3 block max-w-md">
+                            <img src={page.previewImage} alt={'Original PDF page ' + page.pageNumber + ' preview'} className="max-h-64 w-auto rounded border border-border bg-background object-contain" />
+                            <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-primary">Open page preview <ApperIcon name="ExternalLink" size={12} /></span>
+                          </a>
+                        )}
                         <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">
                           {(page.text || '[No text detected on this page]').slice(0, 1100)}
                           {page.text.length > 1100 ? '…' : ''}
