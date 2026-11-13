@@ -109,8 +109,8 @@ export default function HistoricalQuestionQueue({ questions = [], canEdit = fals
                     {canEdit ? (
                       <Button size="sm" variant="outline" asChild>
                         <Link to={'/historical-intelligence/questions/' + question.Id}>
-                          <ApperIcon name="Tags" size={14} className="mr-1.5" />
-                          Edit DNA
+                          <ApperIcon name="ClipboardCheck" size={14} className="mr-1.5" />
+                          Review question
                         </Link>
                       </Button>
                     ) : (

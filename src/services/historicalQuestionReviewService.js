@@ -279,6 +279,7 @@ export async function recordHistoricalQuestionReview({
         return { success: false, message: 'A separate answer reviewer must validate the answer key before academic verification.' };
       }
       if (!copyrightReview || copyrightReview.review_status_c !== 'Approved' ||
+        String(getId(copyrightReview.reviewer_user_c) || '') === String(reviewerId) ||
         !['Public', 'Licensed'].includes(question.rights_status_c) ||
         question.rights_status_c !== sourceDocument.rights_status_c) {
         return { success: false, message: 'A separate copyright review and matching source rights decision are required.' };
