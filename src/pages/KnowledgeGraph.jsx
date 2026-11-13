@@ -123,7 +123,7 @@ export default function KnowledgeGraph() {
   async function reviewRelationship(edge, status) {
     if (!edge?.Id) return;
     try {
-      const result = await reviewGraphRelationship(edge, status, reviewerId);
+      const result = await reviewGraphRelationship(edge, status, reviewerId, nodes, model.relationships || []);
       if (!result.success) toast.error(result.message);
       else if (!result.auditLogged) toast.warning('Relationship updated, but its approval history could not be recorded');
       else toast.success(status === 'Verified' ? 'Relationship verified and logged' : 'Relationship rejected and logged');

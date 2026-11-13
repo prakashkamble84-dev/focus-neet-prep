@@ -1,4 +1,5 @@
 import { sdk } from '@/services/sdk';
+import { getLookupId, validateProposedRelationship } from '@/services/knowledgeGraphRules';
 
 async function saveApprovalEvent(reviewerId, recordType, recordId, recordName, decision, notes) {
   if (!reviewerId) return false;
@@ -36,7 +37,20 @@ export function hasVerifiedGraphEvidence(node) {
   );
 }
 
-export async function reviewGraphRelationship(edge, status, reviewerId) {
+export async function reviewGraphRelationship(edge, status, reviewerId, nodes = [], relationships = []) {
+  if (status === 'Verified') {
+    const fromId = getLookupId(edge.from_node_c);
+    const toId = getLookupId(edge.to_node_c);
+    const fromNode = nodes.find((node) => String(node.Id) === String(fromId));
+    const toNode = nodes.find((node) => String(node.Id) === String(toId));
+    if (!fromNode || !toNode || fromNode.status_c !== 'Published' || toNode.status_c !== 'Published' ||
+        fromNode.verified_c !== true || toNode.verified_c !== true) {
+      return { success: false, message: 'Both endpoint concepts must be published and expert-verified before the relationship can be verified.' };
+    }
+    const existingEdges = relationships.filter((item) => String(item.Id) !== String(edge.Id));
+    const validation = validateProposedRelationship(nodes, existingEdges, fromId, toId, edge.relationship_type_c);
+    if (!validation.valid) return { success: false, message: validation.reason };
+  }
   const existingNotes = String(edge.review_notes_c || '').trim();
   const action = status === 'Verified' ? 'verified' : 'rejected';
   const notes = (existingNotes ? existingNotes + '\n' : '') +
@@ -61,6 +75,16 @@ export async function reviewGraphRelationship(edge, status, reviewerId) {
 }
 
 export async function reviewQuestionMapping(mapping, status, reviewerId) {
+  if (status === 'Verified') {
+    const question = mapping.question;
+    const concept = mapping.node;
+    if (!question || question.status_c !== 'Published' || !['Public', 'Licensed'].includes(question.rights_status_c)) {
+      return { success: false, message: 'The mapped question must be published and have Public or Licensed usage rights.' };
+    }
+    if (!concept || concept.node_type_c !== 'Concept' || concept.status_c !== 'Published' || concept.verified_c !== true) {
+      return { success: false, message: 'The mapped Concept must already be published and expert-verified.' };
+    }
+  }
   const result = await sdk.table('question_concept_mappings_c').update({
     Id: mapping.Id,
     status_c: status,
@@ -82,6 +106,33 @@ export async function reviewQuestionMapping(mapping, status, reviewerId) {
 }
 
 export async function reviewHistoricalCrosswalk(row, status, reviewerId) {
+  if (status === 'Verified') {
+    const sourceVersionId = getLookupId(row.source_version_c);
+    const targetVersionId = getLookupId(row.target_version_c);
+    if (!sourceVersionId || !targetVersionId || String(sourceVersionId) === String(targetVersionId)) {
+      return { success: false, message: 'A verified historical crosswalk needs two different syllabus versions.' };
+    }
+    if (!String(row.mapping_notes_c || '').trim()) {
+      return { success: false, message: 'Add the evidence behind this historical syllabus mapping before verifying it.' };
+    }
+    const sourceNodeId = getLookupId(row.source_node_c);
+    const targetNodeId = getLookupId(row.target_node_c);
+    if (row.mapping_type_c === 'Added' && (!targetNodeId || sourceNodeId)) {
+      return { success: false, message: 'An Added mapping must have a target node and no source node.' };
+    }
+    if (row.mapping_type_c === 'Removed' && (!sourceNodeId || targetNodeId)) {
+      return { success: false, message: 'A Removed mapping must have a source node and no target node.' };
+    }
+    if (!['Added', 'Removed'].includes(row.mapping_type_c)) {
+      if (!sourceNodeId || !targetNodeId) {
+        return { success: false, message: 'This mapping type needs both a source node and a target node.' };
+      }
+      if (String(getLookupId(row.sourceNode?.syllabus_version_c)) !== String(sourceVersionId) ||
+          String(getLookupId(row.targetNode?.syllabus_version_c)) !== String(targetVersionId)) {
+        return { success: false, message: 'Each crosswalk node must belong to the selected source or target syllabus version.' };
+      }
+    }
+  }
   const result = await sdk.table('historical_syllabus_crosswalks_c').update({
     Id: row.Id,
     status_c: status,
