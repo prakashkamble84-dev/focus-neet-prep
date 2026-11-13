@@ -75,7 +75,8 @@ export default function HistoricalQuestionDNA() {
       skill_dna_c: question.skill_dna_c || '',
       approach_pattern_c: question.approach_pattern_c || '',
       concept_combination_c: question.concept_combination_c || '',
-      difficulty_c: question.difficulty_c || 'Moderate'
+      difficulty_c: question.difficulty_c || 'Moderate',
+      question_type_c: question.question_type_c || 'Other'
     });
     setAnswerKey(question.answer_key_c || '');
     setSolution(question.solution_c || '');
@@ -98,7 +99,7 @@ export default function HistoricalQuestionDNA() {
     setSaving(true);
     setActiveAction('dna');
     try {
-      const result = await saveHistoricalQuestionDNA(question, form, user?.userId);
+      const result = await saveHistoricalQuestionDNA(question, form, user?.userId, profile, data?.options || []);
       if (!result.success) {
         toast.error('Question DNA was not saved', { description: result.message });
         return;
@@ -206,7 +207,7 @@ export default function HistoricalQuestionDNA() {
   }
 
   const locked = !canEdit || !question || ['Verified', 'Published'].includes(question.status_c);
-  const canEditOptions = canEdit && question && ['New', 'Review'].includes(question.status_c) && ['MCQ', 'Multi'].includes(question.question_type_c);
+  const canEditOptions = canEdit && question && ['New', 'Review'].includes(question.status_c) && ['MCQ', 'Multi'].includes(form.question_type_c || question.question_type_c);
   const paper = data?.paper;
   const source = data?.sourceDocument;
   const sourceMatches = data?.sourceMatches === true;
@@ -405,6 +406,17 @@ export default function HistoricalQuestionDNA() {
                   <div className="space-y-2">
                     <Label htmlFor="dna-pattern">Recurring pattern group</Label>
                     <Input id="dna-pattern" value={form.recurring_pattern_group_c || ''} onChange={(event) => updateField('recurring_pattern_group_c', event.target.value)} placeholder="Vector constraint with relative motion" disabled={locked} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dna-question-type">Question format</Label>
+                    <select id="dna-question-type" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.question_type_c || 'Other'} onChange={(event) => updateField('question_type_c', event.target.value)} disabled={locked}>
+                      <option value="MCQ">Single-correct MCQ</option>
+                      <option value="Multi">Multiple-correct question</option>
+                      <option value="Numeric">Numerical response</option>
+                      <option value="Assert">Assertion and reason</option>
+                      <option value="Other">Other format</option>
+                    </select>
+                    <p className="text-[11px] leading-4 text-muted-foreground">Changing the format clears the answer key and resets prior option approvals.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="dna-difficulty">Difficulty</Label>

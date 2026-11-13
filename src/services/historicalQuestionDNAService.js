@@ -25,14 +25,14 @@ async function rollbackOptions(snapshots) {
   return failures;
 }
 
-export async function saveHistoricalQuestionDNA(question, values, reviewerId, existingOptions = []) {
+export async function saveHistoricalQuestionDNA(question, values, reviewerId, reviewerProfile, existingOptions = []) {
   if (!question?.Id || !reviewerId) {
     return { success: false, message: 'A question and signed-in academic reviewer are required.' };
   }
   if (question.source_type_c !== 'Historical') {
     return { success: false, message: 'Question DNA editing is limited to historical questions in Phase 4.' };
   }
-  if (!['CEO', 'CEO_c', 'Manager', 'Manager_c', 'AcademicExpert_c'].includes(values.reviewerProfile || 'AcademicExpert_c')) {
+  if (!['CEO', 'CEO_c', 'Manager', 'Manager_c', 'AcademicExpert_c'].includes(reviewerProfile)) {
     return { success: false, message: 'Only academic editors can change historical question DNA.' };
   }
   if (['Verified', 'Published'].includes(question.status_c)) {
@@ -106,7 +106,7 @@ export async function saveHistoricalQuestionDNA(question, values, reviewerId, ex
       const optionRollbackFailures = await rollbackOptions(optionSnapshots);
       const questionRollback = await sdk.table('questions_c').update({
         Id: question.Id,
-        ...next,
+        ...previous,
         ...previousQuestionState
       });
       const warnings = [];
@@ -136,7 +136,7 @@ export async function saveHistoricalQuestionDNA(question, values, reviewerId, ex
     const optionRollbackFailures = await rollbackOptions(optionSnapshots);
     const questionRollback = await sdk.table('questions_c').update({
       Id: question.Id,
-      ...next,
+      ...previous,
       ...previousQuestionState
     });
     const warnings = [];
