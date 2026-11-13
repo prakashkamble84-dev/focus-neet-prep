@@ -34,11 +34,11 @@ export async function fetchKnowledgeGraphData({ includeStudentMastery = false, i
       'questions_c'
     ),
     unwrapTableRequest(
-      sdk.table('question_concept_mappings_c').select(['Id', 'Name', 'question_c', 'curriculum_node_c', 'mapping_type_c', 'confidence_c', 'verified_c', 'status_c']).limit(4000, 0).fetch(),
+      sdk.table('question_concept_mappings_c').select(['Id', 'Name', 'question_c', 'curriculum_node_c', 'mapping_type_c', 'confidence_c', 'verified_c', 'reviewer_user_c', 'status_c']).limit(4000, 0).fetch(),
       'question_concept_mappings_c'
     ),
     unwrapTableRequest(
-      sdk.table('historical_syllabus_crosswalks_c').select(['Id', 'Name', 'source_version_c', 'target_version_c', 'source_node_c', 'target_node_c', 'mapping_type_c', 'confidence_c', 'status_c', 'mapping_notes_c']).limit(2000, 0).fetch(),
+      sdk.table('historical_syllabus_crosswalks_c').select(['Id', 'Name', 'source_version_c', 'target_version_c', 'source_node_c', 'target_node_c', 'mapping_type_c', 'confidence_c', 'status_c', 'mapping_notes_c', 'reviewer_user_c']).limit(2000, 0).fetch(),
       'historical_syllabus_crosswalks_c'
     ),
   ];

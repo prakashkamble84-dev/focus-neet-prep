@@ -11,6 +11,7 @@ import { SourceRightsDialog, SourceUploadDialog } from '@/components/sources/Sou
 import SourceExtractionDialog from '@/components/sources/SourceExtractionDialog';
 import SourceRegistryTabs from '@/components/sources/SourceRegistryTabs';
 import SourceDiscoveryPanel from '@/components/sources/SourceDiscoveryPanel';
+import SourceLifecycleDiagnostics from '@/components/sources/SourceLifecycleDiagnostics';
 import ApperIcon from '@/components/ApperIcon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -215,6 +216,8 @@ export default function Sources() {
       </div>
 
       <SourceDiscoveryPanel onAdded={() => Promise.all([refreshDocuments(), refreshVersions()])} />
+
+      <SourceLifecycleDiagnostics />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-sm">
