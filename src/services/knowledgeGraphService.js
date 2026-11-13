@@ -5,13 +5,61 @@ import {
   getLookupName
 } from '@/services/knowledgeGraphRules';
 
-async function fetchTable(table, fields, limit = 2000) {
-  const result = await sdk.table(table).select(fields).limit(limit, 0).fetch();
-  if (!result.success) throw new Error(result.message || 'Could not load ' + table);
+async function unwrapTableRequest(request, tableName) {
+  const result = await request;
+  if (!result.success) throw new Error(result.message || 'Could not load ' + tableName);
   return result.data || [];
 }
 
-export async function fetchKnowledgeGraphData() {
+export async function fetchKnowledgeGraphData(includeStudentMastery = false) {
+  const requests = [
+    unwrapTableRequest(
+      sdk.table('examinations_c').select(['Id', 'Name', 'code_c', 'exam_type_c', 'active_c']).limit(100, 0).fetch(),
+      'examinations_c'
+    ),
+    unwrapTableRequest(
+      sdk.table('syllabus_versions_c').select(['Id', 'Name', 'examination_c', 'source_document_c', 'source_document_version_c', 'academic_year_c', 'version_label_c', 'status_c']).limit(300, 0).fetch(),
+      'syllabus_versions_c'
+    ),
+    unwrapTableRequest(
+      sdk.table('curriculum_nodes_c').select(['Id', 'Name', 'syllabus_version_c', 'node_code_c', 'node_type_c', 'subject_c', 'parent_node_code_c', 'node_path_c', 'description_c', 'learning_objectives_c', 'difficulty_c', 'status_c', 'sort_order_c', 'verified_c', 'source_document_version_c', 'source_page_start_c', 'source_page_end_c', 'source_excerpt_c']).limit(3000, 0).fetch(),
+      'curriculum_nodes_c'
+    ),
+    unwrapTableRequest(
+      sdk.table('concept_relationships_c').select(['Id', 'Name', 'from_node_c', 'to_node_c', 'relationship_type_c', 'direction_c', 'confidence_c', 'status_c', 'review_notes_c']).limit(3000, 0).fetch(),
+      'concept_relationships_c'
+    ),
+    unwrapTableRequest(
+      sdk.table('questions_c').select(['Id', 'Name', 'examination_c', 'syllabus_version_c', 'curriculum_node_c', 'question_type_c', 'difficulty_c', 'source_type_c', 'status_c', 'question_family_code_c', 'historical_year_c', 'concept_count_c', 'recurring_pattern_group_c', 'rights_status_c']).limit(3000, 0).fetch(),
+      'questions_c'
+    ),
+    unwrapTableRequest(
+      sdk.table('question_concept_mappings_c').select(['Id', 'Name', 'question_c', 'curriculum_node_c', 'mapping_type_c', 'confidence_c', 'verified_c', 'status_c']).limit(4000, 0).fetch(),
+      'question_concept_mappings_c'
+    ),
+    unwrapTableRequest(
+      sdk.table('historical_syllabus_crosswalks_c').select(['Id', 'Name', 'source_version_c', 'target_version_c', 'source_node_c', 'target_node_c', 'mapping_type_c', 'confidence_c', 'status_c', 'mapping_notes_c']).limit(2000, 0).fetch(),
+      'historical_syllabus_crosswalks_c'
+    ),
+    unwrapTableRequest(
+      sdk.table('source_document_versions_c').select(['Id', 'Name', 'source_document_c', 'version_label_c', 'official_title_c', 'document_url_c', 'rights_status_c', 'ingestion_status_c', 'version_status_c', 'academic_year_c']).limit(1000, 0).fetch(),
+      'source_document_versions_c'
+    ),
+    unwrapTableRequest(
+      sdk.table('source_documents_c').select(['Id', 'Name', 'official_url_c', 'source_category_c', 'rights_status_c', 'verification_status_c', 'academic_year_c']).limit(1000, 0).fetch(),
+      'source_documents_c'
+    )
+  ];
+
+  if (includeStudentMastery) {
+    requests.push(
+      unwrapTableRequest(
+        sdk.table('student_concept_mastery_c').select(['Id', 'Name', 'curriculum_node_c', 'mastery_score_c', 'mastery_status_c', 'attempt_count_c', 'correct_count_c', 'confidence_score_c', 'evidence_count_c', 'last_assessed_at_c']).limit(3000, 0).fetch(),
+        'student_concept_mastery_c'
+      )
+    );
+  }
+
   const [
     examinations,
     syllabusVersions,
@@ -22,19 +70,8 @@ export async function fetchKnowledgeGraphData() {
     crosswalks,
     sourceVersions,
     sourceDocuments,
-    studentMastery
-  ] = await Promise.all([
-    fetchTable('examinations_c', ['Id', 'Name', 'code_c', 'exam_type_c', 'active_c'], 100),
-    fetchTable('syllabus_versions_c', ['Id', 'Name', 'examination_c', 'source_document_c', 'source_document_version_c', 'academic_year_c', 'version_label_c', 'status_c'], 300),
-    fetchTable('curriculum_nodes_c', ['Id', 'Name', 'syllabus_version_c', 'node_code_c', 'node_type_c', 'subject_c', 'parent_node_code_c', 'node_path_c', 'description_c', 'learning_objectives_c', 'difficulty_c', 'status_c', 'sort_order_c', 'verified_c', 'source_document_version_c', 'source_page_start_c', 'source_page_end_c', 'source_excerpt_c'], 3000),
-    fetchTable('concept_relationships_c', ['Id', 'Name', 'from_node_c', 'to_node_c', 'relationship_type_c', 'direction_c', 'confidence_c', 'status_c', 'review_notes_c'], 3000),
-    fetchTable('questions_c', ['Id', 'Name', 'examination_c', 'syllabus_version_c', 'curriculum_node_c', 'question_type_c', 'difficulty_c', 'source_type_c', 'status_c', 'question_family_code_c', 'historical_year_c', 'concept_count_c', 'recurring_pattern_group_c', 'rights_status_c'], 3000),
-    fetchTable('question_concept_mappings_c', ['Id', 'Name', 'question_c', 'curriculum_node_c', 'mapping_type_c', 'confidence_c', 'verified_c', 'status_c'], 4000),
-    fetchTable('historical_syllabus_crosswalks_c', ['Id', 'Name', 'source_version_c', 'target_version_c', 'source_node_c', 'target_node_c', 'mapping_type_c', 'confidence_c', 'status_c', 'mapping_notes_c'], 2000),
-    fetchTable('source_document_versions_c', ['Id', 'Name', 'source_document_c', 'version_label_c', 'official_title_c', 'document_url_c', 'rights_status_c', 'ingestion_status_c', 'version_status_c', 'academic_year_c'], 1000),
-    fetchTable('source_documents_c', ['Id', 'Name', 'official_url_c', 'source_category_c', 'rights_status_c', 'verification_status_c', 'academic_year_c'], 1000),
-    fetchTable('student_concept_mastery_c', ['Id', 'Name', 'curriculum_node_c', 'mastery_score_c', 'mastery_status_c', 'attempt_count_c', 'correct_count_c', 'confidence_score_c', 'evidence_count_c', 'last_assessed_at_c'], 3000)
-  ]);
+    studentMastery = []
+  ] = await Promise.all(requests);
 
   return {
     examinations,
