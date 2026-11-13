@@ -1,4 +1,5 @@
 import ApperIcon from '@/components/ApperIcon';
+import SourceExtractionQueue from '@/components/sources/SourceExtractionQueue';
 
 const steps = [
   ['01', 'Discover and register', 'Record the issuing authority, official domain, title, academic year and original document URL.'],
@@ -21,13 +22,16 @@ export default function SourceWorkflow() {
           </div>
         </div>
       ))}
+      <div className="md:col-span-2">
+        <SourceExtractionQueue />
+      </div>
       <div className="rounded-lg border border-warning/40 bg-warning/10 p-4 md:col-span-2">
         <div className="flex items-start gap-3">
           <ApperIcon name="ScanSearch" size={18} className="mt-0.5 shrink-0 text-warning-foreground" />
           <div>
             <p className="font-semibold">Automated OCR is not enabled yet</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              The registry supports PDF storage and page-level extraction records. Automated OCR, equation parsing and diagram recognition need a server-side extraction provider and evaluation tests before they can be enabled.
+              The registry supports PDF storage and manual page-level extraction records. Automated OCR, equation parsing and diagram recognition need a server-side extraction provider and evaluation tests before they can be enabled.
             </p>
           </div>
         </div>

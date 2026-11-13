@@ -108,7 +108,7 @@ export async function importCurriculumOutline(curriculumKey) {
   const updateBatch = await sdk.table('curriculum_import_batches_c').update({
     Id: batch.Id,
     status_c: 'Review',
-    nodes_created_c: expectedTotal,
+    nodes_created_c: created,
     nodes_updated_c: 0,
     import_notes_c: `${curriculum.note} ${created} new nodes created in this run; ${expectedTotal} records now exist for this syllabus version. Await expert review before publication.`
   });
