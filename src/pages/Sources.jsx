@@ -5,7 +5,8 @@ import { useFetch } from '@/hooks/useFetch';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/layouts/RootLayout';
 import { registerOfficialBaseline } from '@/services/academicRegistry';
-import { saveFirstPassSourceReview } from '@/services/sourceVerificationService';
+import { saveFirstPassSourceReview } from '@/services/sourceFirstPassReviewService';
+import { invalidateSourceDependents } from '@/services/sourceContentInvalidationService';
 import { fetchSourceAuthorities, fetchSourceDocuments, fetchSourceVersions } from '@/services/sourceRegistryService';
 import { SourceRightsDialog, SourceUploadDialog } from '@/components/sources/SourceDialogs';
 import SourceExtractionDialog from '@/components/sources/SourceExtractionDialog';
@@ -33,7 +34,8 @@ export const nav = {
 export default function Sources() {
   const { profile } = useProfile();
   const { user } = useAuth();
-  const canReview = ['CEO', 'CEO_c', 'Manager', 'Manager_c', 'AcademicExpert_c', 'ContentReviewer_c'].includes(profile);
+  const canReview = ['CEO', 'CEO_c', 'Manager', 'Manager_c', 'AcademicExpert_c'].includes(profile);
+  const canIndependentlyVerify = canReview || profile === 'ContentReviewer_c';
   const canManageAuthorities = ['CEO', 'CEO_c', 'Manager', 'Manager_c', 'AcademicExpert_c'].includes(profile);
 
   const [search, setSearch] = useState('');
@@ -119,10 +121,41 @@ export default function Sources() {
         toast.error(result.messages?.[0] || result.message || 'PDF attachment was not saved');
         return;
       }
-      toast.success('PDF attached to the source version');
+      const invalidation = await invalidateSourceDependents(
+        selectedVersion.Id,
+        user?.userId,
+        'The stored PDF was added or replaced. All source-linked syllabus, graph, relationship, question-mapping and historical-crosswalk approvals must be reviewed again.'
+      );
+      if (!invalidation.success) {
+        toast.error('PDF was saved, but dependent academic content could not be fully invalidated', {
+          description: invalidation.message + ' The source version remains Retrieved and must not be independently verified until this is resolved.'
+        });
+        await Promise.all([refreshDocuments(), refreshVersions()]);
+        return;
+      }
+
+      const documentId = selectedVersion.source_document_c?.Id ?? selectedVersion.source_document_c;
+      const parent = documents.find((item) => String(item.Id) === String(documentId));
+      if (parent) {
+        const parentUpdate = await sdk.table('source_documents_c').update({
+          Id: parent.Id,
+          verification_status_c: 'Review',
+          ingestion_status_c: 'Extracted',
+          review_notes_c: String(parent.review_notes_c || '') + '\nPDF attachment changed. Repeat first-pass rights, authority and metadata review.'
+        });
+        if (!parentUpdate.data?.length) {
+          toast.error('PDF saved and dependent content invalidated, but the parent source could not be marked Review', {
+            description: parentUpdate.messages?.join('; ') || parentUpdate.message
+          });
+          await Promise.all([refreshDocuments(), refreshVersions()]);
+          return;
+        }
+      }
+
+      toast.success('PDF attached; all dependent syllabus and graph approvals were reset');
       setUploadOpen(false);
       setSelectedVersion(null);
-      await refreshVersions();
+      await Promise.all([refreshDocuments(), refreshVersions()]);
     } catch (error) {
       toast.error('PDF attachment failed', { description: error.message });
     } finally {
@@ -215,7 +248,7 @@ export default function Sources() {
         ))}
       </div>
 
-      <SourceDiscoveryPanel onAdded={() => Promise.all([refreshDocuments(), refreshVersions()])} />
+      {canManageAuthorities && <SourceDiscoveryPanel onAdded={() => Promise.all([refreshDocuments(), refreshVersions()])} />}
 
       <SourceLifecycleDiagnostics />
 
@@ -238,6 +271,7 @@ export default function Sources() {
         documentsError={documentsError}
         canManageAuthorities={canManageAuthorities}
         canReview={canReview}
+        canIndependentlyVerify={canIndependentlyVerify}
         seeding={seeding}
         onRegisterBaseline={handleRegisterBaseline}
         filteredAuthorities={filteredAuthorities}

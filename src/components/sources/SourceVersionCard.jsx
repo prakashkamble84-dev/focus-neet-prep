@@ -14,7 +14,7 @@ function Status({ value }) {
   return <Badge variant="outline" className={tone}>{value || 'Not set'}</Badge>;
 }
 
-export default function SourceVersionCard({ version, parent, authority, authorities = [], canReview, onUpload, onReview, onExtract, onIndependentVerificationComplete }) {
+export default function SourceVersionCard({ version, parent, authority, authorities = [], canReview, canIndependentlyVerify, onUpload, onReview, onExtract, onIndependentVerificationComplete }) {
   const fileCount = version.document_file_c?.length ?? 0;
   return (
     <div className="rounded-lg border border-border bg-card p-4 sm:p-5">
@@ -47,10 +47,14 @@ export default function SourceVersionCard({ version, parent, authority, authorit
             <Button size="sm" onClick={() => onReview(version)}>
               <ApperIcon name="ClipboardCheck" size={14} /> Review rights
             </Button>
+          </div>
+        )}
+        {canIndependentlyVerify && (
+          <div className="flex shrink-0 flex-wrap gap-2">
             <SourceIndependentVerificationController
               version={version}
               document={parent}
-              authority={authority || authorities.find((item) => item.Id === (version.source_registry_c?.Id || version.source_registry_c))}
+              authority={authority || authorities.find((item) => String(item.Id) === String(version.source_registry_c?.Id || version.source_registry_c || ''))}
               onCompleted={onIndependentVerificationComplete}
             />
           </div>

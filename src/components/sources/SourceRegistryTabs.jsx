@@ -40,6 +40,7 @@ export default function SourceRegistryTabs({
   documentsError,
   canManageAuthorities,
   canReview,
+  canIndependentlyVerify,
   seeding,
   onRegisterBaseline,
   filteredAuthorities,
@@ -92,6 +93,7 @@ export default function SourceRegistryTabs({
                 authority={authority}
                 authorities={authoritiesData || []}
                 canReview={canReview}
+                canIndependentlyVerify={canIndependentlyVerify}
                 onUpload={onUpload}
                 onReview={onReview}
                 onExtract={onExtract}
