@@ -2,6 +2,14 @@ import { sdk } from '@/services/sdk';
 import { getLookupId } from '@/services/sourceVerificationService';
 import { invalidateSourceDependents } from '@/services/sourceContentInvalidationService';
 
+export function getFirstPassSourceDecisions(rightsStatus, authorityChecked, metadataChecked) {
+  return [
+    { type: 'Rights', decision: ['Licensed', 'Public'].includes(rightsStatus) ? 'Verified' : rightsStatus === 'Restricted' ? 'Rejected' : 'NeedsFix' },
+    { type: 'Authority', decision: authorityChecked ? 'Verified' : 'NeedsFix' },
+    { type: 'Metadata', decision: metadataChecked ? 'Verified' : 'NeedsFix' }
+  ];
+}
+
 export async function saveFirstPassSourceReview({
   version,
   document,
@@ -57,11 +65,7 @@ export async function saveFirstPassSourceReview({
     };
   }
 
-  const decisions = [
-    { type: 'Rights', decision: ['Licensed', 'Public'].includes(rightsStatus) ? 'Verified' : rightsStatus === 'Restricted' ? 'Rejected' : 'NeedsFix' },
-    { type: 'Authority', decision: authorityChecked ? 'Verified' : 'NeedsFix' },
-    { type: 'Metadata', decision: metadataChecked ? 'Verified' : 'NeedsFix' }
-  ];
+  const decisions = getFirstPassSourceDecisions(rightsStatus, authorityChecked, metadataChecked);
 
   for (const item of decisions) {
     const verification = await sdk.table('source_verification_records_c').create({

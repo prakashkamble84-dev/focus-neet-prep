@@ -1,4 +1,5 @@
 import { evaluateIndependentSourceVerification } from '@/services/sourceVerificationService';
+import { getFirstPassSourceDecisions } from '@/services/sourceFirstPassReviewService';
 import { evaluateSyllabusPublication } from '@/services/syllabusPublicationService';
 
 export function runSourceLifecycleSelfTests() {
@@ -57,6 +58,23 @@ export function runSourceLifecycleSelfTests() {
   };
   const tests = [];
   const assert = (name, condition, detail) => tests.push({ name, passed: Boolean(condition), detail });
+
+  const unknownDecisions = getFirstPassSourceDecisions('Unknown', false, false);
+  assert(
+    'Unknown rights are recorded as NeedsFix rather than approved',
+    unknownDecisions.find((item) => item.type === 'Rights')?.decision === 'NeedsFix',
+    'Unknown reuse rights remain unresolved and cannot be published.'
+  );
+  assert(
+    'Restricted rights are rejected',
+    getFirstPassSourceDecisions('Restricted', false, false).find((item) => item.type === 'Rights')?.decision === 'Rejected',
+    'Restricted documents are not released to student-facing content.'
+  );
+  assert(
+    'Licensed rights require independent authority and metadata checks',
+    getFirstPassSourceDecisions('Licensed', true, true).every((item) => item.decision === 'Verified'),
+    'A licensed rights decision is only first-pass Verified when authority and metadata checks are also checked.'
+  );
 
   const validIndependent = evaluateIndependentSourceVerification({
     version,
