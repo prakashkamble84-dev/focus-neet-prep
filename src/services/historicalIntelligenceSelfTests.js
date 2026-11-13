@@ -244,6 +244,17 @@ export function runHistoricalIntelligenceSelfTests() {
     return rows.length === 1 && rows[0].pageNumber === 3;
   });
 
+  test('Question 12 wording is retained', () => {
+    const rows = splitQuestionsFromPage('Question 12: Calculate the work done by a constant force over a distance.', 2);
+    return rows.length === 1 && rows[0].questionNumber === '12';
+  });
+
+  test('Partial option extraction remains an MCQ requiring review', () => {
+    const body = '1. Find the force.\\nA. 2 N';
+    const options = parseQuestionOptions(body);
+    return options.length === 1 && inferQuestionType(body, options) === 'MCQ';
+  });
+
   test('Unnumbered prose is not segmented as a question', () => {
     const input = 'This paragraph describes the examination rules and candidate instructions but contains no numbered question.';
     return splitQuestionsFromPage(input, 1).length === 0;

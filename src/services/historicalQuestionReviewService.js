@@ -7,6 +7,26 @@ function getId(value) {
   return value ?? null;
 }
 
+function answerOptionsMatch(question, options) {
+  const activeOptions = options.filter((option) => option.status_c !== 'Retired');
+  if (activeOptions.length < 2) return false;
+  const optionKeys = activeOptions.map((option) => String(option.option_key_c || '').toUpperCase());
+  if (optionKeys.some((key) => !['A', 'B', 'C', 'D'].includes(key)) || new Set(optionKeys).size !== optionKeys.length) {
+    return false;
+  }
+  const answerKeys = String(question.answer_key_c || '')
+    .toUpperCase()
+    .split(/[,;+ ]+/)
+    .map((key) => key.trim())
+    .filter(Boolean);
+  if (!answerKeys.length || new Set(answerKeys).size !== answerKeys.length) return false;
+  if (question.question_type_c === 'MCQ' && answerKeys.length !== 1) return false;
+  const storedKeys = new Set(activeOptions
+    .filter((option) => option.is_correct_c === true)
+    .map((option) => String(option.option_key_c || '').toUpperCase()));
+  return storedKeys.size === answerKeys.length && answerKeys.every((key) => storedKeys.has(key));
+}
+
 function getTime(row) {
   const value = row?.reviewed_at_c || row?.CreatedOn;
   const parsed = value ? Date.parse(value) : 0;
@@ -205,9 +225,15 @@ export async function recordHistoricalQuestionReview({
   if (!sourceMatches) {
     return { success: false, message: 'The question, paper and source document links do not match.' };
   }
+  const paperExamId = getId(paper.examination_c);
+  const questionExamId = getId(question.examination_c);
+  const sourceExamId = getId(sourceDocument.examination_c);
   if (sourceDocument.document_type_c !== 'Paper' ||
-    String(getId(paper.examination_c) || '') !== String(getId(question.examination_c) || '') ||
-    String(getId(sourceDocument.examination_c) || '') !== String(getId(paper.examination_c) || '') ||
+    !['Official', 'Archive'].includes(sourceDocument.source_category_c) ||
+    !paperExamId || !questionExamId || !sourceExamId ||
+    String(paperExamId) !== String(questionExamId) ||
+    String(sourceExamId) !== String(paperExamId) ||
+    !Number.isFinite(Number(paper.exam_year_c)) ||
     Number(paper.exam_year_c) !== Number(question.historical_year_c)) {
     return { success: false, message: 'The question examination/year and the paper/source document metadata must match before any approval.' };
   }
@@ -353,10 +379,7 @@ export async function recordHistoricalQuestionReview({
       paper.status_c !== 'Published' ||
       question.extraction_status_c !== 'Verified' ||
       question.answer_validation_status_c !== 'Verified' ||
-      (['MCQ', 'Multi'].includes(question.question_type_c) && (
-        options.filter((row) => row.status_c !== 'Retired').length < 2 ||
-        !options.some((row) => row.status_c !== 'Retired' && row.is_correct_c === true)
-      )) ||
+      (['MCQ', 'Multi'].includes(question.question_type_c) && !answerOptionsMatch(question, options)) ||
       !['Public', 'Licensed'].includes(question.rights_status_c) ||
       question.rights_status_c !== sourceDocument.rights_status_c ||
       sourceDocument.verification_status_c !== 'Verified' ||
