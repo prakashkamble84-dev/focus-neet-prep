@@ -66,30 +66,9 @@ export const OFFICIAL_AUTHORITIES = [
 ];
 
 export const OFFICIAL_EXAMINATIONS = [
-  {
-    code_c: 'JEE_MAIN',
-    Name: 'JEE Main',
-    exam_type_c: 'JEE Main',
-    governing_authority_c: 'National Testing Agency',
-    official_website_c: 'https://jeemain.nta.nic.in/',
-    active_c: true
-  },
-  {
-    code_c: 'JEE_ADV',
-    Name: 'JEE Advanced',
-    exam_type_c: 'JEE Adv',
-    governing_authority_c: 'JEE Advanced organising institute',
-    official_website_c: 'https://jeeadv.ac.in/',
-    active_c: true
-  },
-  {
-    code_c: 'NEET_UG',
-    Name: 'NEET UG',
-    exam_type_c: 'NEET UG',
-    governing_authority_c: 'National Testing Agency',
-    official_website_c: 'https://neet.nta.nic.in/',
-    active_c: true
-  }
+  { code_c: 'JEE_MAIN', Name: 'JEE Main', exam_type_c: 'JEE Main', governing_authority_c: 'National Testing Agency', official_website_c: 'https://jeemain.nta.nic.in/', active_c: true },
+  { code_c: 'JEE_ADV', Name: 'JEE Advanced', exam_type_c: 'JEE Adv', governing_authority_c: 'JEE Advanced organising institute', official_website_c: 'https://jeeadv.ac.in/', active_c: true },
+  { code_c: 'NEET_UG', Name: 'NEET UG', exam_type_c: 'NEET UG', governing_authority_c: 'National Testing Agency', official_website_c: 'https://neet.nta.nic.in/', active_c: true }
 ];
 
 export const OFFICIAL_DOCUMENTS = [
@@ -175,54 +154,161 @@ export const OFFICIAL_DOCUMENTS = [
   }
 ];
 
-async function fetchOne(table, field, value, fields) {
-  const result = await sdk.table(table)
-    .select(fields)
-    .where(eq(field, value))
-    .limit(1, 0)
-    .fetch();
-  if (!result.success) throw new Error(result.message || `Could not read ${table}`);
-  return result.data?.[0] ?? null;
+async function ensureAuthority(record) {
+  const found = await sdk.table('source_registry_c')
+    .select(['Id', 'Name', 'source_code_c'])
+    .where(eq('source_code_c', record.source_code_c))
+    .limit(1, 0).fetch();
+  if (!found.success) throw new Error(found.message || 'Could not read source registry');
+  if (found.data?.[0]) return { record: found.data[0], created: false };
+  const saved = await sdk.table('source_registry_c').create({ ...record, is_authoritative_c: true, active_c: true });
+  if (!saved.data?.length) throw new Error(saved.messages?.join('; ') || 'Could not create source authority');
+  return { record: saved.data[0], created: true };
 }
 
-async function ensureRecord(table, field, value, payload, fields) {
-  const existing = await fetchOne(table, field, value, fields);
-  if (existing) return { record: existing, created: false };
+async function ensureExamination(record) {
+  const found = await sdk.table('examinations_c')
+    .select(['Id', 'Name', 'code_c', 'exam_type_c'])
+    .where(eq('code_c', record.code_c))
+    .limit(1, 0).fetch();
+  if (!found.success) throw new Error(found.message || 'Could not read examination');
+  if (found.data?.[0]) return { record: found.data[0], created: false };
+  const saved = await sdk.table('examinations_c').create(record);
+  if (!saved.data?.length) throw new Error(saved.messages?.join('; ') || 'Could not create examination');
+  return { record: saved.data[0], created: true };
+}
 
-  const result = await sdk.table(table).create(payload);
-  if (!result.data?.length) {
-    throw new Error(result.messages?.join('; ') || result.message || `Could not create ${table}`);
-  }
-  return { record: result.data[0], created: true };
+async function ensureSourceDocument(spec, exam, authority) {
+  const found = await sdk.table('source_documents_c')
+    .select(['Id', 'Name', 'examination_c', 'source_registry_c', 'document_version_c'])
+    .where(eq('Name', spec.Name))
+    .limit(1, 0).fetch();
+  if (!found.success) throw new Error(found.message || 'Could not read source document');
+  if (found.data?.[0]) return { record: found.data[0], created: false };
+  const saved = await sdk.table('source_documents_c').create({
+    Name: spec.Name,
+    examination_c: exam.Id,
+    source_registry_c: authority.Id,
+    issuing_authority_c: authority.Name,
+    source_category_c: 'Official',
+    document_type_c: spec.document_type_c,
+    official_url_c: spec.document_url_c,
+    published_date_c: spec.publication_date_c,
+    academic_year_c: spec.academic_year_c,
+    document_version_c: spec.version_label_c,
+    rights_status_c: 'Unknown',
+    verification_status_c: 'Review',
+    ingestion_status_c: 'Queued',
+    review_notes_c: 'Official source indexed. Upload the PDF, inspect provenance and rights, and complete academic review before publication.'
+  });
+  if (!saved.data?.length) throw new Error(saved.messages?.join('; ') || 'Could not create source document');
+  return { record: saved.data[0], created: true };
+}
+
+async function ensureDocumentVersion(spec, doc, authority) {
+  const found = await sdk.table('source_document_versions_c')
+    .select(['Id', 'Name', 'source_document_c', 'version_label_c', 'document_url_c', 'ingestion_status_c'])
+    .where(eq('source_document_c', doc.Id))
+    .limit(1, 0).fetch();
+  if (!found.success) throw new Error(found.message || 'Could not read source document version');
+  if (found.data?.[0]) return { record: found.data[0], created: false };
+  const saved = await sdk.table('source_document_versions_c').create({
+    Name: spec.official_title_c,
+    source_document_c: doc.Id,
+    source_registry_c: authority.Id,
+    version_label_c: spec.version_label_c,
+    official_title_c: spec.official_title_c,
+    document_url_c: spec.document_url_c,
+    mime_type_c: 'application/pdf',
+    publication_date_c: spec.publication_date_c,
+    rights_status_c: 'Unknown',
+    rights_notes_c: 'Reuse rights have not yet been reviewed. Do not redistribute until an authorised reviewer records a permitted-use basis.',
+    ingestion_status_c: spec.ingestion_status_c,
+    version_status_c: 'Current',
+    academic_year_c: spec.academic_year_c,
+    change_summary_c: spec.change_summary_c
+  });
+  if (!saved.data?.length) throw new Error(saved.messages?.join('; ') || 'Could not create source document version');
+  return { record: saved.data[0], created: true };
+}
+
+async function ensureSyllabusVersion(spec, exam, doc, version) {
+  const found = await sdk.table('syllabus_versions_c')
+    .select(['Id', 'Name', 'version_label_c', 'examination_c', 'source_document_version_c'])
+    .where(eq('version_label_c', spec.label))
+    .limit(1, 0).fetch();
+  if (!found.success) throw new Error(found.message || 'Could not read syllabus version');
+  if (found.data?.[0]) return { record: found.data[0], created: false };
+  const saved = await sdk.table('syllabus_versions_c').create({
+    Name: spec.label,
+    examination_c: exam.Id,
+    source_document_c: doc.Id,
+    source_document_version_c: version.Id,
+    academic_year_c: 2026,
+    version_label_c: spec.label,
+    status_c: 'Review',
+    effective_date_c: '2026-01-01',
+    change_summary_c: spec.note
+  });
+  if (!saved.data?.length) throw new Error(saved.messages?.join('; ') || 'Could not create syllabus version');
+  return { record: saved.data[0], created: true };
+}
+
+async function ensureExamVersion(spec, exam, version) {
+  const found = await sdk.table('examination_versions_c')
+    .select(['Id', 'Name', 'version_code_c', 'status_c'])
+    .where(eq('version_code_c', spec.versionCode))
+    .limit(1, 0).fetch();
+  if (!found.success) throw new Error(found.message || 'Could not read examination version');
+  if (found.data?.[0]) return { record: found.data[0], created: false };
+  const saved = await sdk.table('examination_versions_c').create({
+    Name: spec.label,
+    examination_c: exam.Id,
+    academic_year_c: 2026,
+    version_code_c: spec.versionCode,
+    version_label_c: spec.label,
+    status_c: 'Review',
+    source_document_version_c: version.Id,
+    notes_c: spec.note
+  });
+  if (!saved.data?.length) throw new Error(saved.messages?.join('; ') || 'Could not create examination version');
+  return { record: saved.data[0], created: true };
+}
+
+async function ensureImportBatch(code, examVersion, version) {
+  const found = await sdk.table('curriculum_import_batches_c')
+    .select(['Id', 'Name', 'examination_version_c', 'status_c'])
+    .where(eq('Name', code))
+    .limit(1, 0).fetch();
+  if (!found.success) throw new Error(found.message || 'Could not read import batch');
+  if (found.data?.[0]) return { record: found.data[0], created: false };
+  const saved = await sdk.table('curriculum_import_batches_c').create({
+    Name: code,
+    examination_version_c: examVersion.Id,
+    document_version_c: version.Id,
+    import_type_c: 'Initial',
+    status_c: 'Draft',
+    import_notes_c: 'Official source baseline registered. Curriculum nodes remain subject to academic review and publication approval.'
+  });
+  if (!saved.data?.length) throw new Error(saved.messages?.join('; ') || 'Could not create curriculum import batch');
+  return { record: saved.data[0], created: true };
 }
 
 export async function registerOfficialBaseline() {
   const summary = { authorities: 0, examinations: 0, documents: 0, versions: 0, syllabusVersions: 0, examinationVersions: 0, batches: 0 };
-
   const authorityByCode = {};
+  const examByCode = {};
+
   for (const authority of OFFICIAL_AUTHORITIES) {
-    const { record, created } = await ensureRecord(
-      'source_registry_c',
-      'source_code_c',
-      authority.source_code_c,
-      { ...authority, is_authoritative_c: true, active_c: true },
-      ['Id', 'Name', 'source_code_c']
-    );
-    authorityByCode[authority.source_code_c] = record;
-    if (created) summary.authorities += 1;
+    const result = await ensureAuthority(authority);
+    authorityByCode[authority.source_code_c] = result.record;
+    if (result.created) summary.authorities += 1;
   }
 
-  const examByCode = {};
   for (const exam of OFFICIAL_EXAMINATIONS) {
-    const { record, created } = await ensureRecord(
-      'examinations_c',
-      'code_c',
-      exam.code_c,
-      exam,
-      ['Id', 'Name', 'code_c', 'exam_type_c']
-    );
-    examByCode[exam.code_c] = record;
-    if (created) summary.examinations += 1;
+    const result = await ensureExamination(exam);
+    examByCode[exam.code_c] = result.record;
+    if (result.created) summary.examinations += 1;
   }
 
   const documentByKey = {};
@@ -230,55 +316,12 @@ export async function registerOfficialBaseline() {
   for (const spec of OFFICIAL_DOCUMENTS) {
     const exam = examByCode[spec.examCode];
     const authority = authorityByCode[spec.sourceCode];
-    const { record: doc, created: docCreated } = await ensureRecord(
-      'source_documents_c',
-      'Name',
-      spec.Name,
-      {
-        Name: spec.Name,
-        examination_c: exam.Id,
-        source_registry_c: authority.Id,
-        issuing_authority_c: authority.organisation_name_c || authority.Name,
-        source_category_c: 'Official',
-        document_type_c: spec.document_type_c,
-        official_url_c: spec.document_url_c,
-        published_date_c: spec.publication_date_c,
-        academic_year_c: spec.academic_year_c,
-        document_version_c: spec.version_label_c,
-        rights_status_c: 'Unknown',
-        verification_status_c: 'Review',
-        ingestion_status_c: 'Queued',
-        review_notes_c: 'Official source indexed. Upload the PDF, inspect provenance and rights, and complete academic review before publication.'
-      },
-      ['Id', 'Name', 'examination_c', 'source_registry_c', 'document_version_c']
-    );
-    documentByKey[spec.key] = doc;
-    if (docCreated) summary.documents += 1;
-
-    const { record: version, created: versionCreated } = await ensureRecord(
-      'source_document_versions_c',
-      'version_label_c',
-      spec.version_label_c,
-      {
-        Name: spec.official_title_c,
-        source_document_c: doc.Id,
-        source_registry_c: authority.Id,
-        version_label_c: spec.version_label_c,
-        official_title_c: spec.official_title_c,
-        document_url_c: spec.document_url_c,
-        mime_type_c: 'application/pdf',
-        publication_date_c: spec.publication_date_c,
-        rights_status_c: 'Unknown',
-        rights_notes_c: 'Reuse rights have not yet been reviewed. Do not redistribute until an authorised reviewer records a permitted-use basis.',
-        ingestion_status_c: spec.ingestion_status_c,
-        version_status_c: 'Current',
-        academic_year_c: spec.academic_year_c,
-        change_summary_c: spec.change_summary_c
-      },
-      ['Id', 'Name', 'source_document_c', 'version_label_c', 'document_url_c', 'ingestion_status_c']
-    );
-    versionByKey[spec.key] = version;
-    if (versionCreated) summary.versions += 1;
+    const documentResult = await ensureSourceDocument(spec, exam, authority);
+    const versionResult = await ensureDocumentVersion(spec, documentResult.record, authority);
+    documentByKey[spec.key] = documentResult.record;
+    versionByKey[spec.key] = versionResult.record;
+    if (documentResult.created) summary.documents += 1;
+    if (versionResult.created) summary.versions += 1;
   }
 
   const syllabusSpecs = [
@@ -289,62 +332,15 @@ export async function registerOfficialBaseline() {
 
   for (const spec of syllabusSpecs) {
     const exam = examByCode[spec.examCode];
+    const doc = documentByKey[spec.key];
     const version = versionByKey[spec.key];
-    const { record: syllabus, created: syllabusCreated } = await ensureRecord(
-      'syllabus_versions_c',
-      'version_label_c',
-      spec.label,
-      {
-        Name: spec.label,
-        examination_c: exam.Id,
-        source_document_c: documentByKey[spec.key].Id,
-        source_document_version_c: version.Id,
-        academic_year_c: 2026,
-        version_label_c: spec.label,
-        status_c: 'Review',
-        effective_date_c: '2026-01-01',
-        change_summary_c: spec.note
-      },
-      ['Id', 'Name', 'version_label_c', 'examination_c', 'source_document_version_c']
-    );
-    if (syllabusCreated) summary.syllabusVersions += 1;
-
-    const { created: examVersionCreated } = await ensureRecord(
-      'examination_versions_c',
-      'version_code_c',
-      spec.versionCode,
-      {
-        Name: spec.label,
-        examination_c: exam.Id,
-        academic_year_c: 2026,
-        version_code_c: spec.versionCode,
-        version_label_c: spec.label,
-        status_c: 'Review',
-        source_document_version_c: version.Id,
-        notes_c: spec.note
-      },
-      ['Id', 'Name', 'version_code_c', 'status_c']
-    );
-    if (examVersionCreated) summary.examinationVersions += 1;
-
-    const examVersion = await fetchOne('examination_versions_c', 'version_code_c', spec.versionCode, ['Id', 'Name', 'version_code_c']);
-    const batchCode = `INITIAL-${spec.versionCode}`;
-    const { created: batchCreated } = await ensureRecord(
-      'curriculum_import_batches_c',
-      'Name',
-      batchCode,
-      {
-        Name: batchCode,
-        examination_version_c: examVersion.Id,
-        document_version_c: version.Id,
-        import_type_c: 'Initial',
-        status_c: 'Draft',
-        import_notes_c: 'Seeded source baseline. Curriculum nodes remain subject to academic review and publication approval.'
-      },
-      ['Id', 'Name', 'examination_version_c', 'status_c']
-    );
-    if (batchCreated) summary.batches += 1;
+    const syllabusResult = await ensureSyllabusVersion(spec, exam, doc, version);
+    const examVersionResult = await ensureExamVersion(spec, exam, version);
+    const batchResult = await ensureImportBatch(`INITIAL-${spec.versionCode}`, examVersionResult.record, version);
+    if (syllabusResult.created) summary.syllabusVersions += 1;
+    if (examVersionResult.created) summary.examinationVersions += 1;
+    if (batchResult.created) summary.batches += 1;
   }
 
-  return { summary, authorities: authorityByCode, examinations: examByCode, documents: documentByKey, versions: versionByKey };
+  return { summary };
 }
