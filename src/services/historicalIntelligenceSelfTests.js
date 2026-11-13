@@ -250,7 +250,7 @@ export function runHistoricalIntelligenceSelfTests() {
   });
 
   test('Partial option extraction remains an MCQ requiring review', () => {
-    const body = '1. Find the force.\\nA. 2 N';
+    const body = '1. Find the force.\nA. 2 N';
     const options = parseQuestionOptions(body);
     return options.length === 1 && inferQuestionType(body, options) === 'MCQ';
   });
