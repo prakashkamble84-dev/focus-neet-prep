@@ -78,15 +78,23 @@ export default function SourceRegistryTabs({
           filteredVersions.map((version) => {
             const parentId = version.source_document_c?.Id ?? version.source_document_c;
             const parent = documents.find((doc) => doc.Id === parentId);
+            const authorityId = version.source_registry_c?.Id ??
+              version.source_registry_c ??
+              parent?.source_registry_c?.Id ??
+              parent?.source_registry_c;
+            const authority = (authoritiesData || []).find((item) => item.Id === authorityId);
             return (
               <SourceVersionCard
                 key={version.Id}
                 version={version}
                 parent={parent}
+                authority={authority}
+                authorities={authoritiesData || []}
                 canReview={canReview}
                 onUpload={onUpload}
                 onReview={onReview}
                 onExtract={onExtract}
+                onIndependentVerificationComplete={() => Promise.all([refreshVersions(), refreshAuthorities()])}
               />
             );
           })
