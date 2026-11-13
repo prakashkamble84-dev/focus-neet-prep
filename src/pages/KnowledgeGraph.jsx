@@ -10,6 +10,15 @@ import KnowledgeGraphWorkspace from '@/components/knowledge-graph/KnowledgeGraph
 import KnowledgeGraphNodeDialog from '@/components/knowledge-graph/KnowledgeGraphNodeDialog';
 import KnowledgeGraphRelationshipDialog from '@/components/knowledge-graph/KnowledgeGraphRelationshipDialog';
 import KnowledgeGraphMasteryDialog from '@/components/knowledge-graph/KnowledgeGraphMasteryDialog';
+import KnowledgeGraphMappingDialog from '@/components/knowledge-graph/KnowledgeGraphMappingDialog';
+import KnowledgeGraphCrosswalkDialog from '@/components/knowledge-graph/KnowledgeGraphCrosswalkDialog';
+import {
+  reviewGraphRelationship,
+  reviewQuestionMapping,
+  reviewHistoricalCrosswalk,
+  verifyGraphNode,
+  publishGraphNode
+} from '@/services/knowledgeGraphWorkflowService';
 import {
   buildKnowledgeGraphModel,
   fetchKnowledgeGraphData
@@ -18,7 +27,6 @@ import {
   buildGraphDiagnostics,
   runKnowledgeGraphSelfTests
 } from '@/services/knowledgeGraphRules';
-import { sdk } from '@/services/sdk';
 
 export const route = { path: '/knowledge-graph', layout: 'owner', access: 'authenticated' };
 export const nav = { label: 'Knowledge graph', icon: 'Network', section: 'Learn', order: 20 };
@@ -46,6 +54,8 @@ export default function KnowledgeGraph() {
   const model = useMemo(() => buildKnowledgeGraphModel(data), [data]);
   const [nodeDialogOpen, setNodeDialogOpen] = useState(false);
   const [relationshipDialogOpen, setRelationshipDialogOpen] = useState(false);
+  const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
+  const [crosswalkDialogOpen, setCrosswalkDialogOpen] = useState(false);
   const [masteryNode, setMasteryNode] = useState(null);
   const [selfTests, setSelfTests] = useState(() => runKnowledgeGraphSelfTests());
 
@@ -110,131 +120,69 @@ export default function KnowledgeGraph() {
     await run();
   }
 
-  async function recordGraphReview(recordType, recordId, recordName, decision, notes) {
-    if (!reviewerId) return false;
-    try {
-      const result = await sdk.table('content_approvals_c').create({
-        Name: recordType + ' · ' + recordName + ' · ' + decision,
-        content_type_c: 'Graph',
-        record_identifier_c: recordType + ':' + String(recordId),
-        content_version_c: String(recordId),
-        review_status_c: decision === 'Rejected' ? 'Rejected' : 'Approved',
-        reviewer_user_c: reviewerId,
-        submitted_by_c: reviewerId,
-        decision_notes_c: notes || 'Graph review decision recorded.',
-        submitted_at_c: new Date().toISOString(),
-        resolved_at_c: new Date().toISOString()
-      });
-      return Boolean(result.data?.length);
-    } catch (error) {
-      return false;
-    }
-  }
-
   async function reviewRelationship(edge, status) {
     if (!edge?.Id) return;
-    const existingNotes = String(edge.review_notes_c || '').trim();
-    const action = status === 'Verified' ? 'verified' : 'rejected';
-    const notes = (existingNotes ? existingNotes + '\n' : '') +
-      'Academic relationship ' + action + ' on ' + new Date().toISOString() + '.';
-    const result = await sdk.table('concept_relationships_c').update({
-      Id: edge.Id,
-      status_c: status,
-      review_notes_c: notes
-    });
-    if (!result.data?.length) {
-      toast.error(result.messages?.join('; ') || result.message || 'Relationship review was not saved');
-      return;
+    try {
+      const result = await reviewGraphRelationship(edge, status, reviewerId);
+      if (!result.success) toast.error(result.message);
+      else if (!result.auditLogged) toast.warning('Relationship updated, but its approval history could not be recorded');
+      else toast.success(status === 'Verified' ? 'Relationship verified and logged' : 'Relationship rejected and logged');
+      await refresh();
+    } catch (error) {
+      toast.error('Relationship review failed', { description: error.message });
     }
-    const logged = await recordGraphReview(
-      'relationship',
-      edge.Id,
-      edge.Name || edge.Id,
-      status === 'Verified' ? 'Approved' : 'Rejected',
-      notes
-    );
-    if (!logged) toast.warning('Relationship updated, but its approval history could not be recorded');
-    else toast.success(status === 'Verified' ? 'Relationship verified and logged' : 'Relationship rejected and logged');
-    await refresh();
   }
 
-  function hasVerifiedEvidence(node) {
-    const sourceVersion = node.sourceVersion;
-    const sourceDocument = node.sourceDocument;
-    const rights = sourceVersion?.rights_status_c || sourceDocument?.rights_status_c;
-    return Boolean(
-      sourceVersion &&
-      sourceVersion.ingestion_status_c === 'Verified' &&
-      sourceDocument?.verification_status_c === 'Verified' &&
-      ['Public', 'Licensed'].includes(rights) &&
-      Number(node.source_page_start_c) > 0 &&
-      Number(node.source_page_end_c) >= Number(node.source_page_start_c) &&
-      String(node.source_excerpt_c || '').trim()
-    );
+  async function reviewMapping(mapping, status) {
+    if (!mapping?.Id) return;
+    try {
+      const result = await reviewQuestionMapping(mapping, status, reviewerId);
+      if (!result.success) toast.error(result.message);
+      else if (!result.auditLogged) toast.warning('Mapping updated, but its approval history could not be recorded');
+      else toast.success(status === 'Verified' ? 'Question mapping verified and logged' : 'Question mapping rejected and logged');
+      await refresh();
+    } catch (error) {
+      toast.error('Question mapping review failed', { description: error.message });
+    }
+  }
+
+  async function reviewCrosswalk(row, status) {
+    if (!row?.Id) return;
+    try {
+      const result = await reviewHistoricalCrosswalk(row, status, reviewerId);
+      if (!result.success) toast.error(result.message);
+      else if (!result.auditLogged) toast.warning('Crosswalk updated, but its approval history could not be recorded');
+      else toast.success(status === 'Verified' ? 'Historical crosswalk verified and logged' : 'Historical crosswalk rejected and logged');
+      await refresh();
+    } catch (error) {
+      toast.error('Historical crosswalk review failed', { description: error.message });
+    }
   }
 
   async function verifyNode(node) {
     if (!node?.Id) return;
-    if (!hasVerifiedEvidence(node)) {
-      toast.error('Concept verification is blocked until source evidence is complete', {
-        description: 'Attach a verified source version, verify the parent source record and rights, and record a page range plus source excerpt.'
-      });
-      return;
+    try {
+      const result = await verifyGraphNode(node, reviewerId);
+      if (!result.success) toast.error('Node evidence verification is blocked', { description: result.message });
+      else if (!result.auditLogged) toast.warning('Node verified, but its approval history could not be recorded');
+      else toast.success('Node evidence verified and logged. Publication remains a separate action.');
+      await refresh();
+    } catch (error) {
+      toast.error('Node verification failed', { description: error.message });
     }
-    const result = await sdk.table('curriculum_nodes_c').update({
-      Id: node.Id,
-      verified_c: true,
-      status_c: 'Review'
-    });
-    if (!result.data?.length) {
-      toast.error(result.messages?.join('; ') || result.message || 'Concept verification was not saved');
-      return;
-    }
-    const logged = await recordGraphReview(
-      'node',
-      node.Id,
-      node.Name,
-      'Approved',
-      'Source evidence verified. Node remains in Review until publication approval.'
-    );
-    if (!logged) toast.warning('Node verified, but its approval history could not be recorded');
-    else toast.success('Node evidence verified and logged. Publication remains a separate action.');
-    await refresh();
   }
 
   async function publishNode(node) {
     if (!node?.Id) return;
-    const parentReady = node.node_type_c === 'Subject' || (
-      node.parentNode &&
-      node.parentNode.status_c === 'Published' &&
-      node.parentNode.verified_c === true
-    );
-    const syllabusReady = !node.hasSyllabusVersion || node.syllabusStatus === 'Published';
-    if (!node.verified_c || !hasVerifiedEvidence(node) || !syllabusReady || !parentReady) {
-      toast.error('Node publication is blocked', {
-        description: 'Required: expert-verified node, verified source rights and page evidence, published syllabus (when linked), and a published verified parent path.'
-      });
-      return;
+    try {
+      const result = await publishGraphNode(node, reviewerId);
+      if (!result.success) toast.error('Node publication is blocked', { description: result.message });
+      else if (!result.auditLogged) toast.warning('Node published, but its approval history could not be recorded');
+      else toast.success('Node published and approval history recorded');
+      await refresh();
+    } catch (error) {
+      toast.error('Node publication failed', { description: error.message });
     }
-    const result = await sdk.table('curriculum_nodes_c').update({
-      Id: node.Id,
-      status_c: 'Published',
-      verified_c: true
-    });
-    if (!result.data?.length) {
-      toast.error(result.messages?.join('; ') || result.message || 'Concept was not published');
-      return;
-    }
-    const logged = await recordGraphReview(
-      'node',
-      node.Id,
-      node.Name,
-      'Approved',
-      'Node published to the student knowledge graph after source and parent-path checks.'
-    );
-    if (!logged) toast.warning('Node published, but its publication history could not be recorded');
-    else toast.success('Node published and approval history recorded');
-    await refresh();
   }
 
   const studentMasteryCount = nodes.filter((node) => node.mastery).length;
@@ -300,6 +248,13 @@ export default function KnowledgeGraph() {
         isStudent={isStudent}
         loading={loading && !data}
         onAddRelationship={() => setRelationshipDialogOpen(true)}
+        onAddMapping={() => setMappingDialogOpen(true)}
+        onVerifyMapping={(mapping) => reviewMapping(mapping, 'Verified')}
+        onRejectMapping={(mapping) => reviewMapping(mapping, 'Rejected')}
+        onAddCrosswalk={() => setCrosswalkDialogOpen(true)}
+        canAddCrosswalk={(model.syllabusVersions || []).length > 1}
+        onVerifyCrosswalk={(row) => reviewCrosswalk(row, 'Verified')}
+        onRejectCrosswalk={(row) => reviewCrosswalk(row, 'Rejected')}
         onEditMastery={setMasteryNode}
         onVerifyNode={verifyNode}
         onPublishNode={publishNode}
@@ -332,6 +287,20 @@ export default function KnowledgeGraph() {
         onOpenChange={setRelationshipDialogOpen}
         nodes={nodes}
         relationships={model.relationships || []}
+        onSaved={refresh}
+      />
+      <KnowledgeGraphMappingDialog
+        open={mappingDialogOpen}
+        onOpenChange={setMappingDialogOpen}
+        questions={model.questions || []}
+        nodes={nodes}
+        onSaved={refresh}
+      />
+      <KnowledgeGraphCrosswalkDialog
+        open={crosswalkDialogOpen}
+        onOpenChange={setCrosswalkDialogOpen}
+        syllabusVersions={model.syllabusVersions || []}
+        nodes={nodes}
         onSaved={refresh}
       />
       <KnowledgeGraphMasteryDialog
