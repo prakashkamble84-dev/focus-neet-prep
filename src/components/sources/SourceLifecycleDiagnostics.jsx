@@ -18,9 +18,9 @@ export default function SourceLifecycleDiagnostics() {
     <section className="space-y-3 rounded-lg border border-border bg-card p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="font-semibold">Source and syllabus release tests · 23 deterministic checks</h2>
+          <h2 className="font-semibold">Source and academic release tests · 26 deterministic checks</h2>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Deterministic checks for second-person verification, rights, PDF storage, stale approvals, official-origin provenance and syllabus publication.
+            Deterministic checks for source rights, independent verification, syllabus publication, page extraction and historical question dependency invalidation.
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={runTests}>

@@ -21,6 +21,26 @@ async function fetchRows(request, label) {
   return result.data || [];
 }
 
+async function fetchAllRows(tableName, fields, filter, label) {
+  const rows = [];
+  let offset = 0;
+  while (true) {
+    const result = await sdk.table(tableName)
+      .select(fields)
+      .where(filter)
+      .limit(1000, offset)
+      .fetch();
+    if (!result.success) throw new Error(result.message || 'Could not load ' + label);
+    const page = result.data || [];
+    rows.push(...page);
+    if (result.hasMore === false || page.length < 1000 || !page.length) break;
+    if (Number.isFinite(Number(result.total)) && rows.length >= Number(result.total)) break;
+    offset += page.length;
+    if (rows.length >= 50000) throw new Error('Too many ' + label + ' rows to verify safely.');
+  }
+  return rows;
+}
+
 export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, reviewerProfile) {
   if (!paper?.Id || !reviewerId) {
     return { success: false, message: 'A paper record and signed-in reviewer are required.' };
@@ -94,7 +114,7 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
 
   const verifications = await fetchRows(
     sdk.table('source_verification_records_c')
-      .select(['Id', 'Name', 'document_version_c', 'verification_type_c', 'decision_c', 'reviewer_user_c', 'verified_at_c', 'independent_check_c'])
+      .select(['Id', 'Name', 'document_version_c', 'verification_type_c', 'decision_c', 'reviewer_user_c', 'verified_at_c', 'independent_check_c', 'verification_notes_c'])
       .where(window.ApperSDK.CoreSDK.eq('document_version_c', version.Id))
       .limit(1000, 0)
       .fetch(),
@@ -153,12 +173,12 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
 
     const extractions = await fetchRows(
       sdk.table('source_extractions_c')
-        .select(['Id', 'CreatedOn', 'ModifiedOn', 'CreatedBy', 'Owner', 'ModifiedBy', 'page_number_c', 'quality_status_c', 'document_version_c'])
-        .where(window.ApperSDK.CoreSDK.eq('document_version_c', version.Id))
-        .limit(5000, 0)
-        .fetch(),
-      'page extraction records'
-    );
+        fetchAllRows(
+        'source_extractions_c',
+        ['Id', 'CreatedOn', 'ModifiedOn', 'CreatedBy', 'Owner', 'ModifiedBy', 'page_number_c', 'quality_status_c', 'document_version_c'],
+        window.ApperSDK.CoreSDK.eq('document_version_c', version.Id),
+        'page extraction records'
+      );
 
     const expectedPages = Number(document.extracted_page_count_c || 0);
     if (!Number.isInteger(expectedPages) || expectedPages < 1) {
@@ -192,10 +212,17 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
       }
       const extractorId = getId(row.CreatedBy) || getId(row.Owner);
       const reviewerOfPage = getId(row.ModifiedBy);
-      if (!extractorId || !reviewerOfPage || String(extractorId) === String(reviewerOfPage)) {
+      const pageAudit = verifications.find((audit) =>
+        audit.verification_type_c === 'Academic' &&
+        audit.decision_c === 'Verified' &&
+        audit.independent_check_c === true &&
+        String(getId(audit.reviewer_user_c) || '') === String(reviewerOfPage || '') &&
+        String(audit.verification_notes_c || '').includes('Extraction record ' + row.Id + '.')
+      );
+      if (!extractorId || !reviewerOfPage || String(extractorId) === String(reviewerOfPage) || !pageAudit) {
         return {
           success: false,
-          message: 'PDF page ' + page + ' must be independently reviewed by someone other than its extractor.'
+          message: 'PDF page ' + page + ' must have an independent review audit by someone other than its extractor.'
         };
       }
     }
