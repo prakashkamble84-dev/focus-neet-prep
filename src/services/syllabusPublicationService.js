@@ -49,13 +49,13 @@ export function evaluateSyllabusPublication({
   const independentReviewerIds = new Set();
 
   if (!syllabus?.Id) issues.push('The syllabus version is missing.');
-  if (!sourceVersion || lookupId(syllabus?.source_document_version_c) !== sourceVersion.Id) {
+  if (!sourceVersion || String(lookupId(syllabus?.source_document_version_c)) !== String(sourceVersion.Id)) {
     issues.push('The syllabus must point to the selected source document version.');
   }
-  if (!sourceDocument || lookupId(sourceVersion?.source_document_c) !== sourceDocument.Id) {
+  if (!sourceDocument || String(lookupId(sourceVersion?.source_document_c)) !== String(sourceDocument.Id)) {
     issues.push('The source document and source version do not match.');
   }
-  if (!authority?.official_domain_c) issues.push('The issuing authority and official domain must be registered.');
+  if (!authority?.official_domain_c || authority.is_authoritative_c !== true || authority.active_c !== true) issues.push('The issuing authority must be registered, marked authoritative and active.');
   if (!sourceVersion?.document_file_c?.length) issues.push('The original PDF must be stored privately.');
   if (!String(sourceVersion?.document_url_c || sourceDocument?.official_url_c || '').startsWith('https://')) {
     issues.push('The official source URL must use HTTPS.');
@@ -105,8 +105,8 @@ export function evaluateSyllabusPublication({
   if (reviewerId && primaryReviewerIds.has(String(reviewerId))) {
     issues.push('The syllabus publisher cannot be the first-pass source reviewer.');
   }
-  if (reviewerId && independentReviewerIds.size && !independentReviewerIds.has(String(reviewerId))) {
-    issues.push('The syllabus publisher must be the reviewer who completed the independent source verification.');
+  if (independentReviewerIds.size !== 1 || !independentReviewerIds.has(String(reviewerId || ''))) {
+    issues.push('One second reviewer must complete all independent source checks, and that same person must publish the syllabus.');
   }
   for (const id of independentReviewerIds) {
     if (primaryReviewerIds.has(id)) {
@@ -147,7 +147,7 @@ export async function publishSyllabusVersion(syllabusId, reviewerId) {
     );
 
     const sourceDocumentId = lookupId(sourceVersion.source_document_c);
-    if (!sourceDocumentId || sourceDocumentId !== lookupId(syllabus.source_document_c)) {
+    if (!sourceDocumentId || String(sourceDocumentId) !== String(lookupId(syllabus.source_document_c))) {
       return { success: false, issues: ['The syllabus and source version do not point to the same parent source document.'] };
     }
 
