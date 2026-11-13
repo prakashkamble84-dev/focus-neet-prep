@@ -116,6 +116,7 @@ export async function fetchHistoricalQuestionReviewData(questionId) {
       'official_url_c',
       'document_type_c',
       'source_category_c',
+      'examination_c',
       'rights_status_c',
       'verification_status_c',
       'ingestion_status_c'
@@ -202,6 +203,12 @@ export async function recordHistoricalQuestionReview({
   );
   if (!sourceMatches) {
     return { success: false, message: 'The question, paper and source document links do not match.' };
+  }
+  if (sourceDocument.document_type_c !== 'Paper' ||
+    String(getId(paper.examination_c) || '') !== String(getId(question.examination_c) || '') ||
+    String(getId(sourceDocument.examination_c) || '') !== String(getId(paper.examination_c) || '') ||
+    Number(paper.exam_year_c) !== Number(question.historical_year_c)) {
+    return { success: false, message: 'The question examination/year and the paper/source document metadata must match before any approval.' };
   }
 
   if (action === 'extraction') {
@@ -330,6 +337,10 @@ export async function recordHistoricalQuestionReview({
       paper.status_c !== 'Published' ||
       question.extraction_status_c !== 'Verified' ||
       question.answer_validation_status_c !== 'Verified' ||
+      (['MCQ', 'Multi'].includes(question.question_type_c) && (
+        options.filter((row) => row.status_c !== 'Retired').length < 2 ||
+        !options.some((row) => row.status_c !== 'Retired' && row.is_correct_c === true)
+      )) ||
       !['Public', 'Licensed'].includes(question.rights_status_c) ||
       question.rights_status_c !== sourceDocument.rights_status_c ||
       sourceDocument.verification_status_c !== 'Verified' ||

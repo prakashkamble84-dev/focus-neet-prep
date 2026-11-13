@@ -114,6 +114,7 @@ export default function HistoricalQuestionDNA() {
         paper: data.paper,
         sourceDocument: data.sourceDocument,
         reviews: data.reviews,
+        options: data.options,
         creatorId: data.creatorId,
         reviewerId: user?.userId,
         reviewerProfile: profile,
@@ -199,6 +200,29 @@ export default function HistoricalQuestionDNA() {
               <div className="whitespace-pre-wrap rounded-md border border-border bg-muted/20 p-4 text-sm leading-6">
                 {question.question_body_c || 'No extracted question text is available.'}
               </div>
+              {data.options?.length > 0 && (
+                <div className="space-y-2 rounded-md border border-border p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Extracted answer choices</p>
+                    <Badge variant="outline">{data.options.filter((option) => option.status_c !== 'Retired').length} active option(s)</Badge>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {data.options
+                      .filter((option) => option.status_c !== 'Retired')
+                      .sort((a, b) => Number(a.sequence_c || 0) - Number(b.sequence_c || 0))
+                      .map((option) => (
+                        <div key={option.Id} className="flex items-start gap-2 rounded-sm bg-muted/30 p-2 text-sm">
+                          <span className="font-mono font-semibold">{option.option_key_c}.</span>
+                          <span className="min-w-0 flex-1 whitespace-pre-wrap">{option.option_text_c}</span>
+                          {question.answer_validation_status_c === 'Verified' && option.is_correct_c === true && (
+                            <Badge variant="secondary">Correct</Badge>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Extracted options remain Draft until the answer key is independently validated and the question is published.</p>
+                </div>
+              )}
               <div className="flex flex-wrap gap-2 text-xs">
                 <Badge variant="outline">Extraction: {question.extraction_status_c || 'Pending'}</Badge>
                 <Badge variant="outline">Answer: {question.answer_validation_status_c || 'Pending'}</Badge>

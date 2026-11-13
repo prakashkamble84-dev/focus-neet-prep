@@ -4,6 +4,7 @@ import {
   evaluateHistoricalQuestion
 } from '@/services/historicalIntelligenceRules';
 import { splitQuestionsFromPage } from '@/services/historicalPdfIngestionService';
+import { inferQuestionType, parseQuestionOptions } from '@/services/historicalQuestionOptionParser';
 
 function fixture(overrides = {}) {
   const sourceDocuments = [{
@@ -246,6 +247,22 @@ export function runHistoricalIntelligenceSelfTests() {
   test('Unnumbered prose is not segmented as a question', () => {
     const input = 'This paragraph describes the examination rules and candidate instructions but contains no numbered question.';
     return splitQuestionsFromPage(input, 1).length === 0;
+  });
+
+  test('Multiple-choice options are extracted as structured rows', () => {
+    const options = parseQuestionOptions('1. Find the force.\\n(A) 2 N\\n(B) 4 N\\n(C) 6 N\\n(D) 8 N');
+    return options.length === 4 && options[0].key === 'A' && options[3].text === '8 N';
+  });
+
+  test('Multi-select instruction is distinguished from single-correct MCQ', () => {
+    const body = 'Select all that apply.\\nA. One\\nB. Two\\nC. Three';
+    const options = parseQuestionOptions(body);
+    return options.length === 3 && inferQuestionType(body, options) === 'Multi';
+  });
+
+  test('Numerical response is classified when option rows are absent', () => {
+    const body = 'Enter the numerical value of the acceleration in m/s squared.';
+    return inferQuestionType(body, []) === 'Numeric';
   });
 
   const passed = checks.filter((item) => item.passed).length;
