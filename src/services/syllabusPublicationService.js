@@ -66,6 +66,9 @@ export function evaluateSyllabusPublication({
   if (!sourceDocument || String(lookupId(sourceVersion?.source_document_c)) !== String(sourceDocument.Id)) {
     issues.push('The source document and source version do not match.');
   }
+  if (!sourceDocument || String(lookupId(syllabus?.source_document_c)) !== String(sourceDocument.Id)) {
+    issues.push('The syllabus and parent source document do not match.');
+  }
   if (!authority?.official_domain_c || authority.is_authoritative_c !== true || authority.active_c !== true) issues.push('The issuing authority must be registered, marked authoritative and active.');
   const versionAuthorityId = lookupId(sourceVersion?.source_registry_c);
   const documentAuthorityId = lookupId(sourceDocument?.source_registry_c);
