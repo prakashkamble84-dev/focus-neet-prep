@@ -3,7 +3,7 @@ import { sdk } from '@/services/sdk';
 import { useFetch } from '@/hooks/useFetch';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/layouts/RootLayout';
-import { independentlyReviewPageExtraction } from '@/services/sourceVerificationService';
+import { independentlyReviewPageExtraction } from '@/services/sourcePageReviewService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import ApperIcon from '@/components/ApperIcon';
