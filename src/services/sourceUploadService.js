@@ -22,6 +22,20 @@ export async function replaceSourcePdf({ version, document, files, reviewerId })
   const oversized = files.find((file) => Number(file?.size || file?.Size || 0) > 20 * 1024 * 1024);
   if (oversized) return { success: false, message: 'The PDF exceeds the 20 MB source-storage limit.' };
 
+  const invalidation = await invalidateSourceDependents(
+    version.Id,
+    reviewerId,
+    'PDF replacement is being started. All previous page extractions, syllabus publication, curriculum nodes, concept relationships, question mappings and historical crosswalk approvals must be reviewed again.',
+    true
+  );
+  if (!invalidation.success) {
+    return {
+      success: false,
+      saved: false,
+      message: 'The PDF was not changed because dependent academic approvals could not be reset. ' + invalidation.message
+    };
+  }
+
   const versionUpdate = await sdk.table('source_document_versions_c').update({
     Id: version.Id,
     document_file_c: sdk.storage.toUpdateFormat(files),
@@ -45,20 +59,6 @@ export async function replaceSourcePdf({ version, document, files, reviewerId })
       '\nPDF file added or replaced. Repeat first-pass rights, authority and metadata review.'
   });
 
-  const invalidation = await invalidateSourceDependents(
-    version.Id,
-    reviewerId,
-    'The stored PDF was added or replaced. Previous page extractions, syllabus publication, curriculum nodes, concept relationships, question mappings and historical crosswalk approvals must be reviewed again.',
-    true
-  );
-
-  if (!invalidation.success) {
-    return {
-      success: false,
-      saved: true,
-      message: 'PDF was saved, but dependent academic content could not be fully invalidated. ' + invalidation.message
-    };
-  }
   if (!parentUpdate.data?.length) {
     return {
       success: false,
