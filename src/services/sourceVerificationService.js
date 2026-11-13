@@ -18,6 +18,84 @@ function domainMatches(url, authorityDomain) {
   return Boolean(host && expected && (host === expected || host.endsWith('.' + expected)));
 }
 
+function recordTime(row) {
+  const value = row?.verified_at_c || row?.CreatedOn;
+  const parsed = value ? Date.parse(value) : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function latestRecord(rows) {
+  return [...rows].sort((a, b) => recordTime(b) - recordTime(a))[0] || null;
+}
+
+export async function saveFirstPassSourceReview({
+  version,
+  document,
+  rightsStatus,
+  authorityChecked,
+  metadataChecked,
+  notes,
+  reviewerId
+}) {
+  if (!version?.Id || !document?.Id) return { success: false, message: 'A source document and version are required.' };
+  if (!reviewerId) return { success: false, message: 'The signed-in reviewer identity is unavailable.' };
+  if (!['Licensed', 'Public', 'Restricted'].includes(rightsStatus)) {
+    return { success: false, message: 'Choose Public, Licensed or Restricted as the rights decision.' };
+  }
+  if (!String(notes || '').trim()) return { success: false, message: 'Record evidence or a reason for the source review.' };
+  if (['Licensed', 'Public'].includes(rightsStatus) && (!authorityChecked || !metadataChecked)) {
+    return { success: false, message: 'Verify the issuing authority and document metadata before approving permitted use.' };
+  }
+
+  const versionUpdate = await sdk.table('source_document_versions_c').update({
+    Id: version.Id,
+    rights_status_c: rightsStatus,
+    rights_notes_c: String(notes).trim(),
+    ingestion_status_c: 'Review'
+  });
+  if (!versionUpdate.data?.length) {
+    return { success: false, message: versionUpdate.messages?.join('; ') || versionUpdate.message || 'Source version could not be updated.' };
+  }
+
+  const parentUpdate = await sdk.table('source_documents_c').update({
+    Id: document.Id,
+    rights_status_c: rightsStatus,
+    verification_status_c: 'Review',
+    ingestion_status_c: 'Extracted',
+    review_notes_c: String(notes).trim()
+  });
+  if (!parentUpdate.data?.length) {
+    return { success: false, message: parentUpdate.messages?.join('; ') || parentUpdate.message || 'Parent source record could not be updated. The source version remains in Review.' };
+  }
+
+  const decisions = [
+    { type: 'Rights', decision: ['Licensed', 'Public'].includes(rightsStatus) ? 'Verified' : 'Rejected' },
+    { type: 'Authority', decision: authorityChecked ? 'Verified' : 'NeedsFix' },
+    { type: 'Metadata', decision: metadataChecked ? 'Verified' : 'NeedsFix' }
+  ];
+
+  for (const item of decisions) {
+    const verification = await sdk.table('source_verification_records_c').create({
+      Name: item.type + ' first-pass review · ' + (version.official_title_c || version.Name),
+      document_version_c: version.Id,
+      verification_type_c: item.type,
+      decision_c: item.decision,
+      reviewer_user_c: reviewerId,
+      verified_at_c: new Date().toISOString(),
+      verification_notes_c: String(notes).trim(),
+      independent_check_c: false
+    });
+    if (!verification.data?.length) {
+      return {
+        success: false,
+        message: verification.messages?.join('; ') || verification.message || 'A first-pass verification event could not be recorded. The version remains in Review.'
+      };
+    }
+  }
+
+  return { success: true };
+}
+
 export function evaluateIndependentSourceVerification({
   version,
   document,
@@ -54,14 +132,14 @@ export function evaluateIndependentSourceVerification({
     const rows = verifications.filter((row) => (
       String(getLookupId(row.document_version_c)) === versionId &&
       row.verification_type_c === type &&
-      row.decision_c === 'Verified' &&
       row.independent_check_c !== true
     ));
-    if (!rows.length) {
-      issues.push('A first-pass ' + type.toLowerCase() + ' review must be completed before independent verification.');
+    const latest = latestRecord(rows);
+    if (!latest || latest.decision_c !== 'Verified') {
+      issues.push('The latest first-pass ' + type.toLowerCase() + ' review must be Verified before independent verification.');
       continue;
     }
-    primary[type] = new Set(rows.map((row) => String(getLookupId(row.reviewer_user_c) || '')).filter(Boolean));
+    primary[type] = new Set([String(getLookupId(latest.reviewer_user_c) || '')].filter(Boolean));
   }
 
   const allPrimaryReviewers = new Set(
@@ -128,15 +206,21 @@ export async function completeIndependentSourceVerification({
   if (alreadyVerified) return { success: true, alreadyVerified: true, auditLogged: true };
 
   const types = ['Rights', 'Authority', 'Metadata'];
-  const existingIndependent = verifications.filter((row) => (
-    String(getLookupId(row.document_version_c)) === String(version.Id) &&
-    row.independent_check_c === true &&
-    row.decision_c === 'Verified'
-  ));
 
   for (const type of types) {
-    const exists = existingIndependent.some((row) => row.verification_type_c === type);
-    if (exists) continue;
+    const latestPrimary = latestRecord(verifications.filter((row) => (
+      String(getLookupId(row.document_version_c)) === String(version.Id) &&
+      row.verification_type_c === type &&
+      row.independent_check_c !== true
+    )));
+    const latestIndependent = latestRecord(verifications.filter((row) => (
+      String(getLookupId(row.document_version_c)) === String(version.Id) &&
+      row.verification_type_c === type &&
+      row.independent_check_c === true
+    )));
+    const hasCurrentIndependent = latestIndependent?.decision_c === 'Verified' &&
+      recordTime(latestIndependent) >= recordTime(latestPrimary);
+    if (hasCurrentIndependent) continue;
 
     const result = await sdk.table('source_verification_records_c').create({
       Name: 'Independent ' + type.toLowerCase() + ' verification · ' + (version.official_title_c || version.Name),

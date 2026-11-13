@@ -5,6 +5,7 @@ import { useFetch } from '@/hooks/useFetch';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/layouts/RootLayout';
 import { registerOfficialBaseline } from '@/services/academicRegistry';
+import { saveFirstPassSourceReview } from '@/services/sourceVerificationService';
 import { fetchSourceAuthorities, fetchSourceDocuments, fetchSourceVersions } from '@/services/sourceRegistryService';
 import { SourceRightsDialog, SourceUploadDialog } from '@/components/sources/SourceDialogs';
 import SourceExtractionDialog from '@/components/sources/SourceExtractionDialog';
@@ -130,76 +131,26 @@ export default function Sources() {
 
   async function handleReview() {
     if (!selectedVersion) return;
-    if (!['Licensed', 'Public', 'Restricted'].includes(rightsStatus)) {
-      toast.error('Choose a rights decision before saving');
-      return;
-    }
-    if (!reviewNotes.trim()) {
-      toast.error('Add the evidence or reason behind the rights decision');
-      return;
-    }
-    if ((rightsStatus === 'Licensed' || rightsStatus === 'Public') && (!authorityChecked || !metadataChecked)) {
-      toast.error('Verify the issuing authority and document metadata before marking this source verified');
-      return;
-    }
-
     setSaving(true);
     try {
-      const versionResult = await sdk.table('source_document_versions_c').update({
-        Id: selectedVersion.Id,
-        rights_status_c: rightsStatus,
-        rights_notes_c: reviewNotes
+      const documentId = selectedVersion.source_document_c?.Id ?? selectedVersion.source_document_c;
+      const parent = documents.find((item) => String(item.Id) === String(documentId));
+      const result = await saveFirstPassSourceReview({
+        version: selectedVersion,
+        document: parent,
+        rightsStatus,
+        authorityChecked,
+        metadataChecked,
+        notes: reviewNotes,
+        reviewerId: user?.userId
       });
-      if (!versionResult.data?.length) {
-        toast.error(versionResult.messages?.[0] || versionResult.message || 'Source version could not be updated');
+      if (!result.success) {
+        toast.error('Source review was not saved', { description: result.message });
         return;
       }
 
-      const documentId = selectedVersion.source_document_c?.Id ?? selectedVersion.source_document_c;
-      if (documentId) {
-        const parentResult = await sdk.table('source_documents_c').update({
-          Id: documentId,
-          rights_status_c: rightsStatus,
-          verification_status_c: 'Review',
-          review_notes_c: reviewNotes
-        });
-        if (!parentResult.data?.length) {
-          toast.error(parentResult.messages?.[0] || 'Version updated, but parent source record did not update');
-          await refreshVersions();
-          return;
-        }
-      }
-
-      const reviewerId = user?.userId;
-      if (reviewerId) {
-        const reviewTypes = [
-          { type: 'Rights', decision: rightsStatus === 'Licensed' || rightsStatus === 'Public' ? 'Verified' : 'Rejected' },
-          ...(authorityChecked ? [{ type: 'Authority', decision: 'Verified' }] : []),
-          ...(metadataChecked ? [{ type: 'Metadata', decision: 'Verified' }] : [])
-        ];
-        for (const item of reviewTypes) {
-          const verification = await sdk.table('source_verification_records_c').create({
-            Name: `${item.type} review · ${selectedVersion.official_title_c || selectedVersion.Name}`,
-            document_version_c: selectedVersion.Id,
-            verification_type_c: item.type,
-            decision_c: item.decision,
-            reviewer_user_c: reviewerId,
-            verified_at_c: new Date().toISOString(),
-            verification_notes_c: reviewNotes,
-            independent_check_c: false
-          });
-          if (!verification.data?.length) {
-            toast.warning(`${item.type} status updated, but its review event could not be recorded`);
-          }
-        }
-      } else {
-        toast.warning('Source status updated, but the reviewer identity was unavailable for the verification log');
-      }
-
-      toast.success('Source verification review saved', {
-        description: rightsStatus === 'Licensed' || rightsStatus === 'Public'
-          ? 'Rights, authority and metadata checks are recorded. An independent verification and academic publication decision are still pending.'
-          : 'This source remains unavailable to student-facing views.'
+      toast.success('First-pass source review saved', {
+        description: 'This new review invalidates earlier independent verification. A different reviewer must re-check the source before publication.'
       });
       setReviewOpen(false);
       setSelectedVersion(null);
