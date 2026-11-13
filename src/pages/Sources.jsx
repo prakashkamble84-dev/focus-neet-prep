@@ -81,6 +81,8 @@ export default function Sources() {
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [files, setFiles] = useState([]);
   const [rightsStatus, setRightsStatus] = useState('Unknown');
+  const [authorityChecked, setAuthorityChecked] = useState(false);
+  const [metadataChecked, setMetadataChecked] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -138,6 +140,8 @@ export default function Sources() {
   function openReview(version) {
     setSelectedVersion(version);
     setRightsStatus(version.rights_status_c || 'Unknown');
+    setAuthorityChecked(false);
+    setMetadataChecked(false);
     setReviewNotes(version.rights_notes_c || '');
     setReviewOpen(true);
   }
@@ -171,6 +175,14 @@ export default function Sources() {
       toast.error('Choose a rights decision before saving');
       return;
     }
+    if (!reviewNotes.trim()) {
+      toast.error('Add the evidence or reason behind the rights decision');
+      return;
+    }
+    if ((rightsStatus === 'Licensed' || rightsStatus === 'Public') && (!authorityChecked || !metadataChecked)) {
+      toast.error('Verify the issuing authority and document metadata before marking this source verified');
+      return;
+    }
     setSaving(true);
     try {
       const versionResult = await sdk.table('source_document_versions_c').update({
@@ -189,7 +201,7 @@ export default function Sources() {
         const parentResult = await sdk.table('source_documents_c').update({
           Id: documentId,
           rights_status_c: rightsStatus,
-          verification_status_c: 'Review',
+          verification_status_c: rightsStatus === 'Licensed' || rightsStatus === 'Public' ? 'Verified' : 'Review',
           review_notes_c: reviewNotes
         });
         if (!parentResult.data?.length) {
@@ -200,24 +212,31 @@ export default function Sources() {
       }
 
       if (user?.userId) {
-        const verification = await sdk.table('source_verification_records_c').create({
-          Name: `Rights review · ${selectedVersion.official_title_c || selectedVersion.Name}`,
-          document_version_c: selectedVersion.Id,
-          verification_type_c: 'Rights',
-          decision_c: rightsStatus === 'Licensed' || rightsStatus === 'Public' ? 'Verified' : 'Rejected',
-          reviewer_user_c: user.userId,
-          verified_at_c: new Date().toISOString(),
-          verification_notes_c: reviewNotes,
-          independent_check_c: false
-        });
-        if (!verification.data?.length) {
-          toast.warning('Source status updated, but the review event could not be recorded');
+        const reviewTypes = [
+          { type: 'Rights', decision: rightsStatus === 'Licensed' || rightsStatus === 'Public' ? 'Verified' : 'Rejected' },
+          ...(authorityChecked ? [{ type: 'Authority', decision: 'Verified' }] : []),
+          ...(metadataChecked ? [{ type: 'Metadata', decision: 'Verified' }] : [])
+        ];
+        for (const item of reviewTypes) {
+          const verification = await sdk.table('source_verification_records_c').create({
+            Name: `${item.type} review · ${selectedVersion.official_title_c || selectedVersion.Name}`,
+            document_version_c: selectedVersion.Id,
+            verification_type_c: item.type,
+            decision_c: item.decision,
+            reviewer_user_c: user.userId,
+            verified_at_c: new Date().toISOString(),
+            verification_notes_c: reviewNotes,
+            independent_check_c: false
+          });
+          if (!verification.data?.length) {
+            toast.warning(`${item.type} status updated, but its review event could not be recorded`);
+          }
         }
       }
 
-      toast.success('Rights review saved', {
+      toast.success('Source verification review saved', {
         description: rightsStatus === 'Licensed' || rightsStatus === 'Public'
-          ? 'The source record is marked verified for rights metadata. Syllabus publication still needs academic approval.'
+          ? 'Authority, metadata and rights checks are recorded. Syllabus content still needs academic approval and curriculum publication.'
           : 'This source remains unavailable to student-facing views.'
       });
       setReviewOpen(false);
@@ -459,10 +478,15 @@ export default function Sources() {
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>Verification checks</Label>
+              <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={authorityChecked} onChange={(event) => setAuthorityChecked(event.target.checked)} className="mt-0.5" /> <span>Issuing authority and official domain independently matched.</span></label>
+              <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={metadataChecked} onChange={(event) => setMetadataChecked(event.target.checked)} className="mt-0.5" /> <span>Document title, version and academic-year metadata matched to the official page or PDF.</span></label>
+            </div>
+            <div className="space-y-2">
               <Label>Evidence and reviewer notes</Label>
               <Textarea value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} rows={4} placeholder="Record the official terms, licence, public-use basis, or reason for restriction…" />
             </div>
-            <p className="text-xs leading-5 text-muted-foreground">Marking rights as Licensed or Public verifies the rights metadata only. It does not approve the syllabus content or mark OCR as complete.</p>
+            <p className="text-xs leading-5 text-muted-foreground">Rights, authority and metadata checks are recorded separately. This does not approve syllabus topics, complete OCR, or publish a syllabus version.</p>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setReviewOpen(false)}>Cancel</Button>
