@@ -37,7 +37,7 @@ export default function KnowledgeGraphDiagnostics({ diagnostics, selfTests, onRu
       <section className="rounded-lg border border-border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="font-semibold">Graph rules self-test · 12 checks</h3>
+            <h3 className="font-semibold">Graph rules self-test (12 checks)</h3>
             <p className="mt-1 text-xs text-muted-foreground">Deterministic tests for cycle detection and relationship validation.</p>
           </div>
           <Button size="sm" variant="outline" onClick={onRunTests}>Run self-tests again</Button>
