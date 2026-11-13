@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { sdk } from '@/services/sdk';
+import { replaceSourcePdf } from '@/services/sourceUploadService';
 import { useFetch } from '@/hooks/useFetch';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/layouts/RootLayout';
 import { registerOfficialBaseline } from '@/services/academicRegistry';
 import { saveFirstPassSourceReview } from '@/services/sourceFirstPassReviewService';
-import { invalidateSourceDependents } from '@/services/sourceContentInvalidationService';
 import { fetchSourceAuthorities, fetchSourceDocuments, fetchSourceVersions } from '@/services/sourceRegistryService';
 import { SourceRightsDialog, SourceUploadDialog } from '@/components/sources/SourceDialogs';
 import SourceExtractionDialog from '@/components/sources/SourceExtractionDialog';
