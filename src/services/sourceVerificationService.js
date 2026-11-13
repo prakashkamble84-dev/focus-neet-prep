@@ -218,14 +218,10 @@ export async function completeIndependentSourceVerification({
   });
   if (!eligibility.valid) return { success: false, issues: eligibility.issues };
 
-  const alreadyVerified = (
-    version.ingestion_status_c === 'Verified' &&
-    document.verification_status_c === 'Verified' &&
-    document.ingestion_status_c === 'Complete'
-  );
-  if (alreadyVerified) return { success: true, alreadyVerified: true, auditLogged: true };
-
   const types = ['Rights', 'Authority', 'Metadata'];
+  const currentIndependent = [];
+  const currentIndependentReviewers = new Set();
+  const versionModifiedAt = version.ModifiedOn ? Date.parse(version.ModifiedOn) : 0;
 
   for (const type of types) {
     const latestPrimary = latestRecord(verifications.filter((row) => (
@@ -238,27 +234,37 @@ export async function completeIndependentSourceVerification({
       row.verification_type_c === type &&
       row.independent_check_c === true
     )));
-    const hasCurrentIndependent = latestIndependent?.decision_c === 'Verified' &&
-      recordTime(latestIndependent) >= recordTime(latestPrimary);
-    if (hasCurrentIndependent) continue;
-
-    const result = await sdk.table('source_verification_records_c').create({
-      Name: 'Independent ' + type.toLowerCase() + ' verification · ' + (version.official_title_c || version.Name),
-      document_version_c: version.Id,
-      verification_type_c: type,
-      decision_c: 'Verified',
-      reviewer_user_c: reviewerId,
-      verified_at_c: new Date().toISOString(),
-      verification_notes_c: String(checks.notes).trim() + (eligibility.domainIsMatched ? '' : ' Official authority site link to the registered CDN/host was independently confirmed.'),
-      independent_check_c: true
-    });
-    if (!result.data?.length) {
-      return {
-        success: false,
-        issues: [result.messages?.join('; ') || result.message || 'Could not save the independent ' + type.toLowerCase() + ' verification record.']
-      };
+    const isCurrent = latestIndependent?.decision_c === 'Verified' &&
+      recordTime(latestIndependent) >= recordTime(latestPrimary) &&
+      recordTime(latestIndependent) >= versionModifiedAt;
+    currentIndependent.push({ type, isCurrent });
+    if (isCurrent) {
+      const id = getLookupId(latestIndependent.reviewer_user_c);
+      if (id) currentIndependentReviewers.add(String(id));
     }
   }
+
+  if (currentIndependentReviewers.size > 1) {
+    return {
+      success: false,
+      issues: ['Current independent checks were completed by different reviewers. A single independent reviewer must complete all three checks.']
+    };
+  }
+  if (currentIndependentReviewers.size === 1 && !currentIndependentReviewers.has(String(reviewerId))) {
+    return {
+      success: false,
+      issues: ['A different reviewer has already completed part of the current independent verification. The same reviewer must finish all three checks.']
+    };
+  }
+
+  const alreadyVerified = (
+    version.ingestion_status_c === 'Verified' &&
+    document.verification_status_c === 'Verified' &&
+    document.ingestion_status_c === 'Complete' &&
+    currentIndependent.every((item) => item.isCurrent) &&
+    currentIndependentReviewers.has(String(reviewerId))
+  );
+  if (alreadyVerified) return { success: true, alreadyVerified: true, auditLogged: true };
 
   const versionResult = await sdk.table('source_document_versions_c').update({
     Id: version.Id,
@@ -268,7 +274,7 @@ export async function completeIndependentSourceVerification({
   if (!versionResult.data?.length) {
     return {
       success: false,
-      issues: [versionResult.messages?.join('; ') || versionResult.message || 'Independent checks were recorded, but the source version could not be marked Verified.']
+      issues: [versionResult.messages?.join('; ') || versionResult.message || 'The source version could not be finalised.']
     };
   }
 
@@ -289,6 +295,37 @@ export async function completeIndependentSourceVerification({
       success: false,
       issues: [documentResult.messages?.join('; ') || documentResult.message || 'The parent document could not be finalised. The source version was rolled back to Review.']
     };
+  }
+
+  for (const item of currentIndependent) {
+    if (item.isCurrent) continue;
+    const result = await sdk.table('source_verification_records_c').create({
+      Name: 'Independent ' + item.type.toLowerCase() + ' verification · ' + (version.official_title_c || version.Name),
+      document_version_c: version.Id,
+      verification_type_c: item.type,
+      decision_c: 'Verified',
+      reviewer_user_c: reviewerId,
+      verified_at_c: new Date().toISOString(),
+      verification_notes_c: String(checks.notes).trim() + (eligibility.domainIsMatched ? '' : ' Official authority site link to the registered CDN/host was independently confirmed.'),
+      independent_check_c: true
+    });
+    if (!result.data?.length) {
+      await Promise.all([
+        sdk.table('source_document_versions_c').update({
+          Id: version.Id,
+          ingestion_status_c: 'Review'
+        }),
+        sdk.table('source_documents_c').update({
+          Id: document.Id,
+          verification_status_c: 'Review',
+          ingestion_status_c: 'Extracted'
+        })
+      ]);
+      return {
+        success: false,
+        issues: [result.messages?.join('; ') || result.message || 'Could not save all independent checks. Source status was rolled back to Review; the first-pass review must be repeated before retrying.']
+      };
+    }
   }
 
   let auditLogged = false;
@@ -312,7 +349,7 @@ export async function completeIndependentSourceVerification({
     ]);
     return {
       success: false,
-      issues: ['The approval audit could not be recorded. Both source records were rolled back to Review.']
+      issues: ['The approval audit could not be recorded. Both source records were rolled back to Review, and first-pass verification must be repeated before retrying.']
     };
   }
 
