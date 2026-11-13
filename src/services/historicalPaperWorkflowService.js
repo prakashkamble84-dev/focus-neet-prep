@@ -86,6 +86,7 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
         'Name',
         'CreatedBy',
         'Owner',
+        'ModifiedOn',
         'examination_c',
         'academic_year_c',
         'source_registry_c',
@@ -167,6 +168,7 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
       .select([
         'Id',
         'Name',
+        'ModifiedOn',
         'source_document_c',
         'source_registry_c',
         'document_file_c',
@@ -247,6 +249,13 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
         return {
           success: false,
           message: 'Source first-pass and independent ' + type.toLowerCase() + ' reviews must be completed by different people.'
+        };
+      }
+      const latestSourceEdit = Math.max(timeValue(version), timeValue(document));
+      if (timeValue(primary) <= latestSourceEdit || timeValue(independent) <= latestSourceEdit) {
+        return {
+          success: false,
+          message: 'Source ' + type.toLowerCase() + ' reviews must be newer than the last source version or parent-document edit.'
         };
       }
 
@@ -337,7 +346,8 @@ export async function transitionHistoricalPaper(paper, nextStatus, reviewerId, r
         audit.decision_c === 'Verified' &&
         audit.independent_check_c === true &&
         String(getId(audit.reviewer_user_c) || '') === String(reviewerOfPage || '') &&
-        String(audit.verification_notes_c || '').includes('Extraction record ' + row.Id + '.')
+        String(audit.verification_notes_c || '').includes('Extraction record ' + row.Id + '.') &&
+        timeValue(audit) > timeValue(row)
       ));
 
       if (
