@@ -1,7 +1,17 @@
 import ModuleWorkspace from '@/components/ModuleWorkspace';
 
-export const route = { path: '/academic-review', layout: 'owner', access: 'authenticated' };
-export const nav = { label: 'Academic review', icon: 'ClipboardCheck', group: 'Governance', order: 120 };
+export const route = {
+  path: '/academic-review',
+  layout: 'owner',
+  access: "profile === 'CEO' || profile === 'Manager' || profile === 'AcademicExpert_c' || profile === 'ContentReviewer_c'"
+};
+export const nav = {
+  label: 'Academic review',
+  icon: 'ClipboardCheck',
+  group: 'Governance',
+  profiles: ['CEO', 'Manager', 'AcademicExpert_c', 'ContentReviewer_c'],
+  order: 120
+};
 
 export default function AcademicReview() {
   return (

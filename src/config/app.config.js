@@ -8,10 +8,10 @@
  */
 
 export const APP_CONFIG = {
-  name: 'MyApp',
-  tagline: 'Your app tagline here',
-  emoji: '🚀',
-  icon: 'Box',
+  name: 'Northstar',
+  tagline: 'Evidence-led JEE and NEET preparation',
+  emoji: '✦',
+  icon: 'GraduationCap',
 
   defaultTheme: 'system',
   defaultLoginRoute: '/login',
@@ -29,7 +29,7 @@ export const AUTH_PROFILES = null;
 export const GENERIC_AUTH = {
   loginTitle: 'Welcome back',
   signupTitle: 'Create account',
-  loginDescription: null,
-  signupDescription: null,
-  redirectAfterAuth: '/dashboard',
+  loginDescription: 'Continue your JEE Main, JEE Advanced, or NEET UG preparation.',
+  signupDescription: 'Set up a secure account for your exam preparation workspace.',
+  redirectAfterAuth: '/',
 };

@@ -5,8 +5,8 @@ export const route = { path: '/architecture', layout: 'owner', access: 'authenti
 export const nav = { label: 'Build roadmap', icon: 'Milestone', group: 'Governance', order: 130 };
 
 const phases = [
-  ['00', 'Product foundation', 'Application shell, onboarding, roles, and design system.', 'In progress'],
-  ['01', 'Database and security', 'Schema, backend services, RLS, permissions, and audit logs.', 'Not started'],
+  ['00', 'Product foundation', 'Application shell and module map are deployed; onboarding workflows remain to be implemented.', 'Shell deployed'],
+  ['01', 'Database and security', '28 custom tables, eight application profiles, permissions, and 124 RLS policies are provisioned; negative-access tests remain pending.', 'Schema provisioned'],
   ['02', 'Official sources and curriculum', 'Source registry, ingestion, syllabus versions, and exam rules.', 'Not started'],
   ['03', 'Knowledge graph', 'Concept identities, prerequisite edges, and mastery objectives.', 'Not started'],
   ['04', '30-year exam intelligence', 'Historical papers, OCR, DNA profiles, clustering, and crosswalks.', 'Not started'],
@@ -41,7 +41,7 @@ export default function Architecture() {
           <div>
             <p className="font-semibold">Current build status</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              The private application shell and roadmap are being established. The database is not connected, academic sources have not been ingested, and live AI generation is not enabled.
+              The backend schema is connected and provisioned with 28 custom tables, eight application profiles, and 124 row-level policies. Academic documents have not been ingested, role-negative access tests remain pending, and live AI generation is not enabled.
             </p>
           </div>
         </div>
@@ -55,7 +55,7 @@ export default function Architecture() {
               <p className="font-semibold">{phase[1]}</p>
               <p className="mt-1 text-sm text-muted-foreground">{phase[2]}</p>
             </div>
-            <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${index === 0 ? 'bg-warning/15 text-warning-foreground' : 'bg-muted text-muted-foreground'}`}>
+            <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${phase[3] === 'Schema provisioned' ? 'bg-success/10 text-success' : index === 0 ? 'bg-warning/15 text-warning-foreground' : 'bg-muted text-muted-foreground'}`}>
               {phase[3]}
             </span>
           </div>
