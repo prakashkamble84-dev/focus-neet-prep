@@ -12,7 +12,8 @@ export default function ModuleWorkspace({
   prerequisites = [],
   nextPath = '/',
   nextLabel = 'Return to dashboard',
-  note
+  note,
+  children
 }) {
   const tones = {
     active: 'border-success/30 bg-success/10 text-success',
@@ -84,6 +85,7 @@ export default function ModuleWorkspace({
           </div>
         </aside>
       </section>
+      {children}
     </div>
   );
 }
