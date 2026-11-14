@@ -2,9 +2,7 @@ import { sdk } from '@/services/sdk';
 
 const {
   eq,
-  and,
-  isIn,
-  hasValue
+  isIn
 } = window.ApperSDK.CoreSDK;
 
 const PROMPT_VERSION = 'northstar-question-generation-v1';
@@ -36,10 +34,6 @@ function lookupId(value) {
   return id === null || id === undefined ? '' : String(id);
 }
 
-function lookupName(value) {
-  return value && typeof value === 'object' ? value.Name || value.name || '' : '';
-}
-
 async function fetchRows(request, label) {
   const result = await request;
   if (!result.success) {
@@ -49,8 +43,23 @@ async function fetchRows(request, label) {
   return result.data || [];
 }
 
-async function fetchRecord(table, id, fields, label) {
-  const result = await sdk.table(table).select(fields).get(id);
+async function fetchRecord(tableName, id, fields, label) {
+  let request;
+  if (tableName === 'examinations_c') {
+    request = sdk.table('examinations_c').select(fields).get(id);
+  } else if (tableName === 'curriculum_nodes_c') {
+    request = sdk.table('curriculum_nodes_c').select(fields).get(id);
+  } else if (tableName === 'syllabus_versions_c') {
+    request = sdk.table('syllabus_versions_c').select(fields).get(id);
+  } else if (tableName === 'questions_c') {
+    request = sdk.table('questions_c').select(fields).get(id);
+  } else if (tableName === 'question_generation_batches_c') {
+    request = sdk.table('question_generation_batches_c').select(fields).get(id);
+  } else {
+    throw new Error('Unsupported generation record type: ' + tableName);
+  }
+
+  const result = await request;
   if (!result.success || !result.data) {
     throw new Error(result.message || label + ' could not be loaded.');
   }
