@@ -148,17 +148,20 @@ function similarity(a, b) {
   return overlap / (left.size + right.size - overlap);
 }
 
-function answer(value, type) {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-  if (["MCQ","Multi","Assert"].includes(type)) {
-    return raw.toUpperCase().split(/[,;+\s]+/).filter(Boolean).sort().join(",");
-  }
-  const numeric = raw.replace(/,/g,"");
-  if (/^[-+]?\d+(\.\d+)?([eE][-+]?\d+)?$/.test(numeric)) {
-    return "NUM:" + Number(numeric).toPrecision(12);
-  }
-  return raw.toLowerCase().replace(/\s+/g," ");
+function sameAnswer(left, right, type) {
+  const normalize = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    if (["MCQ","Multi","Assert"].includes(type)) {
+      return raw.toUpperCase().split(/[,;+\\s]+/).filter(Boolean).sort().join(",");
+    }
+    const numeric = raw.replace(/,/g,"");
+    if (/^[-+]?\\d+(\\.\\d+)?([eE][-+]?\\d+)?$/.test(numeric)) {
+      return "NUM:" + Number(numeric).toPrecision(12);
+    }
+    return raw.toLowerCase().replace(/\\s+/g," ");
+  };
+  return Boolean(normalize(left)) && normalize(left) === normalize(right);
 }
 
 function optionCheck(question, requestedType, requestedDifficulty) {
@@ -194,8 +197,8 @@ function optionCheck(question, requestedType, requestedDifficulty) {
   const expected = String(question.answerKey || "").toUpperCase().split(/[,;+\s]+/).filter(Boolean).sort();
   const actual = options.filter((option) => option.isCorrect === true).map((option) => String(option.label).toUpperCase()).sort();
   const match = expected.length > 0 && expected.length === actual.length && expected.every((value, index) => value === actual[index]);
-  if (requestedType === "MCQ" && actual.length !== 1) {
-    return { valid: false, details: "Single-correct MCQ requires exactly one correct option." };
+  if (["MCQ","Assert"].includes(requestedType) && actual.length !== 1) {
+    return { valid: false, details: "Single-correct MCQ and assertion/reason questions require exactly one correct option." };
   }
   if (requestedType === "Multi" && actual.length < 2) {
     return { valid: false, details: "Multiple-correct question requires at least two correct options." };
@@ -273,7 +276,7 @@ apper.serve(async (req) => {
       "Write original JEE Main, JEE Advanced or NEET UG practice questions for Northstar.",
       "Use only the provided exam and published syllabus concept. Do not copy, paraphrase or imitate the comparison questions. They exist only for duplicate detection.",
       "Question text must be self-contained, mathematically/scientifically coherent, unambiguous, and include all units and assumptions needed.",
-      "Respect the exact requested question format and difficulty. MCQ has exactly one correct answer; Multi has at least two correct answers; Numeric has no options and has a numerical key; Assert is assertion/reason style.",
+      "Respect the exact requested question format and difficulty. MCQ and Assert each have exactly one correct answer; Multi has at least two correct answers; Numeric has no options and has a numerical key; Assert is assertion/reason style.",
       "Create new questions, not historical-paper reproductions. Do not claim approval or verified status.",
       "Return concise solutions and an approach pattern.",
       "Brief:",
