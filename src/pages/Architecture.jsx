@@ -11,7 +11,7 @@ const phases = [
   ['03', 'Knowledge graph', 'Concept identities, prerequisite edges, and mastery objectives.', 'Not started'],
   ['04', '30-year exam intelligence', 'Historical papers, OCR, DNA profiles, clustering, and crosswalks.', 'Not started'],
   ['05', 'Question bank', 'Searchable published-question repository with examination filters, student-safe visibility, and answer-option inspection. The real corpus still depends on verified question records.', 'Workflow built'],
-  ['06', 'AI question generation', 'Authenticated Gemini endpoint, original-question authoring, blind independent solving, answer-key agreement, format-specific option integrity, syllabus/difficulty/clarity/ambiguity checks, semantic and lexical duplicate screening, persisted validation evidence, independent Academic Expert approval, and separate CEO/Manager publication. The server-side Gemini key value is not yet configured.', 'Workflow built · key pending'],
+  ['06', 'AI question generation', 'Authenticated Gemini endpoint, original-question authoring, blind independent solving, answer-key agreement, format-specific option integrity, syllabus/difficulty/clarity/ambiguity checks, semantic and lexical duplicate screening, persisted validation evidence, independent Academic Expert approval, and separate CEO/Manager publication. The Gemini secret is saved; the first successful generation run still needs verification against an eligible published, expert-verified Concept.', 'Credential saved · run pending'],
   ['07', 'Diagnostics and student profile', 'Baseline assessment, strengths, gaps, and learning preferences.', 'Not started'],
   ['08', 'AI teacher', 'Guided hints, explanations, Gemini integration, and evaluation.', 'Not started'],
   ['09', 'Adaptive practice', 'Next-question selection using mastery, prerequisites, and novelty.', 'Not started'],
@@ -41,7 +41,7 @@ export default function Architecture() {
           <div>
             <p className="font-semibold">Current build status</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              The Phase 2 source workflow is available. The published Question Bank and Phase 6 question-generation, validation and editorial approval workflows are deployed on the connected application. Live Gemini generation remains gated on entering GEMINI_API_KEY in server-side Secrets Manager. Verified exam baselines, syllabus coverage, real question corpus, human academic sign-offs, and role-negative security tests remain explicit release requirements.
+              The Phase 2 source workflow is available. The published Question Bank and Phase 6 question-generation, validation and editorial approval workflows are deployed on the connected application. GEMINI_API_KEY is saved in server-side Secrets Manager, and the deployed function now reads it through Apper's secret API. A successful live run is not yet confirmed; it also requires an eligible published, expert-verified Concept and an authenticated academic editor. Verified exam baselines, syllabus coverage, real question corpus, human academic sign-offs, and role-negative security tests remain explicit release requirements.
             </p>
           </div>
         </div>
@@ -55,7 +55,7 @@ export default function Architecture() {
               <p className="font-semibold">{phase[1]}</p>
               <p className="mt-1 text-sm text-muted-foreground">{phase[2]}</p>
             </div>
-            <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${phase[3].includes('key pending') || index === 0 ? 'bg-warning/15 text-warning-foreground' : phase[3] === 'Schema provisioned' || phase[3] === 'Workflow built' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
+            <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${phase[3].includes('pending') || index === 0 ? 'bg-warning/15 text-warning-foreground' : phase[3] === 'Schema provisioned' || phase[3] === 'Workflow built' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
               {phase[3]}
             </span>
           </div>

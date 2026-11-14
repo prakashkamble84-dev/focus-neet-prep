@@ -178,7 +178,7 @@ export default function QuestionGeneration() {
 
       if (!response?.success) {
         const message = providerError || response?.message ||
-          'The AI endpoint did not return a result. Check that GEMINI_API_KEY has a value in Apper Secrets Manager.';
+          'The AI endpoint did not return a result. Check the server-side Gemini credential, provider response and generation prerequisites.';
         await markQuestionGenerationBatchFailed(batch.Id, message);
         throw new Error(message);
       }
