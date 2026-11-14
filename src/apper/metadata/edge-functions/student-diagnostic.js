@@ -20,7 +20,7 @@ const lookupId = (value) => {
 const clean = (value, max = 1200) => String(value ?? "").trim().slice(0, max);
 
 const splitAnswer = (value) => {
-  const values = Array.isArray(value) ? value : String(value ?? "").split(/[,;+\\s]+/);
+  const values = Array.isArray(value) ? value : String(value ?? "").split(/[,;+\s]+/);
   return [...new Set(values.map((item) => String(item).trim().toUpperCase()).filter(Boolean))].sort();
 };
 
