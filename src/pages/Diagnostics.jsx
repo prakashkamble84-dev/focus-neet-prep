@@ -24,7 +24,8 @@ export const nav = {
   label: 'My profile & diagnostics',
   icon: 'ClipboardList',
   group: 'Start',
-  order: 5
+  order: 5,
+  profiles: ['User', 'User_c']
 };
 
 const EMPTY_FORM = {

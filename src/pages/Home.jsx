@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import ApperIcon from '@/components/ApperIcon';
+import { useProfile } from '@/hooks/useProfile';
 
 export const route = {
   path: '/',
@@ -20,6 +21,7 @@ const workspaces = [
   { title: '30-year intelligence', detail: 'Study historical papers, question DNA, and verified patterns.', icon: 'BrainCircuit', path: '/historical-intelligence', phase: 'Phase 4' },
   { title: 'Question bank', detail: 'Search published, answer-validated questions and inspect answer choices.', icon: 'Library', path: '/question-bank', phase: 'Phase 5' },
   { title: 'AI question generation', detail: 'Create original drafts with blind solving, quality checks and human release gates.', icon: 'WandSparkles', path: '/question-generation', phase: 'Phase 6' },
+  { title: 'Diagnostics & student profile', detail: 'Set exam goals, complete a verified baseline and build concept-level evidence.', icon: 'ClipboardList', path: '/diagnostics', phase: 'Phase 7', profiles: ['User', 'User_c'] },
   { title: 'AI teacher', detail: 'Work through doubts with guided, inspectable explanations.', icon: 'Bot', path: '/ai-tutor', phase: 'Phase 8' },
   { title: 'Adaptive practice', detail: 'Practise based on mastery, prerequisites, and mistake patterns.', icon: 'Target', path: '/practice', phase: 'Phase 9' },
   { title: 'Mistake DNA', detail: 'Find recurring error types and repair the underlying gaps.', icon: 'ScanSearch', path: '/mistake-dna', phase: 'Phase 10' },
@@ -37,6 +39,9 @@ const examTracks = [
 ];
 
 export default function Home() {
+  const { profile } = useProfile();
+  const visibleWorkspaces = workspaces.filter((item) => !item.profiles || item.profiles.includes(profile));
+
   return (
     <div className="space-y-8">
       <section className="relative overflow-hidden rounded-xl border border-border bg-card">
@@ -115,7 +120,7 @@ export default function Home() {
           <Link to="/architecture" className="text-sm font-semibold text-primary hover:underline">See all implementation phases</Link>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {workspaces.map((item) => (
+          {visibleWorkspaces.map((item) => (
             <Link key={item.title} to={item.path} className="group flex min-h-[150px] gap-4 rounded-lg border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-accent text-primary">
                 <ApperIcon name={item.icon} size={19} />
@@ -150,7 +155,7 @@ export default function Home() {
             <h2 className="font-mono text-base font-semibold">Implementation status</h2>
           </div>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Phase 2 source and curriculum workflows are available. The published Question Bank and Phase 6 generation, validation and approval screens are deployed. The server-side Gemini secret is registered and has a value; the runtime secret lookup has been corrected, but a live generation run still requires an eligible published, expert-verified syllabus Concept and an authenticated academic editor. Exam source baselines and human academic approvals remain data and governance work, not generated placeholders.
+            Phase 2 source and curriculum workflows are available. The published Question Bank and Phase 6 generation, validation and approval screens are deployed. The server-side Gemini secret is registered and has a value; the runtime secret lookup has been corrected, but a live generation run still requires an eligible published, expert-verified syllabus Concept and an authenticated academic editor. Phase 7 student profile and diagnostic workflows are now implemented; a signed-in student test is still required to verify saved attempts and mastery updates. Exam source baselines and human academic approvals remain data and governance work, not generated placeholders.
           </p>
           <Link to="/architecture" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-highlight hover:underline">Review what is and is not live <ApperIcon name="ArrowRight" size={15} /></Link>
         </div>
