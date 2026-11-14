@@ -210,12 +210,13 @@ apper.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: HEADERS });
   if (req.method !== "POST") return response(405, { success: false, message: "Use POST." });
 
-  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  const configuredKey = await apper.getSecret("GEMINI_API_KEY");
+  const apiKey = typeof configuredKey === "string" ? configuredKey.trim() : "";
   if (!apiKey) {
     return response(503, {
       success: false,
       code: "AI_PROVIDER_NOT_CONFIGURED",
-      message: "GEMINI_API_KEY has been registered but has no value yet. Enter it in Apper Secrets Manager."
+      message: "GEMINI_API_KEY is unavailable to the server function. Verify its value in Apper Secrets Manager."
     });
   }
 
