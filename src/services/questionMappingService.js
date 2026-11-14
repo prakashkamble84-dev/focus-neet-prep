@@ -79,7 +79,7 @@ async function recordMappingAudit(question, reviewerId, action, notes) {
     Name: 'Question concept mapping ' + action + ' · ' + question.Name,
     question_c: question.Id,
     review_type_c: 'Academic',
-    review_status_c: 'Changes',
+    review_status_c: action === 'verified' ? 'Approved' : 'Changes',
     reviewer_user_c: reviewerId,
     reviewed_at_c: new Date().toISOString(),
     review_notes_c: 'Action: mapping verification | ' + action + ' | ' + String(notes || '').trim()
@@ -261,7 +261,9 @@ export async function verifyQuestionConceptMapping({
         'confidence_c',
         'verified_c',
         'reviewer_user_c',
-        'status_c'
+        'status_c',
+        'CreatedBy',
+        'Owner'
       ])
       .get(mappingId);
 
@@ -276,6 +278,14 @@ export async function verifyQuestionConceptMapping({
 
     if (!['Draft', 'Review'].includes(mapping.status_c) || mapping.verified_c === true) {
       throw new Error('Only an unverified Draft or Review mapping can be approved.');
+    }
+
+    const mappingCreatorId = getId(mapping.CreatedBy) || getId(mapping.Owner);
+    if (!mappingCreatorId) {
+      throw new Error('The mapping creator identity is unavailable, so independent verification cannot be established.');
+    }
+    if (String(mappingCreatorId) === String(reviewerId)) {
+      throw new Error('The person who proposed this concept mapping cannot independently verify it.');
     }
 
     await readEligibleConcept(getId(mapping.curriculum_node_c));
