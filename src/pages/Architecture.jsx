@@ -6,11 +6,11 @@ export const nav = { label: 'Build roadmap', icon: 'Milestone', group: 'Governan
 
 const phases = [
   ['00', 'Product foundation', 'Application shell and module map are deployed; onboarding workflows remain to be implemented.', 'Shell deployed'],
-  ['01', 'Database and security', '37 custom tables, eight application profiles, permissions, and 160 RLS policies are provisioned; negative-access tests remain pending.', 'Schema provisioned'],
-  ['02', 'Official sources and curriculum', 'Authority registry, versioned source documents, private PDF upload, rights review, manual page-extraction records, exam-year rules, syllabus change history, 2026 JEE Main/NEET unit-outline import, and NTA-listed JEE Main 2027 source records. Baseline rows require an authorised registration action; automated OCR remains pending.', 'Workflow built'],
-  ['03', 'Knowledge graph', 'Concept identities, prerequisite edges, and mastery objectives.', 'Not started'],
-  ['04', '30-year exam intelligence', 'Historical papers, OCR, DNA profiles, clustering, and crosswalks.', 'Not started'],
-  ['05', 'Question bank', 'Versioned questions, answer keys, source mappings, and search.', 'Not started'],
+  ['01', 'Database and security', 'Core tables, application profiles, role permissions and row-level policies are provisioned. Negative-access verification and production hardening remain separate gates.', 'Schema provisioned'],
+  ['02', 'Official sources and curriculum', 'Authority registry, versioned source documents, private PDF upload, rights review, page-extraction records, exam-year rules, syllabus change history and curriculum import workflows. Official baseline registration and human verification remain required.', 'Workflow built'],
+  ['03', 'Knowledge graph', 'Concept identities, prerequisite relationships, verified curriculum nodes and question-to-concept mapping foundations are deployed. Actual syllabus coverage still depends on verified source imports.', 'Workflow built'],
+  ['04', '30-year exam intelligence', 'Historical PDF intake, native text extraction and OCR, question segmentation, answer-option correction, DNA classification, separate extraction/answer/rights/academic gates, archive discovery and evidence-filtered analytics. The historical paper corpus still requires acquisition and approval.', 'Workflow built'],
+  ['05', 'Question bank', 'Search and filters, student-safe published-question visibility, expandable answer choices, source/concept references, version snapshots and separately verified concept mappings are deployed. Population depends on governed question records.', 'Workflow built'],
   ['06', 'AI question generation', 'Original questions, independent solving, validation, and expert approval.', 'Not started'],
   ['07', 'Diagnostics and student profile', 'Baseline assessment, strengths, gaps, and learning preferences.', 'Not started'],
   ['08', 'AI teacher', 'Guided hints, explanations, Gemini integration, and evaluation.', 'Not started'],
@@ -41,7 +41,7 @@ export default function Architecture() {
           <div>
             <p className="font-semibold">Current build status</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              The backend has 37 custom tables, eight application profiles, and 160 row-level policies. Phase 2 source and curriculum workflows are built, but official baseline rows still require registration from the Sources page, PDFs require upload and review, and automated OCR is not connected. NTA's 2027 syllabus and bulletin listings are recorded as Discovered, with no 2027 topics imported. Role-negative access tests and live AI are still pending.
+              Phases 2–5 have deployed source and curriculum workflows, the knowledge graph, historical paper intake and review, and the searchable versioned question bank on the connected live database. This is software completion, not data completion: official baseline records, historical PDFs, source-rights evidence, verified curriculum coverage and genuine expert approvals still require governed registration and human review. Student diagnostics, assessments, live AI and production hardening remain later phases.
             </p>
           </div>
         </div>
