@@ -149,7 +149,7 @@ export default function Home() {
             <h2 className="font-mono text-base font-semibold">Implementation status</h2>
           </div>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Phases 2–5 now have deployed source and curriculum workflows, the knowledge graph, historical paper intake and review, and a searchable question bank with version history and governed concept mappings. Official source baselines, historical PDFs, rights evidence, curriculum coverage and genuine expert approvals still require data registration and human review. Student diagnostics, assessments, live AI and production hardening remain later phases.
+            The product shell and module map are being established first. Student records, official content ingestion, AI calls, assessments, and analytics are not enabled yet.
           </p>
           <Link to="/architecture" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-highlight hover:underline">Review what is and is not live <ApperIcon name="ArrowRight" size={15} /></Link>
         </div>

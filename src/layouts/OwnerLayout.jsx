@@ -7,7 +7,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { cn } from '@/lib/utils';
 
 export default function OwnerLayout() {
-  const { navItems = [], navGroups = [], displayName = 'Student' } = useOwnerLayoutData();
+  const { navItems = [], navGroups = [], displayName = 'Student', initials = 'ST' } = useOwnerLayoutData();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const items = useMemo(() => {

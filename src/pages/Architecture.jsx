@@ -5,12 +5,12 @@ export const route = { path: '/architecture', layout: 'owner', access: 'authenti
 export const nav = { label: 'Build roadmap', icon: 'Milestone', group: 'Governance', order: 130 };
 
 const phases = [
-  ['00', 'Product foundation', 'Application shell and module map are deployed; onboarding workflows remain to be implemented.', 'Shell deployed'],
-  ['01', 'Database and security', 'Core tables, application profiles, role permissions and row-level policies are provisioned. Negative-access verification and production hardening remain separate gates.', 'Schema provisioned'],
-  ['02', 'Official sources and curriculum', 'Authority registry, versioned source documents, private PDF upload, rights review, page-extraction records, exam-year rules, syllabus change history and curriculum import workflows. Official baseline registration and human verification remain required.', 'Workflow built'],
-  ['03', 'Knowledge graph', 'Concept identities, prerequisite relationships, verified curriculum nodes and question-to-concept mapping foundations are deployed. Actual syllabus coverage still depends on verified source imports.', 'Workflow built'],
-  ['04', '30-year exam intelligence', 'Historical PDF intake, native text extraction and OCR, question segmentation, answer-option correction, DNA classification, separate extraction/answer/rights/academic gates, archive discovery and evidence-filtered analytics. The historical paper corpus still requires acquisition and approval.', 'Workflow built'],
-  ['05', 'Question bank', 'Searchable examination question bank with exam, subject, format, difficulty, year and editorial filters; student-safe published content; validated option display; source and concept references; complete question, answer and mapping snapshots; immutable committed history; and independently verified concept mappings. Population depends on governed question records.', 'Workflow built'],
+  ['00', 'Product foundation', 'Application shell, onboarding, roles, and design system.', 'In progress'],
+  ['01', 'Database and security', 'Schema, backend services, RLS, permissions, and audit logs.', 'Not started'],
+  ['02', 'Official sources and curriculum', 'Source registry, ingestion, syllabus versions, and exam rules.', 'Not started'],
+  ['03', 'Knowledge graph', 'Concept identities, prerequisite edges, and mastery objectives.', 'Not started'],
+  ['04', '30-year exam intelligence', 'Historical papers, OCR, DNA profiles, clustering, and crosswalks.', 'Not started'],
+  ['05', 'Question bank', 'Versioned questions, answer keys, source mappings, and search.', 'Not started'],
   ['06', 'AI question generation', 'Original questions, independent solving, validation, and expert approval.', 'Not started'],
   ['07', 'Diagnostics and student profile', 'Baseline assessment, strengths, gaps, and learning preferences.', 'Not started'],
   ['08', 'AI teacher', 'Guided hints, explanations, Gemini integration, and evaluation.', 'Not started'],
@@ -41,7 +41,7 @@ export default function Architecture() {
           <div>
             <p className="font-semibold">Current build status</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Phases 2–5 have deployed source and curriculum workflows, the knowledge graph, historical paper intake and review, and the searchable versioned question bank on the connected live database. This is software completion, not data completion: official baseline records, historical PDFs, source-rights evidence, verified curriculum coverage and genuine expert approvals still require governed registration and human review. Student diagnostics, assessments, live AI and production hardening remain later phases.
+              The private application shell and roadmap are being established. The database is not connected, academic sources have not been ingested, and live AI generation is not enabled.
             </p>
           </div>
         </div>
@@ -55,7 +55,7 @@ export default function Architecture() {
               <p className="font-semibold">{phase[1]}</p>
               <p className="mt-1 text-sm text-muted-foreground">{phase[2]}</p>
             </div>
-            <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${phase[3] === 'Schema provisioned' || phase[3] === 'Workflow built' ? 'bg-success/10 text-success' : index === 0 ? 'bg-warning/15 text-warning-foreground' : 'bg-muted text-muted-foreground'}`}>
+            <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${index === 0 ? 'bg-warning/15 text-warning-foreground' : 'bg-muted text-muted-foreground'}`}>
               {phase[3]}
             </span>
           </div>
