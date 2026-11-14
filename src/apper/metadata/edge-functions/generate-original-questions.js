@@ -153,13 +153,13 @@ function sameAnswer(left, right, type) {
     const raw = String(value || "").trim();
     if (!raw) return "";
     if (["MCQ","Multi","Assert"].includes(type)) {
-      return raw.toUpperCase().split(/[,;+\\s]+/).filter(Boolean).sort().join(",");
+      return raw.toUpperCase().split(/[,;+ ]+/).filter(Boolean).sort().join(",");
     }
     const numeric = raw.replace(/,/g,"");
-    if (/^[-+]?\\d+(\\.\\d+)?([eE][-+]?\\d+)?$/.test(numeric)) {
+    if (/^[-+]?[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$/.test(numeric)) {
       return "NUM:" + Number(numeric).toPrecision(12);
     }
-    return raw.toLowerCase().replace(/\\s+/g," ");
+    return raw.toLowerCase().replace(/ +/g," ");
   };
   return Boolean(normalize(left)) && normalize(left) === normalize(right);
 }
