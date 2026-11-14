@@ -7,14 +7,12 @@ import { useFunction } from '@/hooks/useFunction';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/layouts/RootLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import ApperIcon from '@/components/ApperIcon';
+import StudentProfileCard from '@/components/diagnostics/StudentProfileCard';
+import DiagnosticEvidencePanel from '@/components/diagnostics/DiagnosticEvidencePanel';
+import DiagnosticQuestionPanel from '@/components/diagnostics/DiagnosticQuestionPanel';
+import DiagnosticResultPanel from '@/components/diagnostics/DiagnosticResultPanel';
 
 export const route = {
   path: '/diagnostics',
@@ -29,7 +27,6 @@ export const nav = {
   order: 5
 };
 
-const EXAM_TARGETS = ['JEE Main', 'JEE Adv', 'NEET UG'];
 const EMPTY_FORM = {
   examTargets: [],
   targetExamYear: '2027',
@@ -152,111 +149,7 @@ async function fetchStudentWorkspace(studentUserId) {
   };
 }
 
-function formatExamTarget(value) {
-  return value === 'JEE Adv' ? 'JEE Advanced' : value;
-}
-
-function ScoreSummary({ result }) {
-  return (
-    <Card className="border-primary/30">
-      <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <CardTitle className="text-lg">Baseline result</CardTitle>
-            <CardDescription>
-              Based on the published, answer-verified questions completed in this session.
-            </CardDescription>
-          </div>
-          <Badge variant="secondary">Saved to your profile</Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="grid gap-3 sm:grid-cols-4">
-          <div className="rounded-lg bg-muted/30 p-3">
-            <p className="text-xs text-muted-foreground">Score</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">
-              {result.percentage === null ? '—' : Math.round(result.percentage) + '%'}
-            </p>
-          </div>
-          <div className="rounded-lg bg-muted/30 p-3">
-            <p className="text-xs text-muted-foreground">Correct</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">{result.correctCount}</p>
-          </div>
-          <div className="rounded-lg bg-muted/30 p-3">
-            <p className="text-xs text-muted-foreground">Incorrect</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">{result.incorrectCount}</p>
-          </div>
-          <div className="rounded-lg bg-muted/30 p-3">
-            <p className="text-xs text-muted-foreground">Unattempted</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">{result.unattemptedCount}</p>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">Marks awarded</span>
-            <span className="font-mono tabular-nums">{Number(result.score || 0).toFixed(2)} / {Number(result.maximumScore || 0).toFixed(2)}</span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-primary transition-all"
-              style={{ width: Math.max(0, Math.min(100, Number(result.percentage || 0))) + '%' }}
-            />
-          </div>
-        </div>
-
-        {result.mastery?.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold">Concept evidence updated</h3>
-            <div className="divide-y divide-border rounded-lg border border-border">
-              {result.mastery.map((item) => (
-                <div key={item.conceptId} className="flex flex-wrap items-center justify-between gap-2 p-3">
-                  <div>
-                    <p className="text-sm font-medium">{item.conceptName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.correctCount} correct of {item.attemptCount} recorded attempts
-                    </p>
-                  </div>
-                  <Badge variant="outline">{item.status}</Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {result.masteryWarnings?.length > 0 && (
-          <p className="text-xs text-warning-foreground">
-            Some attempt records were saved, but a mastery summary could not be updated for every concept: {result.masteryWarnings.join(' ')}
-          </p>
-        )}
-
-        <div className="space-y-3 border-t border-border pt-4">
-          <h3 className="text-sm font-semibold">Answer review</h3>
-          {result.feedback?.map((item, index) => (
-            <div key={item.questionId} className="rounded-lg border border-border p-3">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <p className="text-sm font-medium">{index + 1}. {item.questionName}</p>
-                {item.answered
-                  ? <Badge variant={item.correct ? 'secondary' : 'destructive'}>{item.correct ? 'Correct' : 'Incorrect'}</Badge>
-                  : <Badge variant="outline">Not attempted</Badge>}
-              </div>
-              {item.answered && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Your answer: {item.submittedAnswer || '—'} · Correct answer: {item.correctAnswer || 'Not available'}
-                </p>
-              )}
-              {item.solution && (
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{item.solution}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-export default function Diagnostics() {
+export default function Diagnostics() {export default function Diagnostics() {
   const { profile } = useProfile();
   const { user } = useAuth();
   const [refreshRevision, setRefreshRevision] = useState(0);
@@ -528,259 +421,27 @@ export default function Diagnostics() {
       ) : (
         <>
           <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Preparation profile</CardTitle>
-                <CardDescription>
-                  These details personalise your study plan. School or coaching details and learning preferences are optional.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-4" onSubmit={saveProfile}>
-                  <fieldset className="space-y-2">
-                    <legend className="text-sm font-medium">Target examinations</legend>
-                    <div className="grid gap-2 sm:grid-cols-3">
-                      {EXAM_TARGETS.map((target) => (
-                        <label key={target} className="flex min-h-11 items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-accent/60">
-                          <Checkbox
-                            checked={form.examTargets.includes(target)}
-                            onCheckedChange={(checked) => toggleExamTarget(target, checked === true)}
-                          />
-                          <span>{formatExamTarget(target)}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
+            <StudentProfileCard
+              form={form}
+              updateForm={updateForm}
+              toggleExamTarget={toggleExamTarget}
+              saveProfile={saveProfile}
+              savingProfile={savingProfile}
+            />
 
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="profile-exam-year">Target examination year</Label>
-                      <Input
-                        id="profile-exam-year"
-                        type="number"
-                        min="2026"
-                        max="2040"
-                        step="1"
-                        value={form.targetExamYear}
-                        onChange={(event) => updateForm('targetExamYear', event.target.value)}
-                        placeholder="2027"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="profile-class-level">Academic level</Label>
-                      <select
-                        id="profile-class-level"
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                        value={form.classLevel}
-                        onChange={(event) => updateForm('classLevel', event.target.value)}
-                      >
-                        <option value="">Choose your level</option>
-                        <option value="11">Class 11</option>
-                        <option value="12">Class 12</option>
-                        <option value="Dropper">Dropper</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="profile-language">Preferred language</Label>
-                      <select
-                        id="profile-language"
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                        value={form.preferredLanguage}
-                        onChange={(event) => updateForm('preferredLanguage', event.target.value)}
-                      >
-                        <option value="English">English</option>
-                        <option value="Hindi">Hindi</option>
-                        <option value="Marathi">Marathi</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="profile-hours">Study hours available per day</Label>
-                      <Input
-                        id="profile-hours"
-                        type="number"
-                        min="0.5"
-                        max="16"
-                        step="0.5"
-                        value={form.availableHours}
-                        onChange={(event) => updateForm('availableHours', event.target.value)}
-                        placeholder="4"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="profile-stage">Preparation stage</Label>
-                      <select
-                        id="profile-stage"
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                        value={form.preparationStage}
-                        onChange={(event) => updateForm('preparationStage', event.target.value)}
-                      >
-                        <option value="">Choose stage</option>
-                        <option value="Starting">Starting</option>
-                        <option value="Building">Building</option>
-                        <option value="Revision">Revision</option>
-                        <option value="Final">Final revision</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="profile-level">Current preparation level</Label>
-                      <select
-                        id="profile-level"
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                        value={form.currentLevel}
-                        onChange={(event) => updateForm('currentLevel', event.target.value)}
-                      >
-                        <option value="">Choose level</option>
-                        <option value="Beginner">Beginner</option>
-                        <option value="Intermediate">Intermediate</option>
-                        <option value="Advanced">Advanced</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="profile-coaching">School or coaching (optional)</Label>
-                    <Input
-                      id="profile-coaching"
-                      value={form.schoolOrCoaching}
-                      onChange={(event) => updateForm('schoolOrCoaching', event.target.value)}
-                      placeholder="Optional"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="profile-preferences">Learning preferences (optional)</Label>
-                    <Textarea
-                      id="profile-preferences"
-                      rows={3}
-                      value={form.learningPreferences}
-                      onChange={(event) => updateForm('learningPreferences', event.target.value)}
-                      placeholder="For example: worked examples first, then timed practice."
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-                    <p className="max-w-md text-xs leading-5 text-muted-foreground">
-                      Your profile and learning records are scoped to your student account by the database access policies.
-                    </p>
-                    <Button type="submit" disabled={savingProfile}>
-                      {savingProfile
-                        ? <><ApperIcon name="LoaderCircle" size={15} className="mr-2 animate-spin" />Saving profile…</>
-                        : <><ApperIcon name="Save" size={15} className="mr-2" />Save profile</>}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Your diagnostic evidence</CardTitle>
-                  <CardDescription>
-                    Only submitted answers are counted. Skipped questions do not become false mistakes.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-3">
-                  <div className="rounded-lg bg-muted/30 p-3">
-                    <p className="text-xs text-muted-foreground">Recorded answers</p>
-                    <p className="mt-1 text-2xl font-semibold tabular-nums">{attempts.length}</p>
-                  </div>
-                  <div className="rounded-lg bg-muted/30 p-3">
-                    <p className="text-xs text-muted-foreground">Historical accuracy</p>
-                    <p className="mt-1 text-2xl font-semibold tabular-nums">
-                      {diagnosticAccuracy === null ? '—' : diagnosticAccuracy + '%'}
-                    </p>
-                  </div>
-                  <div className="col-span-2 border-t border-border pt-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">Concept mastery signals</p>
-                      <Badge variant="outline">{mastery.length} tracked</Badge>
-                    </div>
-                    {mastery.length ? (
-                      <div className="mt-3 space-y-2">
-                        {mastery.slice(0, 5).map((item) => (
-                          <div key={item.Id} className="flex items-center justify-between gap-2 text-sm">
-                            <span className="min-w-0 truncate">{item.curriculum_node_c?.Name || 'Curriculum concept'}</span>
-                            <span className="shrink-0 text-xs text-muted-foreground">
-                              {Math.round(Number(item.mastery_score_c || 0) * 100)}% · {item.mastery_status_c}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                        No concept evidence yet. Your first completed diagnostic will start the mastery record.
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Start a baseline diagnostic</CardTitle>
-                  <CardDescription>
-                    Up to ten questions, sampled from your selected examination's published, answer-verified and rights-cleared question set.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="diagnostic-examination">Examination</Label>
-                    <select
-                      id="diagnostic-examination"
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                      value={selectedExamId}
-                      onChange={(event) => {
-                        setSelectedExamId(event.target.value);
-                        setAssessment(null);
-                        setResult(null);
-                      }}
-                      disabled={!formReady || diagnosticLoading || eligibleExams.length === 0}
-                    >
-                      <option value="">Select a target examination</option>
-                      {eligibleExams.map((exam) => (
-                        <option key={exam.Id} value={exam.Id}>{exam.Name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {!formReady && (
-                    <p className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs leading-5 text-warning-foreground">
-                      Save your profile with a target examination and target year first. The baseline is then unlocked.
-                    </p>
-                  )}
-
-                  {formReady && !eligibleExams.length && (
-                    <p className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs leading-5 text-warning-foreground">
-                      No active examination record matches your selected targets yet. Ask an administrator to verify the examination setup.
-                    </p>
-                  )}
-
-                  <Button
-                    type="button"
-                    className="w-full"
-                    onClick={startDiagnostic}
-                    disabled={!formReady || !selectedExamId || diagnosticLoading || !eligibleExams.length}
-                  >
-                    {diagnosticLoading
-                      ? <><ApperIcon name="LoaderCircle" size={15} className="mr-2 animate-spin" />Preparing diagnostic…</>
-                      : <><ApperIcon name="ClipboardCheck" size={15} className="mr-2" />Start baseline diagnostic</>}
-                  </Button>
-
-                  <p className="text-xs leading-5 text-muted-foreground">
-                    Your answer key stays server-side until you submit. The diagnostic is a starting measurement, not a predicted rank or a final judgement of ability.
-                  </p>
-                  <div className="border-t border-border pt-3">
-                    <Link to="/question-bank" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-                      Browse published question bank
-                      <ApperIcon name="ArrowUpRight" size={13} />
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <DiagnosticEvidencePanel
+              attempts={attempts}
+              mastery={mastery}
+              diagnosticAccuracy={diagnosticAccuracy}
+              formReady={formReady}
+              eligibleExams={eligibleExams}
+              selectedExamId={selectedExamId}
+              setSelectedExamId={setSelectedExamId}
+              setAssessment={setAssessment}
+              setResult={setResult}
+              startDiagnostic={startDiagnostic}
+              diagnosticLoading={diagnosticLoading}
+            />
           </div>
 
           {diagnosticError && !assessment && !result && (
@@ -790,141 +451,33 @@ export default function Diagnostics() {
           )}
 
           {assessment && (
-            <Card>
-              <CardHeader>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-lg">Baseline assessment</CardTitle>
-                    <CardDescription>
-                      {assessment.questionCount} questions · {assessment.availableQuestionPool} eligible questions in the published bank
-                    </CardDescription>
-                  </div>
-                  <Badge variant="outline">{answeredCount} of {assessment.questionCount} answered</Badge>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all"
-                    style={{ width: (answeredCount / Math.max(1, assessment.questionCount)) * 100 + '%' }}
-                  />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {assessment.questions.map((question) => {
-                  const questionAnswer = answers[question.id];
-                  const selectedValues = Array.isArray(questionAnswer) ? questionAnswer : [];
-                  const answered = Array.isArray(questionAnswer)
-                    ? questionAnswer.length > 0
-                    : String(questionAnswer || '').trim().length > 0;
-
-                  return (
-                    <section key={question.id} className="space-y-3 border-b border-border pb-5 last:border-b-0 last:pb-0">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <p className="font-semibold">Question {question.number}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {question.subject || 'Subject not mapped'} · {question.conceptName} · {question.difficulty} · {question.maximumMarks} marks
-                          </p>
-                        </div>
-                        <Badge variant={answered ? 'secondary' : 'outline'}>
-                          {question.questionType === 'Multi' ? 'Multiple correct' : question.questionType}
-                        </Badge>
-                      </div>
-
-                      <p className="whitespace-pre-wrap text-sm leading-6">{question.questionText}</p>
-
-                      {question.questionType === 'Numeric' ? (
-                        <div className="max-w-sm space-y-1.5">
-                          <Label htmlFor={'answer-' + question.id}>Numerical answer</Label>
-                          <Input
-                            id={'answer-' + question.id}
-                            inputMode="decimal"
-                            value={String(questionAnswer || '')}
-                            onChange={(event) => setSingleAnswer(question.id, event.target.value)}
-                            placeholder="Enter your answer"
-                          />
-                        </div>
-                      ) : question.options.length ? (
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          {question.options.map((option) => {
-                            const selected = question.questionType === 'Multi'
-                              ? selectedValues.includes(option.label)
-                              : questionAnswer === option.label;
-
-                            return (
-                              <button
-                                key={option.label}
-                                type="button"
-                                aria-pressed={selected}
-                                onClick={() => question.questionType === 'Multi'
-                                  ? toggleMultipleAnswer(question.id, option.label, !selected)
-                                  : setSingleAnswer(question.id, option.label)}
-                                className={'flex min-h-12 items-start gap-3 rounded-md border p-3 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ' + (
-                                  selected ? 'border-primary bg-accent' : 'border-border hover:bg-accent/50'
-                                )}
-                              >
-                                <span className="font-mono font-semibold">{option.label}.</span>
-                                <span className="whitespace-pre-wrap">{option.text}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning-foreground">
-                          No published answer options are available for this question. Skip it and flag it for editorial review.
-                        </p>
-                      )}
-
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Label htmlFor={'confidence-' + question.id} className="text-xs text-muted-foreground">How confident are you?</Label>
-                        <select
-                          id={'confidence-' + question.id}
-                          className="h-9 rounded-md border border-input bg-background px-2 text-xs"
-                          value={confidence[question.id] || 'Medium'}
-                          onChange={(event) => setConfidence((current) => ({ ...current, [question.id]: event.target.value }))}
-                        >
-                          <option value="Low">Low</option>
-                          <option value="Medium">Medium</option>
-                          <option value="High">High</option>
-                        </select>
-                      </div>
-                    </section>
-                  );
-                })}
-
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-                  <p className="max-w-xl text-xs leading-5 text-muted-foreground">
-                    You can leave questions unanswered. Only questions you answer become attempt records; skipped questions are counted separately.
-                  </p>
-                  <Button type="button" onClick={submitDiagnostic} disabled={diagnosticLoading || answeredCount === 0}>
-                    {diagnosticLoading
-                      ? <><ApperIcon name="LoaderCircle" size={15} className="mr-2 animate-spin" />Evaluating…</>
-                      : <><ApperIcon name="CheckCircle2" size={15} className="mr-2" />Submit diagnostic</>}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <DiagnosticQuestionPanel
+              assessment={assessment}
+              answers={answers}
+              confidence={confidence}
+              answeredCount={answeredCount}
+              setSingleAnswer={setSingleAnswer}
+              toggleMultipleAnswer={toggleMultipleAnswer}
+              setConfidence={setConfidence}
+              submitDiagnostic={submitDiagnostic}
+              diagnosticLoading={diagnosticLoading}
+            />
           )}
 
           {result && (
-            <div className="space-y-3">
-              <ScoreSummary result={result} />
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" onClick={() => {
-                  setResult(null);
-                  setAnswers({});
-                  setConfidence({});
-                }}>
-                  Run another baseline
-                </Button>
-                <Button type="button" variant="outline" onClick={() => {
-                  setResult(null);
-                  setAssessment(null);
-                  setRefreshRevision((value) => value + 1);
-                }}>
-                  Return to profile
-                </Button>
-              </div>
-            </div>
+            <DiagnosticResultPanel
+              result={result}
+              onRunAnother={() => {
+                setResult(null);
+                setAnswers({});
+                setConfidence({});
+              }}
+              onReturn={() => {
+                setResult(null);
+                setAssessment(null);
+                setRefreshRevision((value) => value + 1);
+              }}
+            />
           )}
         </>
       )}
