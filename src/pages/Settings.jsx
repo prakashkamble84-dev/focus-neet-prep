@@ -31,13 +31,23 @@ async function fetchLanguagePreference(studentUserId) {
 
   const { eq } = window.ApperSDK.CoreSDK;
   const res = await sdk.table('student_profiles_c')
-    .select(['Id', 'Name', 'preferred_language_c'])
+    .select(['Id', 'Name', 'preferred_language_c', 'exam_targets_c', 'target_exam_year_c', 'onboarding_completed_c'])
     .where(eq('student_user_c', studentUserId))
     .limit(1, 0)
     .fetch();
 
   if (!res.success) throw new Error(res.message);
   return res.data?.[0] ?? null;
+}
+
+function getOnboardingSteps(studentProfile) {
+  return [
+    { label: 'Student profile created', done: Boolean(studentProfile) },
+    { label: 'Exam target chosen', done: Boolean(studentProfile?.exam_targets_c) },
+    { label: 'Target exam year set', done: Boolean(studentProfile?.target_exam_year_c) },
+    { label: 'Preferred language set', done: Boolean(studentProfile?.preferred_language_c) },
+    { label: 'Onboarding completed', done: studentProfile?.onboarding_completed_c === true }
+  ];
 }
 
 export default function Settings() {
@@ -117,6 +127,28 @@ export default function Settings() {
           Choose the language your AI teacher and study materials use for explanations. Changes apply to your student profile.
         </p>
       </div>
+
+      <section className="max-w-xl space-y-4 rounded-lg border border-border bg-card p-5 sm:p-7">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-base font-semibold">Getting started</h2>
+          <span className="font-mono text-xs font-semibold text-muted-foreground tabular-nums">
+            {getOnboardingSteps(studentProfile).filter((step) => step.done).length} of {getOnboardingSteps(studentProfile).length} done
+          </span>
+        </div>
+        <ul className="divide-y divide-border">
+          {getOnboardingSteps(studentProfile).map((step) => (
+            <li key={step.label} className="flex items-center gap-3 py-2 text-sm">
+              <ApperIcon name={step.done ? 'CheckCircle2' : 'Circle'} size={16} className={step.done ? 'shrink-0 text-success' : 'shrink-0 text-muted-foreground'} />
+              <span className={step.done ? 'min-w-0' : 'min-w-0 text-muted-foreground'}>{step.label}</span>
+            </li>
+          ))}
+        </ul>
+        {!studentProfile?.onboarding_completed_c && (
+          <Button asChild size="sm">
+            <Link to="/diagnostics">Complete my student profile</Link>
+          </Button>
+        )}
+      </section>
 
       {!studentProfile ? (
         <div className="flex max-w-xl flex-col gap-3 rounded-lg border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
