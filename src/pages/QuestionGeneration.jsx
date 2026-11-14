@@ -284,6 +284,11 @@ export default function QuestionGeneration() {
                     onChange={(value) => {
                       setExaminationId(value);
                       setConceptId('');
+                      const nextExam = examinations.find((exam) => String(exam.Id) === String(value));
+                      const nextSubjects = nextExam?.exam_type_c && String(nextExam.exam_type_c).toLowerCase().includes('neet')
+                        ? SUBJECTS.neet
+                        : SUBJECTS.jee;
+                      setSubject((current) => nextSubjects.includes(current) ? current : nextSubjects[0]);
                     }}
                     options={examinations.map((exam) => ({
                       value: String(exam.Id),
@@ -355,6 +360,7 @@ export default function QuestionGeneration() {
                       step="1"
                       value={count}
                       onChange={(event) => setCount(event.target.value)}
+                      placeholder="1"
                       disabled={submitting}
                     />
                   </div>
@@ -367,6 +373,7 @@ export default function QuestionGeneration() {
                       step="0.5"
                       value={maximumMarks}
                       onChange={(event) => setMaximumMarks(event.target.value)}
+                      placeholder="4"
                       disabled={submitting}
                     />
                   </div>
@@ -379,6 +386,7 @@ export default function QuestionGeneration() {
                       step="0.25"
                       value={negativeMarks}
                       onChange={(event) => setNegativeMarks(event.target.value)}
+                      placeholder="0"
                       disabled={submitting}
                     />
                   </div>
