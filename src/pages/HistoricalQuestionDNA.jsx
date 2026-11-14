@@ -14,6 +14,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import ApperIcon from '@/components/ApperIcon';
 import { saveHistoricalQuestionDNA } from '@/services/historicalQuestionDNAService';
 import { saveHistoricalQuestionOptions } from '@/services/historicalQuestionOptionReviewService';
+import QuestionBankGovernancePanel from '@/components/question-bank/QuestionBankGovernancePanel';
+import {
+  beginQuestionVersion,
+  finalizeQuestionVersion
+} from '@/services/questionVersionService';
 import {
   fetchHistoricalQuestionReviewData,
   recordHistoricalQuestionReview
@@ -65,6 +70,7 @@ export default function HistoricalQuestionDNA() {
   const [decision, setDecision] = useState('Approved');
   const [saving, setSaving] = useState(false);
   const [activeAction, setActiveAction] = useState('');
+  const [governanceRevision, setGovernanceRevision] = useState(0);
 
   useEffect(() => {
     if (!question) return;
@@ -98,16 +104,41 @@ export default function HistoricalQuestionDNA() {
   async function saveDNA() {
     setSaving(true);
     setActiveAction('dna');
+    let version;
     try {
+      version = await beginQuestionVersion({
+        question,
+        changeKind: 'Classification',
+        reason: 'Question DNA classification updated by ' + profile + '.',
+        reviewerId: user?.userId
+      });
+
+      if (!version.success) {
+        toast.error('Question version could not be started', { description: version.message });
+        return;
+      }
+
       const result = await saveHistoricalQuestionDNA(question, form, user?.userId, profile, data?.options || []);
       if (!result.success) {
+        await finalizeQuestionVersion(version.versionId, 'Abandoned');
         toast.error('Question DNA was not saved', { description: result.message });
         return;
       }
-      toast.success('Question DNA saved. The question remains in Review.');
+
+      const finalised = await finalizeQuestionVersion(version.versionId, 'Committed');
+      if (finalised.success) {
+        toast.success('Question DNA saved and version ' + version.versionNumber + ' committed.');
+      } else {
+        toast.warning('Question DNA saved, but its version snapshot remains pending.', { description: finalised.message });
+      }
+
+      setGovernanceRevision((current) => current + 1);
       setReviewNotes('');
       await run();
     } catch (saveError) {
+      if (version?.versionId) {
+        await finalizeQuestionVersion(version.versionId, 'Abandoned');
+      }
       toast.error('Question DNA update failed', { description: saveError.message });
     } finally {
       setSaving(false);
@@ -138,7 +169,20 @@ export default function HistoricalQuestionDNA() {
     }
     setSaving(true);
     setActiveAction('options');
+    let version;
     try {
+      version = await beginQuestionVersion({
+        question,
+        changeKind: 'Answer',
+        reason: reviewNotes,
+        reviewerId: user?.userId
+      });
+
+      if (!version.success) {
+        toast.error('Question version could not be started', { description: version.message });
+        return;
+      }
+
       const result = await saveHistoricalQuestionOptions({
         question,
         existingOptions: data.options || [],
@@ -148,15 +192,27 @@ export default function HistoricalQuestionDNA() {
         notes: reviewNotes
       });
       if (!result.success) {
+        await finalizeQuestionVersion(version.versionId, 'Abandoned');
         toast.error('Option corrections were not saved', { description: result.message });
         return;
       }
-      toast.success(result.message);
+
+      const finalised = await finalizeQuestionVersion(version.versionId, 'Committed');
+      if (finalised.success) {
+        toast.success(result.message + ' Version ' + version.versionNumber + ' committed.');
+      } else {
+        toast.warning('Options were saved, but their version snapshot remains pending.', { description: finalised.message });
+      }
+
+      setGovernanceRevision((current) => current + 1);
       setReviewNotes('');
       setAnswerKey('');
       setSolution('');
       await run();
     } catch (optionError) {
+      if (version?.versionId) {
+        await finalizeQuestionVersion(version.versionId, 'Abandoned');
+      }
       toast.error('Option correction failed', { description: optionError.message });
     } finally {
       setSaving(false);
@@ -172,7 +228,30 @@ export default function HistoricalQuestionDNA() {
 
     setSaving(true);
     setActiveAction(action);
+    let version;
     try {
+      if (canEdit) {
+        const changeKind = action === 'answer'
+          ? 'Answer'
+          : action === 'copyright'
+            ? 'Source'
+            : action === 'academic' || action === 'publish'
+              ? 'Publication'
+              : 'Content';
+
+        version = await beginQuestionVersion({
+          question,
+          changeKind,
+          reason: reviewNotes,
+          reviewerId: user?.userId
+        });
+
+        if (!version.success) {
+          toast.error('Question version could not be started', { description: version.message });
+          return;
+        }
+      }
+
       const result = await recordHistoricalQuestionReview({
         question,
         paper: data.paper,
@@ -191,14 +270,29 @@ export default function HistoricalQuestionDNA() {
       });
 
       if (!result.success) {
+        if (version?.versionId) {
+          await finalizeQuestionVersion(version.versionId, 'Abandoned');
+        }
         toast.error('Review action blocked', { description: result.message });
         return;
+      }
+
+      if (version?.versionId) {
+        const finalised = await finalizeQuestionVersion(version.versionId, 'Committed');
+        if (finalised.success) {
+          setGovernanceRevision((current) => current + 1);
+        } else {
+          toast.warning('Review action saved, but its version snapshot remains pending.', { description: finalised.message });
+        }
       }
 
       toast.success(result.message || 'Review decision recorded.');
       setReviewNotes('');
       await run();
     } catch (reviewError) {
+      if (version?.versionId) {
+        await finalizeQuestionVersion(version.versionId, 'Abandoned');
+      }
       toast.error('Question review failed', { description: reviewError.message });
     } finally {
       setSaving(false);
@@ -375,6 +469,13 @@ export default function HistoricalQuestionDNA() {
               )}
             </CardContent>
           </Card>
+
+          <QuestionBankGovernancePanel
+            question={question}
+            profile={profile}
+            userId={user?.userId}
+            refreshKey={governanceRevision}
+          />
 
           <Card>
             <CardHeader>
