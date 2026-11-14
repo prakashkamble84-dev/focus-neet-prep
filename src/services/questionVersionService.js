@@ -47,17 +47,41 @@ async function readQuestionRows(tableName, fields, questionId, label) {
     throw new Error('Unsupported question snapshot dependency: ' + tableName);
   }
 
-  const result = await table
-    .select(fields)
-    .where(eq('question_c', questionId))
-    .limit(250, 0)
-    .fetch();
+  const rows = [];
+  const maxRows = 10000;
+  let offset = 0;
 
-  if (!result.success) {
-    throw new Error(result.message || label + ' could not be captured.');
+  while (offset < maxRows) {
+    const requestLimit = Math.min(1000, maxRows - offset);
+    const result = await table
+      .select(fields)
+      .where(eq('question_c', questionId))
+      .limit(requestLimit, offset)
+      .fetch();
+
+    if (!result.success) {
+      throw new Error(result.message || label + ' could not be captured.');
+    }
+
+    const batch = result.data || [];
+    rows.push(...batch);
+    offset += batch.length;
+
+    const total = Number(result.total);
+    const inferredMore = Number.isFinite(total)
+      ? total > rows.length
+      : batch.length === requestLimit;
+    const hasMore = result.hasMore === true ||
+      (result.hasMore !== false && inferredMore);
+
+    if (!hasMore || !batch.length) break;
+
+    if (offset >= maxRows) {
+      throw new Error(label + ' exceeds the 10,000-row version snapshot safety limit. No partial version was created.');
+    }
   }
 
-  return result.data || [];
+  return rows;
 }
 
 function selectFields(record, fields) {
@@ -97,7 +121,10 @@ export async function beginQuestionVersion({
 
   try {
     const { eq } = window.ApperSDK.CoreSDK;
-    const [options, mappings, latestVersions] = await Promise.all([
+    const [questionResult, options, mappings, latestVersions] = await Promise.all([
+      sdk.table('questions_c')
+        .select(QUESTION_SNAPSHOT_FIELDS)
+        .get(question.Id),
       readQuestionRows('question_options_c', [
         'Id',
         'Name',
@@ -125,20 +152,25 @@ export async function beginQuestionVersion({
         .fetch()
     ]);
 
+    if (!questionResult.success || !questionResult.data) {
+      throw new Error(questionResult.message || 'The latest question record could not be captured.');
+    }
+
     if (!latestVersions.success) {
       throw new Error(latestVersions.message || 'The current version number could not be checked.');
     }
 
+    const currentQuestion = questionResult.data;
     const versionNumber = Number(latestVersions.data?.[0]?.version_number_c || 0) + 1;
     const snapshot = {
       schemaVersion: 1,
-      question: selectFields(question, QUESTION_SNAPSHOT_FIELDS),
+      question: selectFields(currentQuestion, QUESTION_SNAPSHOT_FIELDS),
       options,
       mappings
     };
 
     const created = await sdk.table('question_versions_c').create({
-      Name: 'Question version ' + versionNumber + ' · ' + question.Name,
+      Name: 'Question version ' + versionNumber + ' · ' + currentQuestion.Name,
       question_c: question.Id,
       version_number_c: versionNumber,
       change_kind_c: changeKind,
