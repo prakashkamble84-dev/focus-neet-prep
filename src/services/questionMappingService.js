@@ -144,6 +144,7 @@ export async function createQuestionConceptMapping({
     const existing = await sdk.table('question_concept_mappings_c')
       .select(['Id', 'curriculum_node_c', 'status_c'])
       .where(eq('question_c', questionId))
+      .where(eq('curriculum_node_c', node.Id))
       .limit(100, 0)
       .fetch();
 
