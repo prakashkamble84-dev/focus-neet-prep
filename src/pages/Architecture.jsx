@@ -17,11 +17,11 @@ const phases = [
   ['09', 'Adaptive practice', 'Next-question selection using mastery, prerequisites, and novelty.', 'Not started'],
   ['10', 'Mistake DNA', 'Error categories, root causes, repair, and retesting.', 'Not started'],
   ['11', 'Study plan and revision', 'Time-aware planning and spaced repetition.', 'Not started'],
-  ['12', 'Mock examinations', 'Exam simulations, autosave, scoring, and review.', 'Not started'],
-  ['13', 'Performance intelligence', 'Trends, benchmarks, and evidence-based readiness.', 'Not started'],
-  ['14', 'Parents and mentors', 'Consent, assignments, reporting, and scholarship information.', 'Not started'],
-  ['15', 'Multilingual and voice', 'Language preferences, speech, and supported image intake.', 'Not started'],
-  ['16', 'Production hardening', 'Privacy, security, monitoring, backups, performance, and deployment.', 'Not started']
+  ['12', 'Mock examinations', 'Exam simulations, autosave, scoring, and review.', 'Workflow built · server-timed grading'],
+  ['13', 'Performance intelligence', 'Trends, benchmarks, and evidence-based readiness.', 'Workflow built · read-only analytics'],
+  ['14', 'Parents and mentors', 'Consent, assignments, reporting, and scholarship information.', 'Workflow built · consent workspace'],
+  ['15', 'Multilingual and voice', 'Language preferences, speech, and supported image intake.', 'Workflow built · language preferences only'],
+  ['16', 'Production hardening', 'Privacy, security, monitoring, backups, performance, and deployment.', 'Partly built · privacy section; operations pending']
 ];
 
 export default function Architecture() {
@@ -55,7 +55,7 @@ export default function Architecture() {
               <p className="font-semibold">{phase[1]}</p>
               <p className="mt-1 text-sm text-muted-foreground">{phase[2]}</p>
             </div>
-            <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${phase[3].includes('pending') || index === 0 ? 'bg-warning/15 text-warning-foreground' : phase[3] === 'Schema provisioned' || phase[3] === 'Workflow built' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
+            <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${phase[3].includes('pending') || index === 0 ? 'bg-warning/15 text-warning-foreground' : phase[3] === 'Schema provisioned' || phase[3].startsWith('Workflow built') ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
               {phase[3]}
             </span>
           </div>
