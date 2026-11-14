@@ -185,6 +185,10 @@ export default function QuestionBankGovernancePanel({
                     const answerText = priorQuestion.answer_key_c
                       ? 'Answer key: ' + priorQuestion.answer_key_c
                       : 'Answer key not yet recorded';
+                    const priorOptions = (snapshot?.options || [])
+                      .filter((option) => option.status_c !== 'Retired')
+                      .sort((a, b) => Number(a.sequence_c || 0) - Number(b.sequence_c || 0));
+                    const priorMappings = snapshot?.mappings || [];
 
                     return (
                       <details key={version.Id} className="rounded-md border border-border bg-background p-3">
@@ -200,10 +204,32 @@ export default function QuestionBankGovernancePanel({
                           <p className="font-medium text-foreground">{version.change_reason_c}</p>
                           <p>Prior status: {priorQuestion.status_c || 'Not recorded'} · Prior difficulty: {priorQuestion.difficulty_c || 'Not recorded'}</p>
                           <p>{answerText}</p>
-                          <p>Prior options: {snapshot?.options?.length ?? 0} · Prior concept mappings: {snapshot?.mappings?.length ?? 0}</p>
+                          {priorQuestion.solution_c && (
+                            <p className="whitespace-pre-wrap rounded bg-muted/40 p-2">Prior solution: {priorQuestion.solution_c}</p>
+                          )}
                           {priorQuestion.question_body_c && (
                             <p className="whitespace-pre-wrap rounded bg-muted/40 p-2">{priorQuestion.question_body_c}</p>
                           )}
+                          <div className="space-y-1">
+                            <p className="font-semibold text-foreground">Prior answer options ({priorOptions.length})</p>
+                            {priorOptions.length ? priorOptions.map((option) => (
+                              <p key={option.Id || option.option_key_c}>
+                                {option.option_key_c || '•'}. {option.option_text_c}
+                                {option.is_correct_c === true ? ' · Correct' : ''}
+                                {' · '}{option.status_c || 'Unstatused'}
+                              </p>
+                            )) : <p>No option rows in this snapshot.</p>}
+                          </div>
+                          <div className="space-y-1">
+                            <p className="font-semibold text-foreground">Prior concept mappings ({priorMappings.length})</p>
+                            {priorMappings.length ? priorMappings.map((mapping, index) => (
+                              <p key={mapping.Id || index}>
+                                {getLookupName(mapping.curriculum_node_c) || mapping.curriculum_node_c?.Name || 'Concept reference unavailable'}
+                                {' · '}{mapping.mapping_type_c || 'Unclassified'}
+                                {' · '}{mapping.status_c || 'Unstatused'}
+                              </p>
+                            )) : <p>No concept mappings in this snapshot.</p>}
+                          </div>
                         </div>
                       </details>
                     );
