@@ -643,7 +643,8 @@ export async function fetchQuestionGenerationStudioData() {
     )
   ]);
 
-  return { batches, questions };
+  const generatedQuestions = questions.filter((question) => Boolean(getId(question.generation_batch_c)));
+  return { batches, questions: generatedQuestions };
 }
 
 export async function fetchGeneratedQuestionReviewData(questionId) {

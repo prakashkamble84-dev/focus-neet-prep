@@ -455,7 +455,6 @@ export default function QuestionGeneration() {
           </div>
           <Button type="button" size="sm" variant="outline" onClick={() => {
             setRefreshRevision((value) => value + 1);
-            refreshWorkspace();
           }}>
             <ApperIcon name="RefreshCw" size={14} className="mr-1.5" />
             Refresh
