@@ -1008,5 +1008,5 @@ function optionsAreValidForStoredQuestion(question, options) {
   const answer = String(question.answer_key_c || '').toUpperCase().split(/[,;+\s]+/).filter(Boolean).sort();
   const correct = active.filter((option) => option.is_correct_c === true).map((option) => String(option.option_key_c || '').toUpperCase()).sort();
   return answer.length > 0 && answer.length === correct.length && answer.every((value, index) => value === correct[index]) &&
-    (question.question_type_c !== 'MCQ' || correct.length === 1);
+    (!['MCQ', 'Assert'].includes(question.question_type_c) || correct.length === 1);
 }
