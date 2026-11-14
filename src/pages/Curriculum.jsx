@@ -6,6 +6,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { CURRICULA, importCurriculumOutline } from '@/services/curriculumImportService';
 import CurriculumImportBatches from '@/components/curriculum/CurriculumImportBatches';
 import OtherOfficialSyllabusRecords from '@/components/curriculum/OtherOfficialSyllabusRecords';
+import CurriculumSyllabusVersionRow from '@/components/curriculum/CurriculumSyllabusVersionRow';
 import ApperIcon from '@/components/ApperIcon';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -47,17 +48,6 @@ async function fetchImportBatches() {
     .limit(100, 0).fetch();
   if (!result.success) throw new Error(result.message || 'Could not load import batches');
   return result.data ?? [];
-}
-
-function Status({ value }) {
-  const tone = value === 'Published' || value === 'Verified' || value === 'Approved'
-    ? 'border-success/30 bg-success/10 text-success'
-    : value === 'Rejected'
-      ? 'border-destructive/30 bg-destructive/10 text-destructive'
-      : ['Review', 'Draft', 'Ready', 'Discovered', 'Retrieved'].includes(value)
-        ? 'border-warning/30 bg-warning/10 text-warning-foreground'
-        : 'border-border bg-muted text-muted-foreground';
-  return <Badge variant="outline" className={tone}>{value || 'Not set'}</Badge>;
 }
 
 export default function Curriculum() {
@@ -182,7 +172,7 @@ export default function Curriculum() {
                     <p className="font-semibold">{curriculum.label}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{curriculum.source}</p>
                   </div>
-                  <Status value={syllabus?.status_c || (syllabusLoading ? 'Loading' : 'Not registered')} />
+                  <Badge variant="outline">{syllabus?.status_c || (syllabusLoading ? 'Loading' : 'Not registered')}</Badge>
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   {curriculum.subjects.map((subject) => (
@@ -235,19 +225,13 @@ export default function Curriculum() {
           <div className="overflow-hidden rounded-lg border border-border bg-card">
             <div className="divide-y divide-border">
               {filteredSyllabi.map((syllabus) => (
-                <div key={syllabus.Id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="font-semibold">{syllabus.version_label_c || syllabus.Name}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {syllabus.examination_c?.Name || 'Examination'} · Academic year {syllabus.academic_year_c || 'not set'}
-                    </p>
-                    {syllabus.change_summary_c && <p className="mt-1 text-xs leading-5 text-muted-foreground">{syllabus.change_summary_c}</p>}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span className="text-xs text-muted-foreground">{nodeCounts[syllabus.Id] || 0} nodes</span>
-                    <Status value={syllabus.status_c} />
-                  </div>
-                </div>
+                <CurriculumSyllabusVersionRow
+                  key={syllabus.Id}
+                  syllabus={syllabus}
+                  nodeCount={nodeCounts[syllabus.Id] || 0}
+                  canPublish={canImport}
+                  onRefresh={refreshSyllabus}
+                />
               ))}
             </div>
           </div>

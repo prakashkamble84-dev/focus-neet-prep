@@ -36,9 +36,11 @@ export default function SourceRegistryTabs({
   versionsLoading,
   versionsData,
   refreshVersions,
+  refreshDocuments,
   documentsError,
   canManageAuthorities,
   canReview,
+  canIndependentlyVerify,
   seeding,
   onRegisterBaseline,
   filteredAuthorities,
@@ -77,16 +79,25 @@ export default function SourceRegistryTabs({
         ) : (
           filteredVersions.map((version) => {
             const parentId = version.source_document_c?.Id ?? version.source_document_c;
-            const parent = documents.find((doc) => doc.Id === parentId);
+            const parent = documents.find((doc) => String(doc.Id) === String(parentId || ''));
+            const authorityId = version.source_registry_c?.Id ??
+              version.source_registry_c ??
+              parent?.source_registry_c?.Id ??
+              parent?.source_registry_c;
+            const authority = (authoritiesData || []).find((item) => String(item.Id) === String(authorityId || ''));
             return (
               <SourceVersionCard
                 key={version.Id}
                 version={version}
                 parent={parent}
+                authority={authority}
+                authorities={authoritiesData || []}
                 canReview={canReview}
+                canIndependentlyVerify={canIndependentlyVerify}
                 onUpload={onUpload}
                 onReview={onReview}
                 onExtract={onExtract}
+                onIndependentVerificationComplete={() => Promise.all([refreshVersions(), refreshDocuments(), refreshAuthorities()])}
               />
             );
           })

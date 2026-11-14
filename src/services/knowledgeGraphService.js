@@ -1,6 +1,8 @@
 import { sdk } from '@/services/sdk';
 import {
   buildGraphDiagnostics,
+  buildLatestVerifiedSourcePageKeys,
+  hasVerifiedSourcePageRange,
   getLookupId,
   getLookupName
 } from '@/services/knowledgeGraphRules';
@@ -11,7 +13,7 @@ async function unwrapTableRequest(request, tableName) {
   return result.data || [];
 }
 
-export async function fetchKnowledgeGraphData(includeStudentMastery = false) {
+export async function fetchKnowledgeGraphData({ includeStudentMastery = false, includeSourceEvidence = false } = {}) {
   const requests = [
     unwrapTableRequest(
       sdk.table('examinations_c').select(['Id', 'Name', 'code_c', 'exam_type_c', 'active_c']).limit(100, 0).fetch(),
@@ -34,44 +36,54 @@ export async function fetchKnowledgeGraphData(includeStudentMastery = false) {
       'questions_c'
     ),
     unwrapTableRequest(
-      sdk.table('question_concept_mappings_c').select(['Id', 'Name', 'question_c', 'curriculum_node_c', 'mapping_type_c', 'confidence_c', 'verified_c', 'status_c']).limit(4000, 0).fetch(),
+      sdk.table('question_concept_mappings_c').select(['Id', 'Name', 'question_c', 'curriculum_node_c', 'mapping_type_c', 'confidence_c', 'verified_c', 'reviewer_user_c', 'status_c']).limit(4000, 0).fetch(),
       'question_concept_mappings_c'
     ),
     unwrapTableRequest(
-      sdk.table('historical_syllabus_crosswalks_c').select(['Id', 'Name', 'source_version_c', 'target_version_c', 'source_node_c', 'target_node_c', 'mapping_type_c', 'confidence_c', 'status_c', 'mapping_notes_c']).limit(2000, 0).fetch(),
+      sdk.table('historical_syllabus_crosswalks_c').select(['Id', 'Name', 'source_version_c', 'target_version_c', 'source_node_c', 'target_node_c', 'mapping_type_c', 'confidence_c', 'status_c', 'mapping_notes_c', 'reviewer_user_c']).limit(2000, 0).fetch(),
       'historical_syllabus_crosswalks_c'
     ),
-    unwrapTableRequest(
-      sdk.table('source_document_versions_c').select(['Id', 'Name', 'source_document_c', 'version_label_c', 'official_title_c', 'document_url_c', 'rights_status_c', 'ingestion_status_c', 'version_status_c', 'academic_year_c']).limit(1000, 0).fetch(),
-      'source_document_versions_c'
-    ),
-    unwrapTableRequest(
-      sdk.table('source_documents_c').select(['Id', 'Name', 'official_url_c', 'source_category_c', 'rights_status_c', 'verification_status_c', 'academic_year_c']).limit(1000, 0).fetch(),
-      'source_documents_c'
-    )
   ];
 
+  const [examinations, syllabusVersions, nodes, relationships, questions, questionMappings, crosswalks] =
+    await Promise.all(requests);
+
+  let sourceVersions = [];
+  let sourceDocuments = [];
+  let sourceExtractions = [];
+  let studentMastery = [];
+
   if (includeStudentMastery) {
-    requests.push(
-      unwrapTableRequest(
-        sdk.table('student_concept_mastery_c').select(['Id', 'Name', 'curriculum_node_c', 'mastery_score_c', 'mastery_status_c', 'attempt_count_c', 'correct_count_c', 'confidence_score_c', 'evidence_count_c', 'last_assessed_at_c']).limit(3000, 0).fetch(),
-        'student_concept_mastery_c'
-      )
+    studentMastery = await unwrapTableRequest(
+      sdk.table('student_concept_mastery_c')
+        .select(['Id', 'Name', 'curriculum_node_c', 'mastery_score_c', 'mastery_status_c', 'attempt_count_c', 'correct_count_c', 'confidence_score_c', 'evidence_count_c', 'last_assessed_at_c'])
+        .limit(3000, 0).fetch(),
+      'student_concept_mastery_c'
     );
   }
 
-  const [
-    examinations,
-    syllabusVersions,
-    nodes,
-    relationships,
-    questions,
-    questionMappings,
-    crosswalks,
-    sourceVersions,
-    sourceDocuments,
-    studentMastery = []
-  ] = await Promise.all(requests);
+  if (includeSourceEvidence) {
+    [sourceVersions, sourceDocuments, sourceExtractions] = await Promise.all([
+      unwrapTableRequest(
+        sdk.table('source_document_versions_c')
+          .select(['Id', 'Name', 'source_document_c', 'source_registry_c', 'document_file_c', 'version_label_c', 'official_title_c', 'document_url_c', 'rights_status_c', 'ingestion_status_c', 'version_status_c', 'academic_year_c'])
+          .limit(1000, 0).fetch(),
+        'source_document_versions_c'
+      ),
+      unwrapTableRequest(
+        sdk.table('source_documents_c')
+          .select(['Id', 'Name', 'source_registry_c', 'official_url_c', 'source_category_c', 'rights_status_c', 'verification_status_c', 'ingestion_status_c', 'academic_year_c'])
+          .limit(1000, 0).fetch(),
+        'source_documents_c'
+      ),
+      unwrapTableRequest(
+        sdk.table('source_extractions_c')
+          .select(['Id', 'Name', 'CreatedOn', 'ModifiedOn', 'document_version_c', 'page_number_c', 'quality_status_c', 'content_kind_c', 'extraction_method_c'])
+          .limit(5000, 0).fetch(),
+        'source_extractions_c'
+      )
+    ]);
+  }
 
   return {
     examinations,
@@ -83,6 +95,7 @@ export async function fetchKnowledgeGraphData(includeStudentMastery = false) {
     crosswalks,
     sourceVersions,
     sourceDocuments,
+    sourceExtractions,
     studentMastery
   };
 }
@@ -97,6 +110,7 @@ export function buildKnowledgeGraphModel(data = {}) {
   const crosswalks = data.crosswalks || [];
   const sourceVersions = data.sourceVersions || [];
   const sourceDocuments = data.sourceDocuments || [];
+  const sourceExtractions = data.sourceExtractions || [];
   const studentMastery = data.studentMastery || [];
 
   const examById = new Map(examinations.map((item) => [String(item.Id), item]));
@@ -105,6 +119,7 @@ export function buildKnowledgeGraphModel(data = {}) {
   const sourceDocumentById = new Map(sourceDocuments.map((item) => [String(item.Id), item]));
   const nodeById = new Map(nodes.map((item) => [String(item.Id), item]));
   const masteryByNodeId = new Map(studentMastery.map((item) => [String(getLookupId(item.curriculum_node_c)), item]));
+  const verifiedPageKeys = buildLatestVerifiedSourcePageKeys(sourceExtractions);
   const nodeCodeIndex = new Map();
   for (const node of nodes) {
     const code = String(node.node_code_c || '').trim();
@@ -119,6 +134,15 @@ export function buildKnowledgeGraphModel(data = {}) {
     const sourceVersion = sourceVersionById.get(String(getLookupId(node.source_document_version_c) || getLookupId(syllabus?.source_document_version_c)));
     const sourceDocumentId = getLookupId(sourceVersion?.source_document_c) || getLookupId(syllabus?.source_document_c);
     const sourceDocument = sourceDocumentById.get(String(sourceDocumentId));
+    const startPage = Number(node.source_page_start_c);
+    const endPage = Number(node.source_page_end_c);
+    const sourceVersionId = String(getLookupId(node.source_document_version_c) || getLookupId(syllabus?.source_document_version_c) || '');
+    const sourcePageEvidenceVerified = hasVerifiedSourcePageRange(
+      sourceVersionId,
+      startPage,
+      endPage,
+      verifiedPageKeys
+    );
     const nodeVersionId = getLookupId(node.syllabus_version_c);
     const hasSyllabusVersion = Boolean(nodeVersionId);
     const parentCode = String(node.parent_node_code_c || '').trim();
@@ -146,6 +170,7 @@ export function buildKnowledgeGraphModel(data = {}) {
       syllabusStatus: syllabus?.status_c || '',
       sourceVersion,
       sourceDocument,
+      sourcePageEvidenceVerified,
       hasSyllabusVersion,
       parentNode,
       parentNodeType: parentNode?.node_type_c || '',
@@ -247,6 +272,7 @@ export function buildKnowledgeGraphModel(data = {}) {
     crosswalks: crosswalkRows,
     sourceVersions,
     sourceDocuments,
+    sourceExtractions,
     studentMastery,
     diagnostics: buildGraphDiagnostics(nodes, relationships, questionMappings)
   };

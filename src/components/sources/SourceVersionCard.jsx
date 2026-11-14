@@ -1,6 +1,7 @@
 import ApperIcon from '@/components/ApperIcon';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import SourceIndependentVerificationController from '@/components/sources/SourceIndependentVerificationController';
 
 function Status({ value }) {
   const tone = value === 'Verified' || value === 'Licensed' || value === 'Public' || value === 'Complete'
@@ -13,7 +14,7 @@ function Status({ value }) {
   return <Badge variant="outline" className={tone}>{value || 'Not set'}</Badge>;
 }
 
-export default function SourceVersionCard({ version, parent, canReview, onUpload, onReview, onExtract }) {
+export default function SourceVersionCard({ version, parent, authority, authorities = [], canReview, canIndependentlyVerify, onUpload, onReview, onExtract, onIndependentVerificationComplete }) {
   const fileCount = version.document_file_c?.length ?? 0;
   return (
     <div className="rounded-lg border border-border bg-card p-4 sm:p-5">
@@ -40,12 +41,22 @@ export default function SourceVersionCard({ version, parent, canReview, onUpload
             <Button variant="outline" size="sm" onClick={() => onUpload(version)}>
               <ApperIcon name="Upload" size={14} /> {fileCount ? 'Manage PDF' : 'Attach PDF'}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => onExtract(version)}>
-              <ApperIcon name="FileText" size={14} /> Add page record
-            </Button>
             <Button size="sm" onClick={() => onReview(version)}>
               <ApperIcon name="ClipboardCheck" size={14} /> Review rights
             </Button>
+          </div>
+        )}
+        {canIndependentlyVerify && (
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => onExtract(version)}>
+              <ApperIcon name="FileText" size={14} /> Add page record
+            </Button>
+            <SourceIndependentVerificationController
+              version={version}
+              document={parent}
+              authority={authority || authorities.find((item) => String(item.Id) === String(version.source_registry_c?.Id || version.source_registry_c || ''))}
+              onCompleted={onIndependentVerificationComplete}
+            />
           </div>
         )}
       </div>

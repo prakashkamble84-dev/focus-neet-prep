@@ -89,11 +89,11 @@ export function SourceRightsDialog({
             <Label>Verification checks</Label>
             <label className="flex items-start gap-2 text-sm">
               <input type="checkbox" checked={authorityChecked} onChange={(event) => onAuthorityCheckedChange(event.target.checked)} className="mt-0.5" />
-              <span>Issuing authority and official domain independently matched.</span>
+              <span>I matched the issuing authority and official domain during this first-pass review.</span>
             </label>
             <label className="flex items-start gap-2 text-sm">
               <input type="checkbox" checked={metadataChecked} onChange={(event) => onMetadataCheckedChange(event.target.checked)} className="mt-0.5" />
-              <span>Document title, version and academic-year metadata matched to the official page or PDF.</span>
+              <span>I matched the document title, version and academic-year metadata to the official page or PDF.</span>
             </label>
           </div>
           <div className="space-y-2">

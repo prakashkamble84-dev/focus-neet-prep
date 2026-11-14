@@ -30,6 +30,8 @@ export function hasVerifiedGraphEvidence(node) {
     sourceVersion &&
     sourceVersion.ingestion_status_c === 'Verified' &&
     sourceDocument?.verification_status_c === 'Verified' &&
+    sourceDocument?.ingestion_status_c === 'Complete' &&
+    node.sourcePageEvidenceVerified === true &&
     ['Public', 'Licensed'].includes(rights) &&
     Number(node.source_page_start_c) > 0 &&
     Number(node.source_page_end_c) >= Number(node.source_page_start_c) &&
@@ -38,6 +40,10 @@ export function hasVerifiedGraphEvidence(node) {
 }
 
 export async function reviewGraphRelationship(edge, status, reviewerId, nodes = [], relationships = []) {
+  if (!reviewerId) return { success: false, message: 'The signed-in academic reviewer identity is unavailable.' };
+  if (!edge?.Id || !['Verified', 'Rejected'].includes(status)) {
+    return { success: false, message: 'A valid relationship and review decision are required.' };
+  }
   if (status === 'Verified') {
     const fromId = getLookupId(edge.from_node_c);
     const toId = getLookupId(edge.to_node_c);
@@ -71,10 +77,22 @@ export async function reviewGraphRelationship(edge, status, reviewerId, nodes = 
     status === 'Verified' ? 'Approved' : 'Rejected',
     notes
   );
-  return { success: true, auditLogged };
+  if (!auditLogged) {
+    await sdk.table('concept_relationships_c').update({
+      Id: edge.Id,
+      status_c: edge.status_c,
+      review_notes_c: edge.review_notes_c || ''
+    });
+    return { success: false, message: 'Relationship audit could not be recorded. The previous relationship status was restored.' };
+  }
+  return { success: true, auditLogged: true };
 }
 
 export async function reviewQuestionMapping(mapping, status, reviewerId) {
+  if (!reviewerId) return { success: false, message: 'The signed-in academic reviewer identity is unavailable.' };
+  if (!mapping?.Id || !['Verified', 'Rejected'].includes(status)) {
+    return { success: false, message: 'A valid question mapping and review decision are required.' };
+  }
   if (status === 'Verified') {
     const question = mapping.question;
     const concept = mapping.node;
@@ -102,10 +120,23 @@ export async function reviewQuestionMapping(mapping, status, reviewerId) {
     status === 'Verified' ? 'Approved' : 'Rejected',
     'Question-to-concept mapping review decision: ' + status
   );
-  return { success: true, auditLogged };
+  if (!auditLogged) {
+    await sdk.table('question_concept_mappings_c').update({
+      Id: mapping.Id,
+      status_c: mapping.status_c,
+      verified_c: mapping.verified_c === true,
+      reviewer_user_c: getLookupId(mapping.reviewer_user_c) || undefined
+    });
+    return { success: false, message: 'Question-mapping audit could not be recorded. The previous mapping status was restored.' };
+  }
+  return { success: true, auditLogged: true };
 }
 
 export async function reviewHistoricalCrosswalk(row, status, reviewerId) {
+  if (!reviewerId) return { success: false, message: 'The signed-in academic reviewer identity is unavailable.' };
+  if (!row?.Id || !['Verified', 'Rejected'].includes(status)) {
+    return { success: false, message: 'A valid historical crosswalk and review decision are required.' };
+  }
   if (status === 'Verified') {
     const sourceVersionId = getLookupId(row.source_version_c);
     const targetVersionId = getLookupId(row.target_version_c);
@@ -121,11 +152,21 @@ export async function reviewHistoricalCrosswalk(row, status, reviewerId) {
     }
     const sourceNodeId = getLookupId(row.source_node_c);
     const targetNodeId = getLookupId(row.target_node_c);
-    if (row.mapping_type_c === 'Added' && (!targetNodeId || sourceNodeId)) {
-      return { success: false, message: 'An Added mapping must have a target node and no source node.' };
+    if (row.mapping_type_c === 'Added') {
+      if (!targetNodeId || sourceNodeId) {
+        return { success: false, message: 'An Added mapping must have a target node and no source node.' };
+      }
+      if (String(getLookupId(row.targetNode?.syllabus_version_c)) !== String(targetVersionId)) {
+        return { success: false, message: 'The Added node must belong to the target syllabus version.' };
+      }
     }
-    if (row.mapping_type_c === 'Removed' && (!sourceNodeId || targetNodeId)) {
-      return { success: false, message: 'A Removed mapping must have a source node and no target node.' };
+    if (row.mapping_type_c === 'Removed') {
+      if (!sourceNodeId || targetNodeId) {
+        return { success: false, message: 'A Removed mapping must have a source node and no target node.' };
+      }
+      if (String(getLookupId(row.sourceNode?.syllabus_version_c)) !== String(sourceVersionId)) {
+        return { success: false, message: 'The Removed node must belong to the source syllabus version.' };
+      }
     }
     if (!['Added', 'Removed'].includes(row.mapping_type_c)) {
       if (!sourceNodeId || !targetNodeId) {
@@ -153,14 +194,24 @@ export async function reviewHistoricalCrosswalk(row, status, reviewerId) {
     status === 'Verified' ? 'Approved' : 'Rejected',
     'Historical syllabus crosswalk review decision: ' + status
   );
-  return { success: true, auditLogged };
+  if (!auditLogged) {
+    await sdk.table('historical_syllabus_crosswalks_c').update({
+      Id: row.Id,
+      status_c: row.status_c,
+      reviewer_user_c: getLookupId(row.reviewer_user_c) || undefined
+    });
+    return { success: false, message: 'Crosswalk audit could not be recorded. The previous mapping status was restored.' };
+  }
+  return { success: true, auditLogged: true };
 }
 
 export async function verifyGraphNode(node, reviewerId) {
+  if (!reviewerId) return { success: false, message: 'The signed-in academic reviewer identity is unavailable.' };
+  if (!node?.Id) return { success: false, message: 'A curriculum node is required.' };
   if (!hasVerifiedGraphEvidence(node)) {
     return {
       success: false,
-      message: 'Attach a verified source version, verify the parent source record and rights, and record a page range plus source excerpt.'
+      message: "Attach a privately stored and independently verified source PDF, verify its parent source and permitted rights, and independently verify every page in the node's page range."
     };
   }
   const result = await sdk.table('curriculum_nodes_c').update({
@@ -179,10 +230,20 @@ export async function verifyGraphNode(node, reviewerId) {
     'Approved',
     'Source evidence verified. Node remains in Review until publication approval.'
   );
-  return { success: true, auditLogged };
+  if (!auditLogged) {
+    await sdk.table('curriculum_nodes_c').update({
+      Id: node.Id,
+      verified_c: node.verified_c === true,
+      status_c: node.status_c
+    });
+    return { success: false, message: 'Node-verification audit could not be recorded. The previous node status was restored.' };
+  }
+  return { success: true, auditLogged: true };
 }
 
 export async function publishGraphNode(node, reviewerId) {
+  if (!reviewerId) return { success: false, message: 'The signed-in academic publisher identity is unavailable.' };
+  if (!node?.Id) return { success: false, message: 'A curriculum node is required.' };
   const parentReady = node.node_type_c === 'Subject' || (
     node.parentNode &&
     node.parentNode.status_c === 'Published' &&
@@ -211,5 +272,13 @@ export async function publishGraphNode(node, reviewerId) {
     'Approved',
     'Node published to the student knowledge graph after source and parent-path checks.'
   );
-  return { success: true, auditLogged };
+  if (!auditLogged) {
+    await sdk.table('curriculum_nodes_c').update({
+      Id: node.Id,
+      status_c: node.status_c,
+      verified_c: node.verified_c === true
+    });
+    return { success: false, message: 'Node-publication audit could not be recorded. The previous publication status was restored.' };
+  }
+  return { success: true, auditLogged: true };
 }
