@@ -398,7 +398,7 @@ export default function Diagnostics() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Your learning profile</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              Set your examination goals, then take a short baseline using published questions with verified answers and cleared usage rights. Your responses build the first evidence for concept mastery.
+              Set your examination goals, then take a short baseline using published questions with verified answers and cleared usage rights. Your responses build the first evidence for concept mastery. This diagnostic is a starting measurement, not a rank prediction.
             </p>
           </div>
           <Badge variant={formReady ? 'secondary' : 'outline'}>
