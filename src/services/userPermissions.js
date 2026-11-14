@@ -21,6 +21,8 @@ const academicTables = [
   'question_concept_mappings_c',
   'question_reviews_c',
   'question_versions_c',
+  'question_generation_batches_c',
+  'question_generation_checks_c',
   'test_blueprints_c',
   'tests_c',
   'test_questions_c'
@@ -70,9 +72,13 @@ const expertAccess = Object.fromEntries(
   allTables.map((table) => [
     table,
     {
-      access: academicTables.includes(table)
-        ? 'Full'
-        : table === 'content_approvals_c'
+      access: table === 'question_generation_batches_c'
+        ? 'Read,Create,Update'
+        : table === 'question_generation_checks_c'
+          ? 'Read,Create'
+          : academicTables.includes(table)
+            ? 'Full'
+            : table === 'content_approvals_c'
           ? 'Full'
           : table === 'audit_events_c'
             ? 'Read'
@@ -136,7 +142,9 @@ const restrictedTeachingTables = [
   'source_extractions_c',
   'source_verification_records_c',
   'curriculum_import_batches_c',
-  'question_versions_c'
+  'question_versions_c',
+  'question_generation_batches_c',
+  'question_generation_checks_c'
 ];
 
 const teacherAccess = {
