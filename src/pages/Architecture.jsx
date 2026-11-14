@@ -11,7 +11,7 @@ const phases = [
   ['03', 'Knowledge graph', 'Concept identities, prerequisite edges, and mastery objectives.', 'Not started'],
   ['04', '30-year exam intelligence', 'Historical papers, OCR, DNA profiles, clustering, and crosswalks.', 'Not started'],
   ['05', 'Question bank', 'Searchable published-question repository with examination filters, student-safe visibility, and answer-option inspection. The real corpus still depends on verified question records.', 'Workflow built'],
-  ['06', 'AI question generation', 'Authenticated Gemini endpoint, original-question authoring, blind independent solving, syllabus/difficulty/clarity/ambiguity checks, semantic and lexical duplicate screening, persisted validation evidence, Academic Expert approval, and separate CEO/Manager publication. The server-side Gemini key value is not yet configured.', 'Workflow built · key pending'],
+  ['06', 'AI question generation', 'Authenticated Gemini endpoint, original-question authoring, blind independent solving, answer-key agreement, format-specific option integrity, syllabus/difficulty/clarity/ambiguity checks, semantic and lexical duplicate screening, persisted validation evidence, independent Academic Expert approval, and separate CEO/Manager publication. The server-side Gemini key value is not yet configured.', 'Workflow built · key pending'],
   ['07', 'Diagnostics and student profile', 'Baseline assessment, strengths, gaps, and learning preferences.', 'Not started'],
   ['08', 'AI teacher', 'Guided hints, explanations, Gemini integration, and evaluation.', 'Not started'],
   ['09', 'Adaptive practice', 'Next-question selection using mastery, prerequisites, and novelty.', 'Not started'],
