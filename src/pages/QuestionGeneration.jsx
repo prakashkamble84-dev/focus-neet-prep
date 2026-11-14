@@ -230,12 +230,13 @@ export default function QuestionGeneration() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <ApperIcon name="KeyRound" size={17} className="text-highlight" />
             <CardTitle className="text-base">Provider configuration</CardTitle>
+            <Badge variant="secondary">Credential saved</Badge>
           </div>
           <CardDescription>
-            The server-side GEMINI_API_KEY secret slot is registered. An administrator must enter its value in Apper Secrets Manager before a model call can run. The key is never stored in browser code.
+            A server-side GEMINI_API_KEY value is saved in Apper Secrets Manager. Northstar keeps it on the server; the first real generation request will confirm that Google accepts it. The key is never exposed in browser code.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center justify-between gap-3">
@@ -319,9 +320,36 @@ export default function QuestionGeneration() {
                     value: String(node.Id),
                     label: node.node_path_c || node.Name
                   }))}
-                  placeholder={concepts.length ? 'Select a concept' : 'No eligible concepts for this exam/subject'}
+                  placeholder={concepts.length ? 'Select a concept' : 'No published, verified concepts available'}
                   disabled={!selectedExam || submitting || !concepts.length}
                 />
+                {!lookupLoading && selectedExam && concepts.length === 0 && (
+                  <div className="space-y-3 rounded-lg border border-warning/40 bg-warning/10 p-4">
+                    <div className="flex items-start gap-3">
+                      <ApperIcon name="BookOpenCheck" size={18} className="mt-0.5 shrink-0 text-warning-foreground" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold">No generation-ready concepts yet</p>
+                        <p className="text-sm leading-6 text-muted-foreground">
+                          This is a syllabus-data blocker, not a Gemini-key error. Question generation only accepts a Concept attached to a Published syllabus version that is itself Published and expert-verified. Northstar's current outline import records Subject and Unit headings; it does not invent detailed Concepts from those headings.
+                        </p>
+                        <p className="text-sm leading-6 text-muted-foreground">
+                          Register and verify the official syllabus PDF and its rights, capture the relevant page evidence, then add the Chapter, Topic and Concept nodes in Review. An Academic Expert must verify the source evidence before the nodes can be published and used here.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" size="sm" variant="outline" asChild>
+                        <Link to="/sources">Open academic sources</Link>
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" asChild>
+                        <Link to="/knowledge-graph">Open knowledge graph</Link>
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" asChild>
+                        <Link to="/curriculum/manage">Manage syllabus</Link>
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <FilterSelect
