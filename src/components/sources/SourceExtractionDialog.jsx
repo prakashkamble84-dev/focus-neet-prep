@@ -10,17 +10,20 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { useFunction } from '@/hooks/useFunction';
 
 export default function SourceExtractionDialog({ open, onOpenChange, version, onSaved }) {
   const [pageNumber, setPageNumber] = useState('');
   const [sectionTitle, setSectionTitle] = useState('');
   const [contentKind, setContentKind] = useState('Text');
   const [extractedText, setExtractedText] = useState('');
+  const [extractionMethod, setExtractionMethod] = useState('Manual');
   const [confidence, setConfidence] = useState('1');
   const [imageCount, setImageCount] = useState('0');
   const [equationCount, setEquationCount] = useState('0');
   const [reviewerNotes, setReviewerNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const { invoke: runOcr, loading: ocrLoading } = useFunction(import.meta.env.VITE_OCR_SOURCE_PAGE, { showError: true });
 
   useEffect(() => {
     if (!open) return;
@@ -28,11 +31,31 @@ export default function SourceExtractionDialog({ open, onOpenChange, version, on
     setSectionTitle('');
     setContentKind('Text');
     setExtractedText('');
+    setExtractionMethod('Manual');
     setConfidence('1');
     setImageCount('0');
     setEquationCount('0');
     setReviewerNotes('');
   }, [open, version?.Id]);
+
+  async function handleOcr() {
+    const page = Number(pageNumber);
+    if (!version?.Id) {
+      toast.error('Select a source document version first');
+      return;
+    }
+    if (!Number.isInteger(page) || page < 1) {
+      toast.error('Enter a valid one-based PDF page number');
+      return;
+    }
+    const result = await runOcr({ versionId: version.Id, pageNumber: page });
+    if (!result?.text) return;
+    setExtractedText(result.text);
+    setExtractionMethod('OCR');
+    toast.success('OCR transcription added', {
+      description: 'Check every symbol, equation and number against the PDF before saving.'
+    });
+  }
 
   async function handleSave() {
     const page = Number(pageNumber);
@@ -62,13 +85,16 @@ export default function SourceExtractionDialog({ open, onOpenChange, version, on
         page_number_c: page,
         section_title_c: sectionTitle.trim() || `Page ${page}`,
         content_kind_c: contentKind,
-        extraction_method_c: 'Manual',
+        extraction_method_c: extractionMethod,
         extracted_text_c: extractedText.trim(),
         confidence_c: quality,
         image_count_c: Math.max(0, Number(imageCount) || 0),
         equation_count_c: Math.max(0, Number(equationCount) || 0),
         quality_status_c: 'Review',
-        reviewer_notes_c: reviewerNotes.trim() || 'Manually captured; independent review required.'
+        reviewer_notes_c: reviewerNotes.trim() ||
+          (extractionMethod === 'OCR'
+            ? 'OCR transcription; independent review of symbols, numbering and layout required.'
+            : 'Manually captured; independent review required.')
       });
       if (!result.data?.length) {
         toast.error(result.messages?.join('; ') || result.message || 'Extraction record was not saved');
@@ -140,6 +166,9 @@ export default function SourceExtractionDialog({ open, onOpenChange, version, on
         </p>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button type="button" variant="outline" onClick={handleOcr} disabled={saving || ocrLoading}>
+            {ocrLoading ? 'Running OCR…' : 'Run OCR on this page'}
+          </Button>
           <Button type="button" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save page record'}</Button>
         </DialogFooter>
       </DialogContent>
