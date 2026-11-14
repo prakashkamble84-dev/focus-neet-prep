@@ -131,11 +131,19 @@ const studentAccess = {
   ai_messages_c: { access: 'Read,Create,Update' }
 };
 
+const restrictedTeachingTables = [
+  'source_document_versions_c',
+  'source_extractions_c',
+  'source_verification_records_c',
+  'curriculum_import_batches_c',
+  'question_versions_c'
+];
+
 const teacherAccess = {
   ...Object.fromEntries(academicTables.map((table) => [
     table,
     {
-      access: ['source_document_versions_c', 'source_extractions_c', 'source_verification_records_c', 'curriculum_import_batches_c'].includes(table) ? 'Inaccessible' : 'Read',
+      access: restrictedTeachingTables.includes(table) ? 'Inaccessible' : 'Read',
       ...(table === 'questions_c' ? { inaccessibleFields: ['answer_key_c', 'solution_c'] } : {}),
       ...(table === 'question_options_c' ? { inaccessibleFields: ['is_correct_c'] } : {}),
       ...(table === 'source_documents_c' ? { inaccessibleFields: ['storage_path_c', 'extracted_text_c'] } : {})
@@ -157,7 +165,7 @@ const mentorAccess = {
   ...Object.fromEntries(academicTables.map((table) => [
     table,
     {
-      access: ['source_document_versions_c', 'source_extractions_c', 'source_verification_records_c', 'curriculum_import_batches_c'].includes(table) ? 'Inaccessible' : 'Read',
+      access: restrictedTeachingTables.includes(table) ? 'Inaccessible' : 'Read',
       ...(table === 'questions_c' ? { inaccessibleFields: ['answer_key_c', 'solution_c'] } : {}),
       ...(table === 'question_options_c' ? { inaccessibleFields: ['is_correct_c'] } : {}),
       ...(table === 'source_documents_c' ? { inaccessibleFields: ['storage_path_c', 'extracted_text_c'] } : {})
@@ -179,7 +187,7 @@ const parentAccess = {
   ...Object.fromEntries(academicTables.map((table) => [
     table,
     {
-      access: ['source_document_versions_c', 'source_extractions_c', 'source_verification_records_c', 'curriculum_import_batches_c'].includes(table) ? 'Inaccessible' : 'Read',
+      access: restrictedTeachingTables.includes(table) ? 'Inaccessible' : 'Read',
       ...(table === 'questions_c' ? { inaccessibleFields: ['answer_key_c', 'solution_c'] } : {}),
       ...(table === 'question_options_c' ? { inaccessibleFields: ['is_correct_c'] } : {}),
       ...(table === 'source_documents_c' ? { inaccessibleFields: ['storage_path_c', 'extracted_text_c'] } : {})
