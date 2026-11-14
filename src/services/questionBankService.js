@@ -187,7 +187,7 @@ export async function fetchQuestionBankPage({
 
   const result = await query
     .orderByDesc('CreatedOn')
-    .page(page, pageSize)
+    .limit(pageSize, (page - 1) * pageSize)
     .fetch();
 
   if (!result.success) {
