@@ -35,9 +35,19 @@ const QUESTION_SNAPSHOT_FIELDS = [
   'rights_status_c'
 ];
 
-async function readQuestionRows(table, fields, questionId, label) {
+async function readQuestionRows(tableName, fields, questionId, label) {
   const { eq } = window.ApperSDK.CoreSDK;
-  const result = await sdk.table(table)
+  const table = tableName === 'question_options_c'
+    ? sdk.table('question_options_c')
+    : tableName === 'question_concept_mappings_c'
+      ? sdk.table('question_concept_mappings_c')
+      : null;
+
+  if (!table) {
+    throw new Error('Unsupported question snapshot dependency: ' + tableName);
+  }
+
+  const result = await table
     .select(fields)
     .where(eq('question_c', questionId))
     .limit(250, 0)
