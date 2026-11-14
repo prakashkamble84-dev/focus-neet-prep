@@ -194,10 +194,17 @@ export async function fetchQuestionBankPage({
     throw new Error(result.message || 'The question bank could not be loaded.');
   }
 
+  const rows = result.data || [];
+  const total = Number(result.total ?? rows.length);
+  const offset = (page - 1) * pageSize;
+  const inferredMore = result.total !== undefined
+    ? total > offset + rows.length
+    : rows.length === pageSize;
+
   return {
-    rows: result.data || [],
-    total: Number(result.total ?? result.data?.length ?? 0),
-    hasMore: result.hasMore === true
+    rows,
+    total,
+    hasMore: result.hasMore === true || (result.hasMore !== false && inferredMore)
   };
 }
 
