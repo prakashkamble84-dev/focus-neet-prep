@@ -63,6 +63,42 @@ export async function fetchQuestionBankExaminations() {
   return result.data || [];
 }
 
+async function fetchVerifiedQuestionIdsForSubject(subject) {
+  const { eq, isIn } = window.ApperSDK.CoreSDK;
+  const nodesResult = await sdk.table('curriculum_nodes_c')
+    .select(['Id'])
+    .where(eq('node_type_c', 'Concept'))
+    .where(eq('subject_c', subject))
+    .where(eq('status_c', 'Published'))
+    .where(eq('verified_c', true))
+    .limit(1000, 0)
+    .fetch();
+
+  if (!nodesResult.success) {
+    throw new Error(nodesResult.message || 'Verified subject concepts could not be loaded.');
+  }
+
+  const nodeIds = (nodesResult.data || []).map((node) => node.Id);
+  if (!nodeIds.length) return [];
+
+  const mappingsResult = await sdk.table('question_concept_mappings_c')
+    .select(['question_c'])
+    .where(isIn('curriculum_node_c', nodeIds))
+    .where(eq('status_c', 'Verified'))
+    .where(eq('verified_c', true))
+    .limit(5000, 0)
+    .fetch();
+
+  if (!mappingsResult.success) {
+    throw new Error(mappingsResult.message || 'Verified question-to-concept mappings could not be loaded.');
+  }
+
+  return [...new Set((mappingsResult.data || [])
+    .map((mapping) => getId(mapping.question_c))
+    .filter(Boolean)
+    .map(String))];
+}
+
 export async function fetchQuestionBankPage({
   page = 1,
   pageSize = 20,
@@ -121,20 +157,8 @@ export async function fetchQuestionBankPage({
   }
 
   if (subject) {
-    const nodes = await sdk.table('curriculum_nodes_c')
-      .select(['Id'])
-      .where(eq('subject_c', subject))
-      .where(eq('status_c', 'Published'))
-      .where(eq('verified_c', true))
-      .limit(1000, 0)
-      .fetch();
-
-    if (!nodes.success) {
-      throw new Error(nodes.message || 'Subject filters could not be loaded.');
-    }
-
-    const nodeIds = (nodes.data || []).map((node) => node.Id);
-    if (!nodeIds.length) {
+    const questionIds = await fetchVerifiedQuestionIdsForSubject(subject);
+    if (!questionIds.length) {
       return {
         rows: [],
         total: 0,
@@ -142,7 +166,7 @@ export async function fetchQuestionBankPage({
       };
     }
 
-    clauses.push(isIn('curriculum_node_c', nodeIds));
+    clauses.push(isIn('Id', questionIds));
   }
 
   const normalizedSearch = String(search || '').trim();
@@ -177,38 +201,46 @@ export async function fetchQuestionBankPage({
   };
 }
 
-export async function fetchQuestionBankQuestionDetails(questionId) {
+export async function fetchQuestionBankQuestionDetails(questionId, profile = '') {
   const { eq } = window.ApperSDK.CoreSDK;
+  const isEditorial = canUseEditorialQuestionBank(profile);
+  let optionsQuery = sdk.table('question_options_c')
+    .select([
+      'Id',
+      'Name',
+      'question_c',
+      'option_key_c',
+      'option_text_c',
+      'sequence_c',
+      'is_correct_c',
+      'status_c'
+    ])
+    .where(eq('question_c', questionId))
+    .orderBy('sequence_c');
+
+  let mappingsQuery = sdk.table('question_concept_mappings_c')
+    .select([
+      'Id',
+      'Name',
+      'curriculum_node_c',
+      'mapping_type_c',
+      'confidence_c',
+      'verified_c',
+      'status_c'
+    ])
+    .where(eq('question_c', questionId))
+    .orderByDesc('CreatedOn');
+
+  if (!isEditorial) {
+    optionsQuery = optionsQuery.where(eq('status_c', 'Published'));
+    mappingsQuery = mappingsQuery
+      .where(eq('status_c', 'Verified'))
+      .where(eq('verified_c', true));
+  }
+
   const [optionsResult, mappingsResult] = await Promise.all([
-    sdk.table('question_options_c')
-      .select([
-        'Id',
-        'Name',
-        'question_c',
-        'option_key_c',
-        'option_text_c',
-        'sequence_c',
-        'is_correct_c',
-        'status_c'
-      ])
-      .where(eq('question_c', questionId))
-      .orderBy('sequence_c')
-      .limit(20, 0)
-      .fetch(),
-    sdk.table('question_concept_mappings_c')
-      .select([
-        'Id',
-        'Name',
-        'curriculum_node_c',
-        'mapping_type_c',
-        'confidence_c',
-        'verified_c',
-        'status_c'
-      ])
-      .where(eq('question_c', questionId))
-      .orderByDesc('CreatedOn')
-      .limit(50, 0)
-      .fetch()
+    optionsQuery.limit(20, 0).fetch(),
+    mappingsQuery.limit(50, 0).fetch()
   ]);
 
   if (!optionsResult.success) {
@@ -216,7 +248,7 @@ export async function fetchQuestionBankQuestionDetails(questionId) {
   }
 
   if (!mappingsResult.success) {
-    throw new Error(mappingsResult.message || 'Concept mappings could not be loaded.');
+    throw new Error(mappingsResult.message || 'Verified concept mappings could not be loaded.');
   }
 
   return {
@@ -285,7 +317,7 @@ export async function fetchQuestionBankGovernance(questionId) {
   }
 
   if (!mappingsResult.success) {
-    throw new Error(mappingsResult.message || 'Concept mappings could not be loaded.');
+    throw new Error(mappingsResult.message || 'Question concept mappings could not be loaded.');
   }
 
   if (!nodesResult.success) {
