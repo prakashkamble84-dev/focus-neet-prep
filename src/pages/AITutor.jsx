@@ -162,7 +162,7 @@ export default function AITutor() {
             AI teacher and doubt solver
           </h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Work through a question with hints, or ask for a complete explanation. The teacher can use your verified curriculum, mastery signals and open repair notes when that evidence exists.
+            Work through a question with hints, or ask for a complete explanation. The teacher can use published, verified curriculum, your mastery signals and open repair notes when that evidence exists.
           </p>
         </div>
         <Button variant="outline" onClick={startNewSession} disabled={loading || openingConversation}>
