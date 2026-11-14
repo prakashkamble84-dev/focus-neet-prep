@@ -151,6 +151,31 @@ export default function Settings() {
           </div>
         </form>
       )}
+
+      <section className="max-w-xl space-y-4 rounded-lg border border-border bg-card p-5 sm:p-7">
+        <div className="flex items-start gap-3">
+          <ApperIcon name="ShieldCheck" size={19} className="mt-0.5 shrink-0 text-primary" />
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold">Privacy and your data</h2>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Your practice answers, diagnostics, mistakes, revision items, mock test attempts and AI teacher conversations are stored against your own student account. Only you can see them, and no one else sees them unless you approve a link.
+            </p>
+          </div>
+        </div>
+        <ul className="space-y-2 text-sm leading-6 text-muted-foreground">
+          <li>Parents and mentors see your progress only after you approve the link, and you can revoke it at any time.</li>
+          <li>Your AI teacher conversations are private to your account.</li>
+          <li>Verified curriculum and question content is shared by every student and is not personal data.</li>
+        </ul>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/mentors">Manage parent and mentor links</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/ai-tutor">Open AI teacher history</Link>
+          </Button>
+        </div>
+      </section>
     </div>
   );
 }
