@@ -29,9 +29,9 @@ export default function SourceWorkflow() {
         <div className="flex items-start gap-3">
           <ApperIcon name="ScanSearch" size={18} className="mt-0.5 shrink-0 text-warning-foreground" />
           <div>
-            <p className="font-semibold">Automated OCR is not enabled yet</p>
+            <p className="font-semibold">Equation and diagram extraction not enabled yet</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              The registry supports PDF storage and manual page-level extraction records. Automated OCR, equation parsing and diagram recognition need a server-side extraction provider and evaluation tests before they can be enabled.
+              Page-level OCR is available from the extraction dialog and always needs reviewer verification. Equation parsing and diagram recognition still need evaluation tests before they can be enabled.
             </p>
           </div>
         </div>

@@ -243,9 +243,9 @@ export default function Curriculum() {
       <CurriculumImportBatches batches={batches} loading={batchesLoading} loaded={Boolean(batchesData)} />
 
       <div className="rounded-lg border border-warning/40 bg-warning/10 p-4">
-        <p className="font-semibold">No automated OCR or diagram extraction yet</p>
+        <p className="font-semibold">Equation and diagram extraction not enabled yet</p>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">
-          The source registry stores PDFs and supports page-level extraction and verification records. Automated OCR, equation parsing and diagram recognition need a server-side extraction provider and evaluation tests before they can be enabled.
+          The source registry stores PDFs, supports page-level OCR with manual verification, and records extraction and verification results. Equation parsing and diagram recognition still need evaluation tests before they can be enabled.
         </p>
       </div>
     </div>
