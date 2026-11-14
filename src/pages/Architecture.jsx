@@ -10,8 +10,8 @@ const phases = [
   ['02', 'Official sources and curriculum', 'Authority registry, versioned source documents, private PDF upload, rights review, manual page-extraction records, exam-year rules, syllabus change history, 2026 JEE Main/NEET unit-outline import, and NTA-listed JEE Main 2027 source records. Baseline rows require an authorised registration action; automated OCR remains pending.', 'Workflow built'],
   ['03', 'Knowledge graph', 'Concept identities, prerequisite edges, and mastery objectives.', 'Not started'],
   ['04', '30-year exam intelligence', 'Historical papers, OCR, DNA profiles, clustering, and crosswalks.', 'Not started'],
-  ['05', 'Question bank', 'Versioned questions, answer keys, source mappings, and search.', 'Not started'],
-  ['06', 'AI question generation', 'Original questions, independent solving, validation, and expert approval.', 'Not started'],
+  ['05', 'Question bank', 'Searchable published-question repository with examination filters, student-safe visibility, and answer-option inspection. The real corpus still depends on verified question records.', 'Workflow built'],
+  ['06', 'AI question generation', 'Authenticated Gemini endpoint, original-question authoring, blind independent solving, syllabus/difficulty/clarity/ambiguity checks, semantic and lexical duplicate screening, persisted validation evidence, Academic Expert approval, and separate CEO/Manager publication. The server-side Gemini key value is not yet configured.', 'Workflow built · key pending'],
   ['07', 'Diagnostics and student profile', 'Baseline assessment, strengths, gaps, and learning preferences.', 'Not started'],
   ['08', 'AI teacher', 'Guided hints, explanations, Gemini integration, and evaluation.', 'Not started'],
   ['09', 'Adaptive practice', 'Next-question selection using mastery, prerequisites, and novelty.', 'Not started'],
@@ -41,7 +41,7 @@ export default function Architecture() {
           <div>
             <p className="font-semibold">Current build status</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              The backend has 37 custom tables, eight application profiles, and 160 row-level policies. Phase 2 source and curriculum workflows are built, but official baseline rows still require registration from the Sources page, PDFs require upload and review, and automated OCR is not connected. NTA's 2027 syllabus and bulletin listings are recorded as Discovered, with no 2027 topics imported. Role-negative access tests and live AI are still pending.
+              The Phase 2 source workflow is available. The published Question Bank and Phase 6 question-generation, validation and editorial approval workflows are deployed on the connected application. Live Gemini generation remains gated on entering GEMINI_API_KEY in server-side Secrets Manager. Verified exam baselines, syllabus coverage, real question corpus, human academic sign-offs, and role-negative security tests remain explicit release requirements.
             </p>
           </div>
         </div>
