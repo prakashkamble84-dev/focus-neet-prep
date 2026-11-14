@@ -8,6 +8,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/layouts/RootLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import StudentProfileCard from '@/components/diagnostics/StudentProfileCard';
 import DiagnosticEvidencePanel from '@/components/diagnostics/DiagnosticEvidencePanel';
@@ -150,7 +151,7 @@ async function fetchStudentWorkspace(studentUserId) {
   };
 }
 
-export default function Diagnostics() {export default function Diagnostics() {
+export default function Diagnostics() {
   const { profile } = useProfile();
   const { user } = useAuth();
   const [refreshRevision, setRefreshRevision] = useState(0);
