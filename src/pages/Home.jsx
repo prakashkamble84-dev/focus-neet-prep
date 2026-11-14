@@ -150,7 +150,7 @@ export default function Home() {
             <h2 className="font-mono text-base font-semibold">Implementation status</h2>
           </div>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Phase 2 source and curriculum workflows are available. The published Question Bank and Phase 6 generation, validation and approval screens are deployed. The Gemini API key still needs to be entered in server-side Secrets Manager before live generation can run. Exam source baselines, verified syllabus coverage and human academic approvals remain data and governance work, not generated placeholders.
+            Phase 2 source and curriculum workflows are available. The published Question Bank and Phase 6 generation, validation and approval screens are deployed. The server-side Gemini secret is registered and has a value; the runtime secret lookup has been corrected, but a live generation run still requires an eligible published, expert-verified syllabus Concept and an authenticated academic editor. Exam source baselines and human academic approvals remain data and governance work, not generated placeholders.
           </p>
           <Link to="/architecture" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-highlight hover:underline">Review what is and is not live <ApperIcon name="ArrowRight" size={15} /></Link>
         </div>
