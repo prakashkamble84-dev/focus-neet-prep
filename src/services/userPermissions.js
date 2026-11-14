@@ -20,6 +20,8 @@ const academicTables = [
   'question_options_c',
   'question_concept_mappings_c',
   'question_reviews_c',
+  'question_generation_batches_c',
+  'question_generation_checks_c',
   'test_blueprints_c',
   'tests_c',
   'test_questions_c'
