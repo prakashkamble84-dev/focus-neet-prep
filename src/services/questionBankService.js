@@ -93,10 +93,15 @@ async function fetchVerifiedQuestionIdsForSubject(subject) {
     throw new Error(mappingsResult.message || 'Verified question-to-concept mappings could not be loaded.');
   }
 
-  return [...new Set((mappingsResult.data || [])
-    .map((mapping) => getId(mapping.question_c))
-    .filter(Boolean)
-    .map(String))];
+  const uniqueIds = new Map();
+  for (const mapping of mappingsResult.data || []) {
+    const questionId = getId(mapping.question_c);
+    if (questionId !== null && questionId !== undefined) {
+      uniqueIds.set(String(questionId), questionId);
+    }
+  }
+
+  return [...uniqueIds.values()];
 }
 
 export async function fetchQuestionBankPage({
