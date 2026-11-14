@@ -55,7 +55,7 @@ export default function Architecture() {
               <p className="font-semibold">{phase[1]}</p>
               <p className="mt-1 text-sm text-muted-foreground">{phase[2]}</p>
             </div>
-            <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${phase[3] === 'Schema provisioned' || phase[3] === 'Workflow built' ? 'bg-success/10 text-success' : index === 0 ? 'bg-warning/15 text-warning-foreground' : 'bg-muted text-muted-foreground'}`}>
+            <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${phase[3].includes('key pending') || index === 0 ? 'bg-warning/15 text-warning-foreground' : phase[3] === 'Schema provisioned' || phase[3] === 'Workflow built' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
               {phase[3]}
             </span>
           </div>
