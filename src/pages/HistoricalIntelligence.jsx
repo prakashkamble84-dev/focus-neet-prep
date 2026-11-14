@@ -93,6 +93,80 @@ function PaperCard({ paper }) {
   );
 }
 
+const CROSSWALK_FIELDS = [
+  'Name',
+  'source_version_c',
+  'target_version_c',
+  'source_node_c',
+  'target_node_c',
+  'mapping_type_c',
+  'status_c'
+];
+
+async function fetchCrosswalks() {
+  const result = await sdk.table('historical_syllabus_crosswalks_c')
+    .select(CROSSWALK_FIELDS)
+    .orderByDesc('CreatedOn')
+    .page(1, 50)
+    .fetch();
+  if (!result.success) throw new Error(result.message || 'Syllabus crosswalks could not be loaded.');
+  return result.data || [];
+}
+
+function CrosswalkSection() {
+  const { data, loading, error, run } = useFetch(fetchCrosswalks, []);
+  const rows = data || [];
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Syllabus crosswalks</h2>
+          <p className="text-xs text-muted-foreground">Mappings between syllabus versions, as recorded by the academic team.</p>
+        </div>
+        <Button type="button" variant="ghost" size="sm" onClick={run}><ApperIcon name="RefreshCw" size={14} className="mr-1" />Refresh</Button>
+      </div>
+
+      {loading && !data ? (
+        <Skeleton className="h-20 w-full" />
+      ) : error ? (
+        <Card><CardContent className="space-y-2 p-5">
+          <p className="font-semibold">Syllabus crosswalks could not be loaded</p>
+          <p className="text-sm text-destructive">{error}</p>
+          <Button type="button" variant="outline" onClick={run}>Retry</Button>
+        </CardContent></Card>
+      ) : rows.length ? (
+        <div className="grid gap-3">
+          {rows.map((row) => (
+            <Card key={row.Id}>
+              <CardContent className="space-y-2 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <p className="min-w-0 flex-1 truncate font-semibold" title={row.Name}>{row.Name || '—'}</p>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <Badge variant="outline">{row.mapping_type_c ?? '—'}</Badge>
+                    <Badge variant="outline">{row.status_c ?? '—'}</Badge>
+                  </div>
+                </div>
+                <p className="break-words text-xs text-muted-foreground">
+                  {row.source_version_c?.Name ?? '—'} → {row.target_version_c?.Name ?? '—'}
+                </p>
+                <p className="break-words text-xs text-muted-foreground">
+                  {row.source_node_c?.Name ?? '—'} → {row.target_node_c?.Name ?? '—'}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card><CardContent className="flex flex-col items-center gap-2 p-6 text-center">
+          <p className="font-semibold">No crosswalks recorded yet</p>
+          <p className="text-sm text-muted-foreground">Crosswalks appear here once the academic team maps one syllabus version to another. No sample mappings are shown.</p>
+        </CardContent></Card>
+      )}
+    </section>
+  );
+}
+
 export default function HistoricalIntelligence() {
   const [search, setSearch] = useState('');
   const [examId, setExamId] = useState('');
@@ -200,6 +274,7 @@ export default function HistoricalIntelligence() {
           </CardContent></Card>
         )}
       </section>
+      <CrosswalkSection />
     </div>
   );
 }
