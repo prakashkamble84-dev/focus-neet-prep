@@ -31,8 +31,8 @@ export async function saveHistoricalQuestionOptions({
   if (!['CEO', 'CEO_c', 'Manager', 'Manager_c', 'AcademicExpert_c'].includes(reviewerProfile)) {
     return { success: false, message: 'Only an Academic Expert or authorised academic editor can correct extracted answer options.' };
   }
-  if (question.source_type_c !== 'Historical' || !['New', 'Review'].includes(question.status_c)) {
-    return { success: false, message: 'Only historical questions in New or Review can have their extracted options corrected.' };
+  if (question.source_type_c !== 'Historical' || !['Draft', 'Review'].includes(question.status_c)) {
+    return { success: false, message: 'Only historical questions in Draft or Review can have their extracted options corrected.' };
   }
   if (!String(notes || '').trim()) {
     return { success: false, message: 'Record why the extracted options were corrected.' };

@@ -35,8 +35,8 @@ export async function saveHistoricalQuestionDNA(question, values, reviewerId, re
   if (!['CEO', 'CEO_c', 'Manager', 'Manager_c', 'AcademicExpert_c'].includes(reviewerProfile)) {
     return { success: false, message: 'Only academic editors can change historical question DNA.' };
   }
-  if (['Verified', 'Published'].includes(question.status_c)) {
-    return { success: false, message: 'A verified or published question cannot be silently reclassified. Reopen it through the formal content-review process.' };
+  if (['Verified', 'Published', 'Rejected'].includes(question.status_c)) {
+    return { success: false, message: 'A verified, published or rejected question cannot be silently reclassified. Reopen it through the formal content-review process.' };
   }
 
   const previous = {};

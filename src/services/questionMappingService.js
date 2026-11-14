@@ -132,10 +132,10 @@ export async function createQuestionConceptMapping({
   let question;
   try {
     question = await readQuestion(questionId);
-    if (!['New', 'Review'].includes(question.status_c)) {
+    if (!['Draft', 'Review'].includes(question.status_c)) {
       return {
         success: false,
-        message: 'Mappings can only be proposed while the question is in New or Review. Reopen published content through its formal review process.'
+        message: 'Mappings can only be proposed while the question is in Draft or Review. Reopen published content through its formal review process.'
       };
     }
 
@@ -244,10 +244,10 @@ export async function verifyQuestionConceptMapping({
   let question;
   try {
     question = await readQuestion(questionId);
-    if (!['New', 'Review'].includes(question.status_c)) {
+    if (!['Draft', 'Review'].includes(question.status_c)) {
       return {
         success: false,
-        message: 'A published or academically verified question cannot be remapped without reopening its review.'
+        message: 'A verified, published or rejected question cannot be remapped without reopening its review.'
       };
     }
 

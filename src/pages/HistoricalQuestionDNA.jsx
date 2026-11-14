@@ -300,8 +300,8 @@ export default function HistoricalQuestionDNA() {
     }
   }
 
-  const locked = !canEdit || !question || ['Verified', 'Published'].includes(question.status_c);
-  const canEditOptions = canEdit && question && ['New', 'Review'].includes(question.status_c) && ['MCQ', 'Multi'].includes(form.question_type_c || question.question_type_c);
+  const locked = !canEdit || !question || ['Verified', 'Published', 'Rejected'].includes(question.status_c);
+  const canEditOptions = canEdit && question && ['Draft', 'Review'].includes(question.status_c) && ['MCQ', 'Multi'].includes(form.question_type_c || question.question_type_c);
   const paper = data?.paper;
   const source = data?.sourceDocument;
   const sourceMatches = data?.sourceMatches === true;
@@ -357,7 +357,7 @@ export default function HistoricalQuestionDNA() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {canEdit && ['New', 'Review'].includes(question.status_c) ? (
+              {canEdit && ['Draft', 'Review'].includes(question.status_c) ? (
                 <div className="space-y-2">
                   <Label htmlFor="historical-question-correction">Extracted question text · editable correction</Label>
                   <Textarea
@@ -609,7 +609,7 @@ export default function HistoricalQuestionDNA() {
                 )}
                 {canEdit && (
                   <>
-                    <Button variant="outline" onClick={() => runReviewAction('text')} disabled={saving || !sourceMatches || !['New', 'Review'].includes(question.status_c) || !questionText.trim() || questionText.trim() === String(question.question_body_c || '').trim()}>
+                    <Button variant="outline" onClick={() => runReviewAction('text')} disabled={saving || !sourceMatches || !['Draft', 'Review'].includes(question.status_c) || !questionText.trim() || questionText.trim() === String(question.question_body_c || '').trim()}>
                       Save corrected transcription
                     </Button>
                     {canApproveAcademically && (

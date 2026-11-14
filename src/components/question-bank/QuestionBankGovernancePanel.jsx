@@ -46,9 +46,9 @@ export default function QuestionBankGovernancePanel({
   refreshKey = 0
 }) {
   const canEditMappings = ACADEMIC_EDITORS.includes(profile) &&
-    ['New', 'Review'].includes(question?.status_c);
+    ['Draft', 'Review'].includes(question?.status_c);
   const canVerifyMappings = profile === 'AcademicExpert_c' &&
-    ['New', 'Review'].includes(question?.status_c);
+    ['Draft', 'Review'].includes(question?.status_c);
   const [nodeId, setNodeId] = useState('');
   const [mappingType, setMappingType] = useState('Primary');
   const [confidence, setConfidence] = useState('0.8');
@@ -269,7 +269,7 @@ export default function QuestionBankGovernancePanel({
                 <div>
                   <h3 className="font-semibold">Propose a concept mapping</h3>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    Select a Published and expert-verified Concept node. New mappings enter Review and do not affect learning analytics until independently verified.
+                    Select a Published and expert-verified Concept node. Proposed mappings enter Review and do not affect learning analytics until independently verified.
                   </p>
                 </div>
 
