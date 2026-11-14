@@ -22,7 +22,7 @@ const workspaces = [
   { title: 'Question bank', detail: 'Search published, answer-validated questions and inspect answer choices.', icon: 'Library', path: '/question-bank', phase: 'Phase 5' },
   { title: 'AI question generation', detail: 'Create original drafts with blind solving, quality checks and human release gates.', icon: 'WandSparkles', path: '/question-generation', phase: 'Phase 6' },
   { title: 'Diagnostics & student profile', detail: 'Set exam goals, complete a verified baseline and build concept-level evidence.', icon: 'ClipboardList', path: '/diagnostics', phase: 'Phase 7', profiles: ['User', 'User_c'] },
-  { title: 'AI teacher', detail: 'Work through doubts with guided, inspectable explanations.', icon: 'Bot', path: '/ai-tutor', phase: 'Phase 8' },
+  { title: 'AI teacher', detail: 'Get hints and worked explanations grounded in your learning evidence and verified curriculum.', icon: 'Bot', path: '/ai-tutor', phase: 'Phase 8', profiles: ['User', 'User_c'] },
   { title: 'Adaptive practice', detail: 'Practise based on mastery, prerequisites, and mistake patterns.', icon: 'Target', path: '/practice', phase: 'Phase 9' },
   { title: 'Mistake DNA', detail: 'Find recurring error types and repair the underlying gaps.', icon: 'ScanSearch', path: '/mistake-dna', phase: 'Phase 10' },
   { title: 'Revision centre', detail: 'Turn weak concepts into a sustainable spaced-revision plan.', icon: 'CalendarClock', path: '/revision', phase: 'Phase 11' },
@@ -155,7 +155,7 @@ export default function Home() {
             <h2 className="font-mono text-base font-semibold">Implementation status</h2>
           </div>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Phase 2 source and curriculum workflows are available. The published Question Bank and Phase 6 generation, validation and approval screens are deployed. The server-side Gemini secret is registered and has a value; the runtime secret lookup has been corrected, but a live generation run still requires an eligible published, expert-verified syllabus Concept and an authenticated academic editor. Phase 7 student profile and diagnostic workflows are now implemented; a signed-in student test is still required to verify saved attempts and mastery updates. Exam source baselines and human academic approvals remain data and governance work, not generated placeholders.
+            Phase 2 source and curriculum workflows are available. The published Question Bank and Phase 6 generation, validation and approval screens are deployed. The server-side Gemini secret is registered and has a value; the runtime secret lookup has been corrected, but a live generation run still requires an eligible published, expert-verified syllabus Concept and an authenticated academic editor. Phase 7 student profile and diagnostic workflows are implemented; a signed-in student test is still required to verify saved attempts and mastery updates. Phase 8 Gemini tutoring now uses private conversation history plus the student's own learning evidence and verified curriculum; a signed-in student test remains required. Exam source baselines and human academic approvals remain data and governance work, not generated placeholders.
           </p>
           <Link to="/architecture" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-highlight hover:underline">Review what is and is not live <ApperIcon name="ArrowRight" size={15} /></Link>
         </div>
