@@ -256,17 +256,15 @@ export default function AcademicReview() {
       status="Review workflow active"
       statusTone="active"
       capabilities={[
-        'Reviewer queues and assignment',
-        'Source and extraction confidence inspection',
-        'Independent solution and answer-key verification',
-        'Duplicate, ambiguity, and syllabus-fit checks',
-        'Approve, reject, request correction, and supersede actions',
-        'Versioned audit trail for academic changes'
+        'Pending content approvals and question reviews queue',
+        'Approve, request changes, or reject with the reviewer recorded',
+        'Decisions saved to content approvals and question reviews',
+        'Recent review activity with status and decision notes'
       ]}
-      prerequisites={['Reviewer profiles and permissions', 'Source registry', 'Question validation services']}
+      prerequisites={['Reviewer profiles and permissions', 'Content approvals and question reviews tables']}
       nextPath="/sources"
       nextLabel="Review source governance"
-      note="Reviewer decisions are recorded in the content approval and question review tables and are visible only to governance profiles."
+      note="Reviewer decisions are recorded in the content approval and question review tables and are visible only to governance profiles. Assignment, solution verification and duplicate checks are not built yet."
     >
       <ReviewQueue />
       <ReviewActivity />
