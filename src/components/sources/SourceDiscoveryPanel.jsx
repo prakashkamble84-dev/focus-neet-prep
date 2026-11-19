@@ -16,6 +16,21 @@ export default function SourceDiscoveryPanel({ onAdded }) {
   const [savingUrl, setSavingUrl] = useState('');
   const [savedUrls, setSavedUrls] = useState([]);
   const { invoke, loading } = useFunction(import.meta.env.VITE_DISCOVER_CURRICULUM_SOURCES, { showError: false });
+  const { invoke: runOfficialRetrieval, loading: retrievalLoading } = useFunction(import.meta.env.VITE_SCHEDULED_SOURCE_RETRIEVAL, { showError: false });
+
+  async function retrieveOfficial() {
+    const response = await runOfficialRetrieval({});
+    if (!response) {
+      toast.error('Official source retrieval did not return a result');
+      return;
+    }
+    if (response.success === false) {
+      toast.error(response.message || 'Official source retrieval failed');
+      return;
+    }
+    toast.success('Official source retrieval finished', { description: response.message });
+    onAdded?.();
+  }
 
   async function discover() {
     const response = await invoke({ exam, query });
@@ -113,7 +128,13 @@ export default function SourceDiscoveryPanel({ onAdded }) {
             Search official authorities and unofficial education providers. Domain-based labels are discovery hints only: every result needs human authority, date and rights verification before use.
           </p>
         </div>
-        <Badge variant="outline">Official + unofficial</Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline">Official + unofficial</Badge>
+          <Button size="sm" variant="outline" onClick={retrieveOfficial} disabled={retrievalLoading}>
+            <ApperIcon name={retrievalLoading ? 'LoaderCircle' : 'DownloadCloud'} size={14} className={retrievalLoading ? 'animate-spin' : ''} />
+            {retrievalLoading ? 'Retrieving…' : 'Retrieve official sources'}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)_auto] sm:items-end">
