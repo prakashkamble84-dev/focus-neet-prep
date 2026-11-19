@@ -151,6 +151,11 @@ apper.serve(async (req) => {
   if (req.method !== "POST") return reply(405, { success: false, message: "Use POST." });
 
   try {
+    const cronToken = await apper.getSecret("RETRIEVAL_CRON_TOKEN");
+    const bearer = String(req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+    if (!cronToken || bearer !== cronToken) {
+      return reply(401, { success: false, message: "Retrieval requires the scheduler token." });
+    }
     const { eq, and } = sdk.core;
     const body = await req.json().catch(() => ({}));
     const registryId = String(body.registryId || "").trim();
