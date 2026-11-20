@@ -150,12 +150,16 @@ apper.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: HEADERS });
   if (req.method !== "POST") return reply(405, { success: false, message: "Use POST." });
 
+  const expectedToken = await apper.getSecret("RETRIEVAL_CRON_TOKEN");
+  if (!expectedToken) {
+    return reply(503, { success: false, message: "Scheduled source retrieval is not configured." });
+  }
+  const providedToken = String(req.headers.get("x-retrieval-token") || "");
+  if (providedToken.length !== expectedToken.length || providedToken !== expectedToken) {
+    return reply(401, { success: false, message: "Invalid retrieval token." });
+  }
+
   try {
-    const cronToken = await apper.getSecret("RETRIEVAL_CRON_TOKEN");
-    const bearer = String(req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-    if (!cronToken || bearer !== cronToken) {
-      return reply(401, { success: false, message: "Retrieval requires the scheduler token." });
-    }
     const { eq, and } = sdk.core;
     const body = await req.json().catch(() => ({}));
     const registryId = String(body.registryId || "").trim();
